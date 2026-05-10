@@ -28,6 +28,16 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 				}
 			}
 		}
+	}
+	// Strip admin-only groups (e.g. "enterprise") for non-members. Admin-only
+	// resources must be reachable only by users an administrator has explicitly
+	// placed there.
+	for name := range groupsCopy {
+		if name != userGroup && setting.IsAdminOnlyGroup(name) {
+			delete(groupsCopy, name)
+		}
+	}
+	if userGroup != "" {
 		// 如果userGroup不在UserUsableGroups中，返回UserUsableGroups + userGroup
 		if _, ok := groupsCopy[userGroup]; !ok {
 			groupsCopy[userGroup] = "用户分组"

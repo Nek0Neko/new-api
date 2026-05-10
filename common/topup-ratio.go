@@ -5,10 +5,16 @@ import (
 	"sync"
 )
 
+// topupGroupRatio is a per-group multiplier applied to the recharge price.
+// Convention: a user in this group pays (USD desired) * (platform unit price) *
+// topupGroupRatio. A ratio > 1 means this group pays a premium; < 1 a discount.
+// Defaults below realise the "1.5 RMB:1 USD" → VIP/SVIP/enterprise ladder;
+// admins may override via UpdateTopupGroupRatioByJSONString.
 var topupGroupRatio = map[string]float64{
-	"default": 1,
-	"vip":     1,
-	"svip":    1,
+	"default":    1.5,
+	"vip":        1.35,
+	"svip":       1.2,
+	"enterprise": 1,
 }
 var topupGroupRatioMutex sync.RWMutex
 

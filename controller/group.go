@@ -29,13 +29,16 @@ func GetUserGroups(c *gin.Context) {
 	userId := c.GetInt("id")
 	userGroup, _ = model.GetUserGroup(userId, false)
 	userUsableGroups := service.GetUserUsableGroups(userGroup)
-	for groupName, _ := range ratio_setting.GetGroupRatioCopy() {
-		// UserUsableGroups contains the groups that the user can use
-		if desc, ok := userUsableGroups[groupName]; ok {
-			usableGroups[groupName] = map[string]interface{}{
-				"ratio": service.GetUserGroupRatio(userGroup, groupName),
-				"desc":  desc,
-			}
+	for groupName := range ratio_setting.GetGroupRatioCopy() {
+		// service.GetUserUsableGroups already strips admin-only groups for
+		// non-members, so absence here naturally enforces visibility.
+		desc, ok := userUsableGroups[groupName]
+		if !ok {
+			continue
+		}
+		usableGroups[groupName] = map[string]interface{}{
+			"ratio": service.GetUserGroupRatio(userGroup, groupName),
+			"desc":  desc,
 		}
 	}
 	if _, ok := userUsableGroups["auto"]; ok {

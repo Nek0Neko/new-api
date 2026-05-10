@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TitledCard } from '@/components/ui/titled-card'
 import {
@@ -206,6 +207,9 @@ export function RechargeFormCard({
       }
       contentClassName='space-y-4 sm:space-y-6'
     >
+      {/* VIP tier hint: current ratio + next-tier progress. */}
+      <VipTierHint topupInfo={topupInfo} />
+
       {/* Online Topup Section */}
       {hasAnyTopup ? (
         <div className='space-y-4 sm:space-y-6'>
@@ -500,5 +504,70 @@ export function RechargeFormCard({
         </Alert>
       )}
     </TitledCard>
+  )
+}
+
+/**
+ * VipTierHint surfaces the user's current top-up ratio and progress toward the
+ * next auto-upgrade tier. Renders nothing when the backend doesn't return
+ * tier metadata (e.g. anonymous user, feature disabled, no tiers configured).
+ */
+function VipTierHint({ topupInfo }: { topupInfo: TopupInfo | null }) {
+  const { t } = useTranslation()
+  if (!topupInfo) return null
+  const ratio = topupInfo.current_topup_group_ratio
+  const groupName = topupInfo.current_group
+  if (!ratio || !groupName) return null
+
+  const tier = topupInfo.next_topup_tier
+  const totalCent = topupInfo.current_total_topup_amount ?? 0
+
+  return (
+    <div className='bg-muted/30 space-y-2 rounded-lg border px-3 py-2.5 text-xs sm:px-4 sm:text-sm'>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <span>
+          {t('Current group:')}{' '}
+          <span className='font-semibold'>{groupName}</span>
+        </span>
+        <span className='text-muted-foreground'>
+          {t('Top-up rate: {{ratio}}', { ratio: ratio.toFixed(2) })}
+        </span>
+      </div>
+      {tier ? (
+        <div className='space-y-1.5'>
+          <div className='flex flex-wrap items-center justify-between gap-2'>
+            <span>
+              {t('Next tier:')}{' '}
+              <span className='font-medium'>{tier.description}</span>
+              <span className='text-muted-foreground'>
+                {' '}
+                ({tier.topup_ratio.toFixed(2)}x)
+              </span>
+            </span>
+            <span className='text-muted-foreground'>
+              {t('Top up ¥{{remaining}} more to upgrade', {
+                remaining: (tier.remaining_cent / 100).toFixed(2),
+              })}
+            </span>
+          </div>
+          <Progress
+            value={
+              tier.threshold_cent > 0
+                ? Math.min(100, (totalCent / tier.threshold_cent) * 100)
+                : 0
+            }
+            className='h-1.5'
+          />
+          <div className='text-muted-foreground flex justify-between text-[10px] sm:text-xs'>
+            <span>¥{(totalCent / 100).toFixed(2)}</span>
+            <span>¥{(tier.threshold_cent / 100).toFixed(2)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className='text-muted-foreground'>
+          {t('You are at the highest auto-upgrade tier.')}
+        </div>
+      )}
+    </div>
   )
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 func GetTopUpInfo(c *gin.Context) {
@@ -94,6 +95,28 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
+	// User-specific VIP tier hint: current effective topup ratio + next-tier
+	// progress. Best-effort: any failure leaves the fields nil/zero.
+	var (
+		currentRatio       float64
+		currentTotalCent   int64
+		nextTier           gin.H
+		currentGroupName   string
+	)
+	userId := c.GetInt("id")
+	if userId > 0 {
+		if g, err := model.GetUserGroup(userId, false); err == nil && g != "" {
+			currentGroupName = g
+			currentRatio = common.GetTopupGroupRatio(g)
+		}
+		if user, err := model.GetUserById(userId, false); err == nil && user != nil {
+			currentTotalCent = user.TotalTopupAmount
+		}
+	}
+	if currentGroupName != "" {
+		nextTier = pickNextTopupTier(currentGroupName, currentTotalCent)
+	}
+
 	data := gin.H{
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
@@ -109,17 +132,61 @@ func GetTopUpInfo(c *gin.Context) {
 			}
 			return nil
 		}(),
-		"creem_products":          setting.CreemProducts,
-		"pay_methods":             payMethods,
-		"min_topup":               operation_setting.MinTopUp,
-		"stripe_min_topup":        setting.StripeMinTopUp,
-		"waffo_min_topup":         setting.WaffoMinTopUp,
-		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
-		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
-		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
-		"topup_link":              common.TopUpLink,
+		"creem_products":             setting.CreemProducts,
+		"pay_methods":                payMethods,
+		"min_topup":                  operation_setting.MinTopUp,
+		"stripe_min_topup":           setting.StripeMinTopUp,
+		"waffo_min_topup":            setting.WaffoMinTopUp,
+		"waffo_pancake_min_topup":    setting.WaffoPancakeMinTopUp,
+		"amount_options":             operation_setting.GetPaymentSetting().AmountOptions,
+		"discount":                   operation_setting.GetPaymentSetting().AmountDiscount,
+		"topup_link":                 common.TopUpLink,
+		"current_group":              currentGroupName,
+		"current_topup_group_ratio":  currentRatio,
+		"current_total_topup_amount": currentTotalCent,
+		"next_topup_tier":            nextTier,
 	}
 	common.ApiSuccess(c, data)
+}
+
+// pickNextTopupTier returns metadata for the next auto-upgrade tier the user is
+// eligible to reach, or nil when there is none. Cents are passed/returned as
+// platform billing currency cents (typically RMB分).
+func pickNextTopupTier(currentGroup string, currentTotalCent int64) gin.H {
+	currentMeta, currentKnown := setting.GetUserUsableGroupMeta(currentGroup)
+	currentThreshold := int64(0)
+	if currentKnown {
+		currentThreshold = currentMeta.UpgradeThreshold
+	}
+	metas := setting.GetUserUsableGroupMetaCopy()
+	bestName := ""
+	bestThreshold := int64(0)
+	for name, m := range metas {
+		if !m.AutoUpgrade || m.AdminOnly {
+			continue
+		}
+		if m.UpgradeThreshold <= currentThreshold {
+			continue
+		}
+		if bestName == "" || m.UpgradeThreshold < bestThreshold {
+			bestName = name
+			bestThreshold = m.UpgradeThreshold
+		}
+	}
+	if bestName == "" {
+		return nil
+	}
+	remaining := bestThreshold - currentTotalCent
+	if remaining < 0 {
+		remaining = 0
+	}
+	return gin.H{
+		"group":           bestName,
+		"description":     setting.GetUsableGroupDescription(bestName),
+		"threshold_cent":  bestThreshold,
+		"remaining_cent":  remaining,
+		"topup_ratio":     common.GetTopupGroupRatio(bestName),
+	}
 }
 
 type EpayRequest struct {
@@ -401,6 +468,15 @@ func EpayNotify(c *gin.Context) {
 			if err != nil {
 				logger.LogError(c.Request.Context(), fmt.Sprintf("易支付 更新用户额度失败 trade_no=%s user_id=%d client_ip=%s quota_to_add=%d error=%q topup=%q", topUp.TradeNo, topUp.UserId, c.ClientIP(), quotaToAdd, err.Error(), common.GetJsonString(topUp)))
 				return
+			}
+			// IncreaseUserQuota uses its own transaction; run the VIP-tier hook
+			// in a separate tx so SELECT FOR UPDATE locking is honored.
+			// Failure is logged but does not unwind the already-credited topup.
+			rmbCent := int64(topUp.Money * 100)
+			if upgradeErr := model.DB.Transaction(func(tx *gorm.DB) error {
+				return model.MaybeUpgradeUserGroup(tx, topUp.UserId, rmbCent)
+			}); upgradeErr != nil {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("易支付 自动升级分组失败 trade_no=%s user_id=%d error=%q", topUp.TradeNo, topUp.UserId, upgradeErr.Error()))
 			}
 			logger.LogInfo(c.Request.Context(), fmt.Sprintf("易支付 充值成功 trade_no=%s user_id=%d client_ip=%s quota_to_add=%d money=%.2f topup=%q", topUp.TradeNo, topUp.UserId, c.ClientIP(), quotaToAdd, topUp.Money, common.GetJsonString(topUp)))
 			model.RecordTopupLog(topUp.UserId, fmt.Sprintf("使用在线充值成功，充值金额: %v，支付金额：%f", logger.LogQuota(quotaToAdd), topUp.Money), c.ClientIP(), topUp.PaymentMethod, "epay")

@@ -151,6 +151,28 @@ export interface TopupInfo {
   payment_compliance_confirmed?: boolean
   /** Current compliance terms version */
   payment_compliance_terms_version?: string
+  /** Current user's group name (e.g. "default", "vip"). Empty when unknown. */
+  current_group?: string
+  /** Top-up ratio applied to the current user (e.g. 1.5 means 1.5 RMB:1 USD). */
+  current_topup_group_ratio?: number
+  /** Lifetime accumulated topup in cents of the platform billing currency. */
+  current_total_topup_amount?: number
+  /** Next auto-upgrade tier; null when no further tier exists. */
+  next_topup_tier?: NextTopupTier | null
+}
+
+/**
+ * Next VIP/SVIP tier the user can reach by accumulating more topups.
+ */
+export interface NextTopupTier {
+  group: string
+  description: string
+  /** Threshold to reach this tier, in cents of the platform billing currency. */
+  threshold_cent: number
+  /** How many more cents the user needs to top-up to reach this tier. */
+  remaining_cent: number
+  /** Top-up ratio that will apply once the user reaches this tier. */
+  topup_ratio: number
 }
 
 /**
