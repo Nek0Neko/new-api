@@ -7,43 +7,41 @@ import (
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
-func GetUserUsableGroups(userGroup string) map[string]string {
-	groupsCopy := setting.GetUserUsableGroupsCopy()
-	if userGroup != "" {
-		specialSettings, b := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userGroup)
-		if b {
-			// 处理特殊可用分组
-			for specialGroup, desc := range specialSettings {
-				if strings.HasPrefix(specialGroup, "-:") {
-					// 移除分组
-					groupToRemove := strings.TrimPrefix(specialGroup, "-:")
-					delete(groupsCopy, groupToRemove)
-				} else if strings.HasPrefix(specialGroup, "+:") {
-					// 添加分组
-					groupToAdd := strings.TrimPrefix(specialGroup, "+:")
-					groupsCopy[groupToAdd] = desc
-				} else {
-					// 直接添加分组
-					groupsCopy[specialGroup] = desc
+// GetUserUsableGroups returns the channel groups accessible to a user of the
+// given tier. The result maps channel-group name -> display description.
+//
+// Source of truth for channel groups is ratio_setting.GroupRatio. Tier-specific
+// access overlays live in ratio_setting.GroupSpecialUsableGroup, where the
+// inner map keys may be prefixed:
+//   - "+:name"  grant access (with description)
+//   - "-:name"  deny access
+//   - "name"    grant access (with description)
+//
+// Tiers are independent of channel groups; a tier name will never be returned
+// here unless an admin has explicitly created a channel group with the same
+// name.
+func GetUserUsableGroups(userTier string) map[string]string {
+	channelGroups := ratio_setting.GetGroupRatioCopy()
+	out := make(map[string]string, len(channelGroups))
+	for name := range channelGroups {
+		out[name] = name
+	}
+
+	if userTier != "" {
+		if special, ok := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userTier); ok {
+			for spec, desc := range special {
+				switch {
+				case strings.HasPrefix(spec, "-:"):
+					delete(out, strings.TrimPrefix(spec, "-:"))
+				case strings.HasPrefix(spec, "+:"):
+					out[strings.TrimPrefix(spec, "+:")] = desc
+				default:
+					out[spec] = desc
 				}
 			}
 		}
 	}
-	// Strip admin-only groups (e.g. "enterprise") for non-members. Admin-only
-	// resources must be reachable only by users an administrator has explicitly
-	// placed there.
-	for name := range groupsCopy {
-		if name != userGroup && setting.IsAdminOnlyGroup(name) {
-			delete(groupsCopy, name)
-		}
-	}
-	if userGroup != "" {
-		// 如果userGroup不在UserUsableGroups中，返回UserUsableGroups + userGroup
-		if _, ok := groupsCopy[userGroup]; !ok {
-			groupsCopy[userGroup] = "用户分组"
-		}
-	}
-	return groupsCopy
+	return out
 }
 
 func GroupInUserUsableGroups(userGroup, groupName string) bool {
@@ -63,13 +61,12 @@ func GetUserAutoGroup(userGroup string) []string {
 	return autoGroups
 }
 
-// GetUserGroupRatio 获取用户使用某个分组的倍率
-// userGroup 用户分组
-// group 需要获取倍率的分组
+// GetUserGroupRatio 返回某个 channel group 的倍率。
+//
+// userGroup 仅作为参数保留以维持调用方签名稳定；用户等级 (tier) 已不再影响
+// 计费倍率，倍率完全由 channel group 决定。等级折扣只用于充值优惠，见
+// common.TopupGroupRatio。
 func GetUserGroupRatio(userGroup, group string) float64 {
-	ratio, ok := ratio_setting.GetGroupGroupRatio(userGroup, group)
-	if ok {
-		return ratio
-	}
+	_ = userGroup
 	return ratio_setting.GetGroupRatio(group)
 }

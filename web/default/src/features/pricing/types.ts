@@ -89,6 +89,12 @@ export type ModelCapability =
   | 'caching'
   | 'embeddings'
 
+export type UserTierMeta = {
+  name: string
+  description: string
+  topup_ratio: number
+}
+
 export type PricingData = {
   success: boolean
   message?: string
@@ -98,6 +104,12 @@ export type PricingData = {
   usable_group: Record<string, { desc: string; ratio: number }>
   supported_endpoint: Record<string, string>
   auto_groups: string[]
+  /** Current user's tier (default/vip/svip/enterprise). Empty for anonymous. */
+  user_tier?: string
+  /** Tier-driven recharge multiplier; never affects request-time billing. */
+  topup_ratio?: number
+  /** Full tier metadata (name + description + topup_ratio). */
+  user_tier_meta?: UserTierMeta
 }
 
 export type TokenUnit = 'M' | 'K'

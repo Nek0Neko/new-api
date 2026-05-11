@@ -4003,6 +4003,7 @@
     "Top-Up Link": "チャージリンク",
     "top-up ratio": "チャージ倍率",
     "Topup Amount": "チャージ額",
+    "Topup discount: {{ratio}}x": "チャージ割引：{{ratio}}x",
     "Total": "合計",
     "Total Allocated": "総割り当て",
     "Total check-ins": "総チェックイン数",

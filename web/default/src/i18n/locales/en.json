@@ -4003,6 +4003,7 @@
     "Top-Up Link": "Top-Up Link",
     "top-up ratio": "top-up ratio",
     "Topup Amount": "Topup Amount",
+    "Topup discount: {{ratio}}x": "Topup discount: {{ratio}}x",
     "Total": "Total",
     "Total Allocated": "Total Allocated",
     "Total check-ins": "Total check-ins",

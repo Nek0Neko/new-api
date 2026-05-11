@@ -4003,6 +4003,7 @@
     "Top-Up Link": "充值链接",
     "top-up ratio": "充值倍率",
     "Topup Amount": "充值金额",
+    "Topup discount: {{ratio}}x": "充值倍率：{{ratio}}x",
     "Total": "总计",
     "Total Allocated": "总分配",
     "Total check-ins": "累计签到",

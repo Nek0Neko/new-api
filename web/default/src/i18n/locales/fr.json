@@ -4003,6 +4003,7 @@
     "Top-Up Link": "Lien de recharge",
     "top-up ratio": "ratio de recharge",
     "Topup Amount": "Montant de la recharge",
+    "Topup discount: {{ratio}}x": "Remise de recharge : {{ratio}}x",
     "Total": "Total",
     "Total Allocated": "Total alloué",
     "Total check-ins": "Total des connexions",

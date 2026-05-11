@@ -9,23 +9,29 @@ import (
 	"github.com/QuantumNous/new-api/types"
 )
 
+// defaultGroupRatio holds the per-channel-group billing multiplier.
+//
+// Channel groups are tags attached to channels (Channel.Group, comma-separated)
+// and tokens (Token.Group); they exist to let admins assign different ratios
+// to upstreams that serve the same model at different costs (e.g. a cheap
+// "claude-pool" at 1.5x and a premium "claude-pool-direct" at 3x).
+//
+// Channel groups are independent of user tiers (default/vip/svip/enterprise).
+// User tiers only affect topup discounts (see common/topup-ratio.go) and never
+// the request-time billing multiplier.
 var defaultGroupRatio = map[string]float64{
-	"default":    1,
-	"vip":        1,
-	"svip":       1,
-	"enterprise": 1,
+	"default": 1,
 }
 
 var groupRatioMap = types.NewRWMap[string, float64]()
 
-var defaultGroupGroupRatio = map[string]map[string]float64{
-	"vip": {
-		"edit_this": 0.9,
-	},
-}
-
-var groupGroupRatioMap = types.NewRWMap[string, map[string]float64]()
-
+// defaultGroupSpecialUsableGroup maps a user tier to extra channel-group access
+// rules. The tier name is the outer key. The inner map's keys may be:
+//   - "name"        => grant access to channel group "name"
+//   - "+:name"      => grant access to channel group "name"
+//   - "-:name"      => deny access to channel group "name"
+//
+// The inner value is a description shown in the UI.
 var defaultGroupSpecialUsableGroup = map[string]map[string]string{
 	"vip": {
 		"append_1":   "vip_special_group_1",
@@ -34,9 +40,8 @@ var defaultGroupSpecialUsableGroup = map[string]map[string]string{
 }
 
 type GroupRatioSetting struct {
-	GroupRatio              *types.RWMap[string, float64]            `json:"group_ratio"`
-	GroupGroupRatio         *types.RWMap[string, map[string]float64] `json:"group_group_ratio"`
-	GroupSpecialUsableGroup *types.RWMap[string, map[string]string]  `json:"group_special_usable_group"`
+	GroupRatio              *types.RWMap[string, float64]           `json:"group_ratio"`
+	GroupSpecialUsableGroup *types.RWMap[string, map[string]string] `json:"group_special_usable_group"`
 }
 
 var groupRatioSetting GroupRatioSetting
@@ -46,12 +51,10 @@ func init() {
 	groupSpecialUsableGroup.AddAll(defaultGroupSpecialUsableGroup)
 
 	groupRatioMap.AddAll(defaultGroupRatio)
-	groupGroupRatioMap.AddAll(defaultGroupGroupRatio)
 
 	groupRatioSetting = GroupRatioSetting{
 		GroupSpecialUsableGroup: groupSpecialUsableGroup,
 		GroupRatio:              groupRatioMap,
-		GroupGroupRatio:         groupGroupRatioMap,
 	}
 
 	config.GlobalConfig.Register("group_ratio_setting", &groupRatioSetting)
@@ -89,26 +92,6 @@ func GetGroupRatio(name string) float64 {
 		return 1
 	}
 	return ratio
-}
-
-func GetGroupGroupRatio(userGroup, usingGroup string) (float64, bool) {
-	gp, ok := groupGroupRatioMap.Get(userGroup)
-	if !ok {
-		return -1, false
-	}
-	ratio, ok := gp[usingGroup]
-	if !ok {
-		return -1, false
-	}
-	return ratio, true
-}
-
-func GroupGroupRatio2JSONString() string {
-	return groupGroupRatioMap.MarshalJSONString()
-}
-
-func UpdateGroupGroupRatioByJSONString(jsonStr string) error {
-	return types.LoadFromJsonString(groupGroupRatioMap, jsonStr)
 }
 
 func CheckGroupRatio(jsonStr string) error {

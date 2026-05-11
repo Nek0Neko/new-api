@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Badge } from '@/components/ui/badge'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import {
@@ -47,6 +48,9 @@ export function Pricing() {
     usableGroup,
     endpointMap,
     autoGroups,
+    userTier,
+    topupRatio,
+    userTierMeta,
     isLoading,
     priceRate,
     usdExchangeRate,
@@ -199,6 +203,18 @@ export function Pricing() {
               )}
               className='mx-auto mt-4 max-w-2xl sm:mt-6'
             />
+            {userTier ? (
+              <div className='mt-3 flex items-center justify-center gap-2 text-xs sm:text-sm'>
+                <Badge variant='secondary' className='font-medium uppercase'>
+                  {userTierMeta?.description || userTier}
+                </Badge>
+                {topupRatio !== 1 ? (
+                  <span className='text-muted-foreground'>
+                    {t('Topup discount: {{ratio}}x', { ratio: topupRatio })}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </header>
 
           <div className='grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]'>

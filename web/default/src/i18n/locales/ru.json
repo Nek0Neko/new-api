@@ -4003,6 +4003,7 @@
     "Top-Up Link": "Ссылка для пополнения",
     "top-up ratio": "коэффициент пополнения",
     "Topup Amount": "Сумма пополнения",
+    "Topup discount: {{ratio}}x": "Скидка на пополнение: {{ratio}}x",
     "Total": "Всего",
     "Total Allocated": "Всего выделено",
     "Total check-ins": "Общая проверка",
