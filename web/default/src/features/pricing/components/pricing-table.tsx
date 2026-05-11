@@ -47,6 +47,8 @@ export interface PricingTableProps {
   tokenUnit?: TokenUnit
   showRechargePrice?: boolean
   onModelClick?: (modelName: string) => void
+  previewGroup?: string
+  groupRatio?: Record<string, number>
 }
 
 export function PricingTable(props: PricingTableProps) {
@@ -59,6 +61,8 @@ export function PricingTable(props: PricingTableProps) {
     tokenUnit = DEFAULT_TOKEN_UNIT,
     showRechargePrice = false,
     onModelClick,
+    previewGroup,
+    groupRatio,
   } = props
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -71,6 +75,8 @@ export function PricingTable(props: PricingTableProps) {
     priceRate,
     usdExchangeRate,
     showRechargePrice,
+    previewGroup,
+    groupRatio,
   })
 
   const table = useReactTable({

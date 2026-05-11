@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useState } from 'react'
 import {
-  ArrowUpDown,
   Check,
+  ChevronDown,
   Filter,
   Grid2X2,
   RefreshCw,
@@ -47,31 +47,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  VIEW_MODES,
-  getSortLabels,
-  type SortOption,
-  type ViewMode,
-} from '../constants'
-import type { PricingModel, PricingVendor, TokenUnit } from '../types'
+import { VIEW_MODES, type ViewMode } from '../constants'
+import type { PricingModel, PricingVendor } from '../types'
 import { PricingSidebar } from './pricing-sidebar'
+import { SearchBar } from './search-bar'
 
 type SegmentOption = {
   value: string
-  label?: string
   icon?: React.ComponentType<{ className?: string }>
   tooltip?: string
 }
 
 export interface PricingToolbarProps {
-  filteredCount: number
-  totalCount?: number
-  sortBy: string
-  onSortChange: (value: string) => void
-  tokenUnit: TokenUnit
-  onTokenUnitChange: (value: TokenUnit) => void
-  showRechargePrice: boolean
-  onRechargePriceChange: (value: boolean) => void
   viewMode: ViewMode
   onViewModeChange: (value: ViewMode) => void
   quotaTypeFilter: string
@@ -83,11 +70,16 @@ export interface PricingToolbarProps {
   vendors: PricingVendor[]
   tags: string[]
   models: PricingModel[]
-  hasActiveFilters: boolean
   activeFilterCount: number
-  onClearFilters: () => void
-  userTier?: string
+  /** Search input value (now lives inside the toolbar row). */
+  searchValue: string
+  onSearchChange: (value: string) => void
+  onSearchClear: () => void
+  /** Channel groups visible to the current user. */
+  availableGroups?: string[]
   groupRatio?: Record<string, number>
+  previewGroup?: string
+  onPreviewGroupChange?: (value: string) => void
   onRefresh?: () => void
   isRefreshing?: boolean
 }
@@ -114,15 +106,13 @@ function SegmentedControl(props: {
             onClick={() => props.onChange(option.value)}
             aria-pressed={isActive}
             className={cn(
-              'inline-flex h-full items-center justify-center rounded-md text-xs font-medium transition-all',
-              Icon && !option.label ? 'w-7' : 'gap-1.5 px-3',
+              'inline-flex h-full w-7 items-center justify-center rounded-md text-xs font-medium transition-all',
               isActive
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
             {Icon && <Icon className='size-3.5' />}
-            {option.label}
           </button>
         )
 
@@ -146,158 +136,117 @@ function SegmentedControl(props: {
 export function PricingToolbar(props: PricingToolbarProps) {
   const { t } = useTranslation()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  const sortLabels = getSortLabels(t)
-
-  const handleTokenUnitChange = useCallback(
-    (value: string) => props.onTokenUnitChange(value as TokenUnit),
-    [props]
-  )
 
   const handleViewModeChange = useCallback(
     (value: string) => props.onViewModeChange(value as ViewMode),
     [props]
   )
 
-  const handleRechargePriceChange = useCallback(
-    (value: string) => props.onRechargePriceChange(value === 'recharge'),
-    [props]
-  )
+  const groupOptions = props.availableGroups ?? []
+  const previewGroupLabel = props.previewGroup ?? ''
 
   return (
-    <div className='rounded-xl border p-3'>
-      <div className='flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
-        <div className='flex items-center gap-2'>
-          <Button
-            type='button'
-            variant='outline'
-            size='sm'
-            onClick={() => setMobileFiltersOpen(true)}
-            className='gap-1.5 xl:hidden'
+    <div className='flex items-center gap-2'>
+      <Button
+        type='button'
+        variant='outline'
+        size='sm'
+        onClick={() => setMobileFiltersOpen(true)}
+        className='shrink-0 gap-1.5 xl:hidden'
+      >
+        <Filter className='size-4' />
+        {t('Filter')}
+        {props.activeFilterCount > 0 && (
+          <Badge className='ml-0.5 size-5 justify-center p-0 text-[10px]'>
+            {props.activeFilterCount}
+          </Badge>
+        )}
+      </Button>
+
+      <SearchBar
+        value={props.searchValue}
+        onChange={props.onSearchChange}
+        onClear={props.onSearchClear}
+        placeholder={t('Search models...')}
+        className='min-w-0 flex-1'
+      />
+
+      {props.onPreviewGroupChange && groupOptions.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='h-9 shrink-0 gap-1.5 px-3 text-xs'
+              />
+            }
           >
-            <Filter className='size-4' />
-            {t('Filter')}
-            {props.activeFilterCount > 0 && (
-              <Badge className='ml-0.5 size-5 justify-center p-0 text-[10px]'>
-                {props.activeFilterCount}
-              </Badge>
-            )}
-          </Button>
-
-          <div className='text-muted-foreground flex items-baseline gap-1 text-sm'>
-            <span className='text-foreground font-semibold tabular-nums'>
-              {props.filteredCount.toLocaleString()}
+            <span className='truncate font-semibold tracking-wide uppercase'>
+              {previewGroupLabel || t('Group')}
             </span>
-            <span>{props.filteredCount === 1 ? t('model') : t('models')}</span>
-            {props.hasActiveFilters && props.totalCount && (
-              <span className='text-muted-foreground/60 text-xs'>
-                / {props.totalCount.toLocaleString()}
-              </span>
-            )}
-          </div>
-
-          {props.onRefresh && (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    onClick={props.onRefresh}
-                    disabled={props.isRefreshing}
-                    aria-label={t('Refresh')}
-                    className='size-7'
-                  />
-                }
+            <ChevronDown className='size-3.5' />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end' className='w-48'>
+            {groupOptions.map((group) => (
+              <DropdownMenuItem
+                key={group}
+                onClick={() => props.onPreviewGroupChange?.(group)}
+                className='gap-2'
               >
-                <RefreshCw
+                <Check
                   className={cn(
-                    'size-3.5',
-                    props.isRefreshing && 'animate-spin'
+                    'size-4 shrink-0',
+                    previewGroupLabel === group ? 'opacity-100' : 'opacity-0'
                   )}
                 />
-              </TooltipTrigger>
-              <TooltipContent side='bottom' className='text-xs'>
-                {t('Refresh')}
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+                <span className='flex-1 truncate'>{group}</span>
+                {props.groupRatio?.[group] != null && (
+                  <span className='text-muted-foreground tabular-nums'>
+                    ×{props.groupRatio[group]}
+                  </span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-        <div className='flex flex-wrap items-center gap-2'>
-          <div className='hidden items-center gap-2 sm:flex'>
-            <SegmentedControl
-              options={[
-                { value: 'standard', label: t('Standard') },
-                { value: 'recharge', label: t('Recharge') },
-              ]}
-              value={props.showRechargePrice ? 'recharge' : 'standard'}
-              onChange={handleRechargePriceChange}
-              ariaLabel={t('Price display mode')}
+      {props.onRefresh && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                onClick={props.onRefresh}
+                disabled={props.isRefreshing}
+                aria-label={t('Refresh')}
+                className='size-9 shrink-0'
+              />
+            }
+          >
+            <RefreshCw
+              className={cn('size-3.5', props.isRefreshing && 'animate-spin')}
             />
-            <SegmentedControl
-              options={[
-                { value: 'M', label: '/1M' },
-                { value: 'K', label: '/1K' },
-              ]}
-              value={props.tokenUnit}
-              onChange={handleTokenUnitChange}
-              ariaLabel={t('Token unit')}
-            />
-          </div>
+          </TooltipTrigger>
+          <TooltipContent side='bottom' className='text-xs'>
+            {t('Refresh')}
+          </TooltipContent>
+        </Tooltip>
+      )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  className='h-8 gap-1.5 px-3 text-xs'
-                />
-              }
-            >
-              <ArrowUpDown className='size-3.5' />
-              <span>{sortLabels[props.sortBy as SortOption] || t('Sort')}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end' className='w-44'>
-              {Object.entries(sortLabels).map(([value, label]) => (
-                <DropdownMenuItem
-                  key={value}
-                  onClick={() => props.onSortChange(value)}
-                  className='gap-2'
-                >
-                  <Check
-                    className={cn(
-                      'size-4 shrink-0',
-                      props.sortBy === value ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  {label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <SegmentedControl
-            options={[
-              {
-                value: VIEW_MODES.CARD,
-                icon: Grid2X2,
-                tooltip: t('Card view'),
-              },
-              {
-                value: VIEW_MODES.TABLE,
-                icon: Table2,
-                tooltip: t('Table view'),
-              },
-            ]}
-            value={props.viewMode}
-            onChange={handleViewModeChange}
-            ariaLabel={t('View mode')}
-          />
-        </div>
-      </div>
+      <SegmentedControl
+        options={[
+          { value: VIEW_MODES.CARD, icon: Grid2X2, tooltip: t('Card view') },
+          { value: VIEW_MODES.TABLE, icon: Table2, tooltip: t('Table view') },
+        ]}
+        value={props.viewMode}
+        onChange={handleViewModeChange}
+        ariaLabel={t('View mode')}
+      />
 
       <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
         <SheetContent
@@ -321,11 +270,6 @@ export function PricingToolbar(props: PricingToolbarProps) {
               vendors={props.vendors}
               tags={props.tags}
               models={props.models}
-              hasActiveFilters={props.hasActiveFilters}
-              onClearFilters={props.onClearFilters}
-              userTier={props.userTier}
-              groupRatio={props.groupRatio}
-              className='border-0 bg-transparent p-0 shadow-none'
             />
           </div>
         </SheetContent>

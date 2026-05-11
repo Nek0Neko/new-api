@@ -35,6 +35,8 @@ import {
 import { parseTags } from '../lib/filters'
 import { getBillingMode } from '../lib/model-helpers'
 import {
+  formatFixedPrice,
+  formatGroupPrice,
   formatPrice,
   formatRequestPrice,
   stripTrailingZeros,
@@ -50,6 +52,8 @@ export interface PricingColumnsOptions {
   priceRate?: number
   usdExchangeRate?: number
   showRechargePrice?: boolean
+  previewGroup?: string
+  groupRatio?: Record<string, number>
 }
 
 function renderLimitedTags(
@@ -103,9 +107,14 @@ export function usePricingColumns(
     priceRate = 1,
     usdExchangeRate = 1,
     showRechargePrice = false,
+    previewGroup,
+    groupRatio,
   } = options
 
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
+  const useGroup = Boolean(previewGroup && groupRatio?.[previewGroup] != null)
+  const groupKey = previewGroup ?? ''
+  const groupMap = groupRatio ?? {}
 
   return [
     // Model column
@@ -226,24 +235,46 @@ export function usePricingColumns(
 
         if (billingMode === 'token') {
           const inputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'input',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate
-            )
+            useGroup
+              ? formatGroupPrice(
+                  model,
+                  groupKey,
+                  'input',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate,
+                  groupMap
+                )
+              : formatPrice(
+                  model,
+                  'input',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate
+                )
           )
           const outputPrice = stripTrailingZeros(
-            formatPrice(
-              model,
-              'output',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate
-            )
+            useGroup
+              ? formatGroupPrice(
+                  model,
+                  groupKey,
+                  'output',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate,
+                  groupMap
+                )
+              : formatPrice(
+                  model,
+                  'output',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate
+                )
           )
 
           return (
@@ -262,14 +293,25 @@ export function usePricingColumns(
 
         if (billingMode === 'per_second') {
           const price = stripTrailingZeros(
-            formatPrice(
-              model,
-              'input',
-              tokenUnit,
-              showRechargePrice,
-              priceRate,
-              usdExchangeRate
-            )
+            useGroup
+              ? formatGroupPrice(
+                  model,
+                  groupKey,
+                  'input',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate,
+                  groupMap
+                )
+              : formatPrice(
+                  model,
+                  'input',
+                  tokenUnit,
+                  showRechargePrice,
+                  priceRate,
+                  usdExchangeRate
+                )
           )
           return (
             <div className='min-w-[100px]'>
@@ -282,12 +324,21 @@ export function usePricingColumns(
         }
 
         const price = stripTrailingZeros(
-          formatRequestPrice(
-            model,
-            showRechargePrice,
-            priceRate,
-            usdExchangeRate
-          )
+          useGroup
+            ? formatFixedPrice(
+                model,
+                groupKey,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate,
+                groupMap
+              )
+            : formatRequestPrice(
+                model,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate
+              )
         )
 
         return (
@@ -351,14 +402,25 @@ export function usePricingColumns(
         }
 
         const cachedPrice = stripTrailingZeros(
-          formatPrice(
-            model,
-            'cache',
-            tokenUnit,
-            showRechargePrice,
-            priceRate,
-            usdExchangeRate
-          )
+          useGroup
+            ? formatGroupPrice(
+                model,
+                groupKey,
+                'cache',
+                tokenUnit,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate,
+                groupMap
+              )
+            : formatPrice(
+                model,
+                'cache',
+                tokenUnit,
+                showRechargePrice,
+                priceRate,
+                usdExchangeRate
+              )
         )
 
         return (

@@ -1,0 +1,2288 @@
+{
+    "_": "a42d372ccf0b5dd13ecf71203521f9d2",
+    "auto_groups": [
+        "default"
+    ],
+    "data": [
+        {
+            "model_name": "gpt-5.1-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ],
+            "pricing_version": "5a90f2b86c08bd983a9a2e6d66c255f4eaef9c4bc934386d2b6ae84ef0ff1f1f"
+        },
+        {
+            "model_name": "veo3.1-4k",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 1.2,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-opus-4-7",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 0.1,
+            "create_cache_ratio": 1.25,
+            "enable_groups": [
+                "Claude Max",
+                "Claude Cheap"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-opus-4-7-thinking",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 0.1,
+            "create_cache_ratio": 1.25,
+            "enable_groups": [
+                "Claude Cheap",
+                "Claude Max"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.104,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.104,
+            "enable_groups": [
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-opus-4-6",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 0.1,
+            "create_cache_ratio": 1.25,
+            "enable_groups": [
+                "Claude Cheap",
+                "Claude Max"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "sora-2",
+            "tags": "VIDEO,PER-SECOND",
+            "vendor_id": 1,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.05,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "Sora"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.12,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-pro-preview-thinking-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-flash-image-preview",
+            "tags": "IMAGE",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.18,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-preview-thinking-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-preview-thinking",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.104,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "veo3.1-pro",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 3,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-image-2",
+            "tags": "IMAGE",
+            "vendor_id": 1,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.05,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-image-2-vip",
+            "tags": "IMAGE",
+            "vendor_id": 1,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.08,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-preview-thinking-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview-thinking",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3.1-pro-preview",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 1,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.104,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "facetalk",
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.006,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "seedance-2-480p",
+            "icon": "Doubao",
+            "tags": "VIDEO,PER-SECOND",
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.7,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-minimal",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 37.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-sonnet-4-6-thinking",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 1.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Claude Cheap",
+                "Claude Max"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.3-codex-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "veo3.1",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.6,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.12,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "deepseek-v3.2-thinking",
+            "tags": "TEXT,VISION,THINKING",
+            "quota_type": 0,
+            "model_ratio": 0.14,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 1.5,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview-thinking-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.104,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-codex",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "deepseek-v3.2",
+            "tags": "TEXT,VISION",
+            "vendor_id": 4,
+            "quota_type": 0,
+            "model_ratio": 0.14,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 1.5,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "grok-4.2",
+            "tags": "TEXT,VISION",
+            "vendor_id": 5,
+            "quota_type": 0,
+            "model_ratio": 1.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai",
+                "openai-response"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-sonnet-4-6",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 1.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 0.266666666667,
+            "enable_groups": [
+                "Claude Cheap",
+                "Claude Max"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-mini-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-minimal",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 37.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.5-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "claude-opus-4-6-thinking",
+            "tags": "TEXT,VISION,CLI",
+            "vendor_id": 2,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 5,
+            "cache_ratio": 1.25,
+            "enable_groups": [
+                "Claude Cheap",
+                "Claude Max"
+            ],
+            "supported_endpoint_types": [
+                "anthropic",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4-mini-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.375,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "veo3.1-components",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.6,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "veo3.1-pro-4k",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 3,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-pro-image-preview",
+            "tags": "IMAGE",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 0.2,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "veo3.1-components-4k",
+            "tags": "VIDEO",
+            "vendor_id": 3,
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 1.2,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex-openai-compact",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.5",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 2.5,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview-thinking-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview-thinking-medium",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "seedance-2-720p",
+            "icon": "Doubao",
+            "tags": "VIDEO,PER-SECOND",
+            "quota_type": 1,
+            "model_ratio": 0,
+            "model_price": 1.3,
+            "owner_by": "",
+            "completion_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5-codex-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-low",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-max-high",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.625,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "default",
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.1-codex-mini-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.125,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.2-codex-xhigh",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 0.875,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 8,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default",
+                "Codex",
+                "Codex \u5305\u6708"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gpt-5.4",
+            "tags": "TEXT,VISION",
+            "vendor_id": 1,
+            "quota_type": 0,
+            "model_ratio": 1.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0.1,
+            "enable_groups": [
+                "Codex",
+                "Codex \u5305\u6708",
+                "Codex \u8ba2\u9605A",
+                "Codex \u8ba2\u9605B",
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-flash-preview-thinking-128",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        },
+        {
+            "model_name": "gemini-3-pro-preview",
+            "tags": "TEXT,VISION",
+            "vendor_id": 3,
+            "quota_type": 0,
+            "model_ratio": 0.25,
+            "model_price": 0,
+            "owner_by": "",
+            "completion_ratio": 6,
+            "cache_ratio": 0,
+            "enable_groups": [
+                "default"
+            ],
+            "supported_endpoint_types": [
+                "gemini",
+                "openai"
+            ]
+        }
+    ],
+    "group_ratio": {
+        "Claude Cheap": 1.5,
+        "Claude Max": 3,
+        "Codex": 0.8,
+        "MiniMax": 0.8,
+        "Sora": 1,
+        "default": 1
+    },
+    "success": true,
+    "supported_endpoint": {
+        "anthropic": {
+            "path": "/v1/messages",
+            "method": "POST"
+        },
+        "gemini": {
+            "path": "/v1beta/models/{model}:generateContent",
+            "method": "POST"
+        },
+        "openai": {
+            "path": "/v1/chat/completions",
+            "method": "POST"
+        },
+        "openai-response": {
+            "path": "/v1/responses",
+            "method": "POST"
+        }
+    },
+    "usable_group": {
+        "Claude Cheap": "\u5b9e\u60e0 Claude",
+        "Claude Max": "\u6700\u4f73\u7a33\u5b9a\u6027",
+        "Codex": "\u652f\u6301\u63a5\u5165 Codex",
+        "MiniMax": "\u6d77\u87baAI",
+        "Sora": "OpenAI\u5b98\u65b9\u89c6\u9891\u751f\u6210\u6a21\u578b",
+        "default": "\u9ed8\u8ba4\u5206\u7ec4"
+    },
+    "vendors": [
+        {
+            "id": 1,
+            "name": "OpenAI",
+            "icon": "OpenAI"
+        },
+        {
+            "id": 2,
+            "name": "Anthropic",
+            "icon": "Claude.Color"
+        },
+        {
+            "id": 3,
+            "name": "Google",
+            "icon": "Gemini.Color"
+        },
+        {
+            "id": 4,
+            "name": "DeepSeek",
+            "icon": "DeepSeek.Color"
+        },
+        {
+            "id": 5,
+            "name": "xAI",
+            "icon": "XAI"
+        }
+    ]
+}

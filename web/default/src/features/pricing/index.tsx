@@ -16,18 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import {
   LoadingSkeleton,
   EmptyState,
-  SearchBar,
   PricingTable,
   PricingSidebar,
   PricingToolbar,
@@ -37,6 +35,13 @@ import {
 import { VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
 import { usePricingData } from './hooks/use-pricing-data'
+
+const DEFAULT_GROUP = 'default'
+
+function formatRatio(ratio: number): string {
+  if (Number.isInteger(ratio)) return ratio.toString()
+  return ratio.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
 
 export function Pricing() {
   const { t } = useTranslation()
@@ -52,8 +57,6 @@ export function Pricing() {
     endpointMap,
     autoGroups,
     userTier,
-    topupRatio,
-    userTierMeta,
     isLoading,
     isFetching,
     error,
@@ -64,7 +67,6 @@ export function Pricing() {
 
   const {
     searchInput,
-    sortBy,
     vendorFilter,
     quotaTypeFilter,
     tagFilter,
@@ -72,13 +74,10 @@ export function Pricing() {
     viewMode,
     showRechargePrice,
     setSearchInput,
-    setSortBy,
     setVendorFilter,
     setQuotaTypeFilter,
     setTagFilter,
-    setTokenUnit,
     setViewMode,
-    setShowRechargePrice,
     filteredModels,
     hasActiveFilters,
     activeFilterCount,
@@ -86,6 +85,29 @@ export function Pricing() {
     clearFilters,
     clearSearch,
   } = useFilters(models || [])
+
+  const availableGroups = useMemo(
+    () => Object.keys(usableGroup || {}),
+    [usableGroup]
+  )
+
+  const [previewGroup, setPreviewGroup] = useState<string>(
+    () => userTier || DEFAULT_GROUP
+  )
+
+  // Reset preview group when the user's tier or available group set changes.
+  useEffect(() => {
+    if (!availableGroups.length) return
+    if (availableGroups.includes(previewGroup)) return
+    const fallback =
+      userTier && availableGroups.includes(userTier)
+        ? userTier
+        : availableGroups[0]
+    setPreviewGroup(fallback)
+  }, [availableGroups, previewGroup, userTier])
+
+  const previewRatio = groupRatio?.[previewGroup]
+  const previewIsUserGroup = Boolean(userTier && previewGroup === userTier)
 
   const handleModelClick = useCallback((modelName: string) => {
     setSelectedModelName(modelName)
@@ -126,6 +148,8 @@ export function Pricing() {
           usdExchangeRate={usdExchangeRate}
           tokenUnit={tokenUnit}
           showRechargePrice={showRechargePrice}
+          previewGroup={previewGroup}
+          groupRatio={groupRatio}
         />
       )
     }
@@ -138,6 +162,8 @@ export function Pricing() {
         tokenUnit={tokenUnit}
         showRechargePrice={showRechargePrice}
         onModelClick={handleModelClick}
+        previewGroup={previewGroup}
+        groupRatio={groupRatio}
       />
     )
   }
@@ -190,60 +216,25 @@ export function Pricing() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <div className='relative'>
-        <div
-          aria-hidden
-          className='pointer-events-none absolute inset-x-0 top-0 h-[600px] opacity-20 dark:opacity-[0.10]'
-          style={{
-            background: [
-              'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0.15 200 / 60%) 0%, transparent 70%)',
-              'radial-gradient(ellipse 40% 35% at 50% 70%, oklch(0.70 0.12 280 / 40%) 0%, transparent 70%)',
-            ].join(', '),
-            maskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to bottom, black 40%, transparent 100%)',
-          }}
-        />
-        <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
-          <header className='mx-auto mb-5 max-w-3xl pt-5 text-center sm:mb-10 sm:pt-10'>
-            <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
-              {t('Model Library')}
-            </h1>
-            <p className='text-muted-foreground/80 mt-3 text-sm sm:mt-4 sm:text-base'>
-              {t('Browse and filter all integrated models')}
-            </p>
-            <p className='text-muted-foreground/60 mt-2 text-xs sm:text-sm'>
-              {t('This site currently has {{count}} models enabled', {
-                count: models?.length || 0,
-              })}
-            </p>
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onClear={clearSearch}
-              placeholder={t(
-                'Search model name, provider, endpoint, or tag...'
-              )}
-              className='mx-auto mt-4 max-w-2xl sm:mt-6'
-            />
-            {userTier ? (
-              <div className='mt-3 flex items-center justify-center gap-2 text-xs sm:text-sm'>
-                <Badge variant='secondary' className='font-medium uppercase'>
-                  {userTierMeta?.description || userTier}
-                </Badge>
-                {topupRatio !== 1 ? (
-                  <span className='text-muted-foreground'>
-                    {t('Topup discount: {{ratio}}x', { ratio: topupRatio })}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-          </header>
+      <PageTransition className='mx-auto w-full max-w-[1800px] px-3 pt-12 pb-8 sm:px-6 sm:pt-14 sm:pb-10 xl:px-8'>
+        <div className='grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)]'>
+          <PricingSidebar
+            quotaTypeFilter={quotaTypeFilter}
+            vendorFilter={vendorFilter}
+            tagFilter={tagFilter}
+            onQuotaTypeChange={setQuotaTypeFilter}
+            onVendorChange={setVendorFilter}
+            onTagChange={setTagFilter}
+            vendors={vendors || []}
+            tags={availableTags}
+            models={models || []}
+            className='hover-scrollbar sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto xl:block'
+          />
 
-          <div className='grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]'>
-            <PricingSidebar
+          <main className='min-w-0 space-y-4'>
+            <PricingToolbar
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
               quotaTypeFilter={quotaTypeFilter}
               vendorFilter={vendorFilter}
               tagFilter={tagFilter}
@@ -253,73 +244,82 @@ export function Pricing() {
               vendors={vendors || []}
               tags={availableTags}
               models={models || []}
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={clearFilters}
-              userTier={userTier}
+              activeFilterCount={activeFilterCount}
+              searchValue={searchInput}
+              onSearchChange={setSearchInput}
+              onSearchClear={clearSearch}
+              availableGroups={availableGroups}
               groupRatio={groupRatio}
-              className='hover-scrollbar sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto xl:block'
-            />
-
-            <main className='min-w-0 space-y-4'>
-              <PricingToolbar
-                filteredCount={filteredModels.length}
-                totalCount={models?.length}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-                tokenUnit={tokenUnit}
-                onTokenUnitChange={setTokenUnit}
-                showRechargePrice={showRechargePrice}
-                onRechargePriceChange={setShowRechargePrice}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                quotaTypeFilter={quotaTypeFilter}
-                vendorFilter={vendorFilter}
-                tagFilter={tagFilter}
-                onQuotaTypeChange={setQuotaTypeFilter}
-                onVendorChange={setVendorFilter}
-                onTagChange={setTagFilter}
-                vendors={vendors || []}
-                tags={availableTags}
-                models={models || []}
-                hasActiveFilters={hasActiveFilters}
-                activeFilterCount={activeFilterCount}
-                onClearFilters={clearFilters}
-                userTier={userTier}
-                groupRatio={groupRatio}
-                onRefresh={() => {
-                  void refetch()
-                }}
-                isRefreshing={isFetching}
-              />
-
-              {renderPricingContent()}
-            </main>
-          </div>
-
-          {selectedModel && (
-            <ModelDetailsDrawer
-              open={Boolean(selectedModel)}
-              onOpenChange={(open) => {
-                if (!open) setSelectedModelName(null)
+              previewGroup={previewGroup}
+              onPreviewGroupChange={setPreviewGroup}
+              onRefresh={() => {
+                void refetch()
               }}
-              model={selectedModel}
-              groupRatio={groupRatio || {}}
-              usableGroup={usableGroup || {}}
-              endpointMap={
-                (endpointMap as Record<
-                  string,
-                  { path?: string; method?: string }
-                >) || {}
-              }
-              autoGroups={autoGroups || []}
-              priceRate={priceRate ?? 1}
-              usdExchangeRate={usdExchangeRate ?? 1}
-              tokenUnit={tokenUnit}
-              showRechargePrice={showRechargePrice}
+              isRefreshing={isFetching}
             />
-          )}
-        </PageTransition>
-      </div>
+
+            {previewGroup && (
+              <div className='bg-muted/30 border-border/60 flex items-center justify-between rounded-lg border px-3 py-2 text-xs sm:text-sm'>
+                <div className='flex items-center gap-3'>
+                  <span className='text-foreground font-semibold'>
+                    {previewGroup}
+                  </span>
+                  {previewRatio != null && (
+                    <span className='text-muted-foreground flex items-center gap-1'>
+                      <span>{t('Group ratio')}</span>
+                      <span className='text-foreground font-mono tabular-nums'>
+                        {formatRatio(previewRatio)}×
+                      </span>
+                    </span>
+                  )}
+                </div>
+                {previewIsUserGroup && (
+                  <span className='inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'>
+                    {t('My group')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            <p className='text-muted-foreground text-xs sm:text-sm'>
+              <span className='text-foreground font-semibold tabular-nums'>
+                {filteredModels.length.toLocaleString()}
+              </span>{' '}
+              {t('results')}
+            </p>
+
+            {renderPricingContent()}
+          </main>
+        </div>
+
+        {selectedModel && (
+          <ModelDetailsDrawer
+            open={Boolean(selectedModel)}
+            onOpenChange={(open) => {
+              if (!open) setSelectedModelName(null)
+            }}
+            model={selectedModel}
+            groupRatio={groupRatio || {}}
+            usableGroup={usableGroup || {}}
+            endpointMap={
+              (endpointMap as Record<
+                string,
+                { path?: string; method?: string }
+              >) || {}
+            }
+            autoGroups={autoGroups || []}
+            priceRate={priceRate ?? 1}
+            usdExchangeRate={usdExchangeRate ?? 1}
+            tokenUnit={tokenUnit}
+            showRechargePrice={showRechargePrice}
+          />
+        )}
+      </PageTransition>
     </PublicLayout>
   )
 }
+
+// Note: sortBy is still tracked in useFilters for backwards-compat URLs but no
+// longer surfaces in the UI; the same applies to tokenUnit (forced to 'M' for
+// display) and showRechargePrice. Existing search params keep working.
+export type { PricingToolbarProps } from './components/pricing-toolbar'
