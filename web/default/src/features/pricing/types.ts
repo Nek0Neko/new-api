@@ -122,3 +122,11 @@ export type PriceType =
   | 'audio_input'
   | 'audio_output'
 export type QuotaType = 0 | 1 // 0: token-based, 1: per-request
+
+/**
+ * Display-level billing mode derived from {@link PricingModel.quota_type} and
+ * the optional `PER-SECOND` tag. `token` and `per_second` both map to
+ * `quota_type = 0`; `per_second` is signalled by the tag and renders
+ * input/output prices as a per-second rate.
+ */
+export type BillingMode = 'token' | 'per_second' | 'request'

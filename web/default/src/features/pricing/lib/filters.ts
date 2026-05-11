@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   SORT_OPTIONS,
   FILTER_ALL,
+  PER_SECOND_TAG,
   QUOTA_TYPES,
   QUOTA_TYPE_VALUES,
   ENDPOINT_TYPES,
@@ -48,14 +49,19 @@ export function filterBySearch(
   )
 }
 
+/** Sentinel value matching models whose vendor_id is missing/unknown. */
+export const VENDOR_OTHERS = '__others__'
+
 /**
- * Filter models by vendor
+ * Filter models by vendor. The {@link VENDOR_OTHERS} sentinel keeps models
+ * that did not resolve to any registered vendor.
  */
 export function filterByVendor(
   models: PricingModel[],
   vendor: string
 ): PricingModel[] {
   if (vendor === FILTER_ALL) return models
+  if (vendor === VENDOR_OTHERS) return models.filter((m) => !m.vendor_name)
   return models.filter((m) => m.vendor_name === vendor)
 }
 
@@ -71,18 +77,25 @@ export function filterByGroup(
 }
 
 /**
- * Filter models by quota type
+ * Filter models by quota type. PER_SECOND keeps quota_type=0 models that carry
+ * the `PER-SECOND` tag, while TOKEN keeps the remaining token-based models.
  */
 export function filterByQuotaType(
   models: PricingModel[],
   quotaType: string
 ): PricingModel[] {
   if (quotaType === QUOTA_TYPES.ALL) return models
-  const targetType =
-    quotaType === QUOTA_TYPES.TOKEN
-      ? QUOTA_TYPE_VALUES.TOKEN
-      : QUOTA_TYPE_VALUES.REQUEST
-  return models.filter((m) => m.quota_type === targetType)
+  if (quotaType === QUOTA_TYPES.REQUEST) {
+    return models.filter((m) => m.quota_type === QUOTA_TYPE_VALUES.REQUEST)
+  }
+  const wantPerSecond = quotaType === QUOTA_TYPES.PER_SECOND
+  return models.filter((m) => {
+    if (m.quota_type !== QUOTA_TYPE_VALUES.TOKEN) return false
+    const isPerSecond = parseTags(m.tags)
+      .map((t) => t.toUpperCase())
+      .includes(PER_SECOND_TAG)
+    return wantPerSecond ? isPerSecond : !isPerSecond
+  })
 }
 
 /**

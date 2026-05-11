@@ -29,7 +29,7 @@ import {
   getDynamicPricingSummary,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { isTokenBasedModel } from '../lib/model-helpers'
+import { getBillingMode } from '../lib/model-helpers'
 import { formatPrice, formatRequestPrice } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelPerfBadge, type ModelPerfBadgeData } from './model-perf-badge'
@@ -51,7 +51,9 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
   const priceRate = props.priceRate ?? 1
   const usdExchangeRate = props.usdExchangeRate ?? 1
   const showRechargePrice = props.showRechargePrice ?? false
-  const isTokenBased = isTokenBasedModel(props.model)
+  const billingMode = getBillingMode(props.model)
+  const isTokenBased = billingMode === 'token'
+  const isPerSecond = billingMode === 'per_second'
   const tokenUnitLabel = tokenUnit === 'K' ? '1K' : '1M'
   const tags = parseTags(props.model.tags)
   const groups = props.model.enable_groups || []
@@ -184,6 +186,20 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
                     </span>
                   )}
                 </>
+              ) : isPerSecond ? (
+                <span className='text-muted-foreground whitespace-nowrap'>
+                  <span className='text-foreground font-mono font-semibold'>
+                    {formatPrice(
+                      props.model,
+                      'input',
+                      tokenUnit,
+                      showRechargePrice,
+                      priceRate,
+                      usdExchangeRate
+                    )}
+                  </span>{' '}
+                  / {t('second')}
+                </span>
               ) : (
                 <span className='text-muted-foreground whitespace-nowrap'>
                   <span className='text-foreground font-mono font-semibold'>
@@ -235,7 +251,11 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             </span>
           )}
           <span className='text-muted-foreground text-xs font-medium'>
-            {isTokenBased ? t('Token-based') : t('Per Request')}
+            {isTokenBased
+              ? t('Token-based')
+              : isPerSecond
+                ? t('Per Second')
+                : t('Per Request')}
           </span>
           {isDynamicPricing && (
             <StatusBadge
@@ -254,9 +274,11 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
               {item}
             </span>
           ))}
-          <span className='text-muted-foreground/50 text-xs'>
-            {tokenUnitLabel}
-          </span>
+          {isTokenBased && (
+            <span className='text-muted-foreground/50 text-xs'>
+              {tokenUnitLabel}
+            </span>
+          )}
           {hiddenCount > 0 && (
             <span className='text-muted-foreground/40 text-xs'>
               +{hiddenCount}

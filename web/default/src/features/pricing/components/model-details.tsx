@@ -50,7 +50,7 @@ import {
   formatThroughput,
   formatUptimePct,
 } from '@/features/performance-metrics/lib/format'
-import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
+import { DEFAULT_TOKEN_UNIT } from '../constants'
 import { usePricingData } from '../hooks/use-pricing-data'
 import {
   getDynamicPriceEntries,
@@ -59,7 +59,7 @@ import {
   isDynamicPricingModel,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { getAvailableGroups, isTokenBasedModel } from '../lib/model-helpers'
+import { getAvailableGroups, getBillingMode } from '../lib/model-helpers'
 import { inferModelMetadata } from '../lib/model-metadata'
 import { formatFixedPrice, formatGroupPrice } from '../lib/price'
 import type {
@@ -299,9 +299,12 @@ function ModelHeader(props: { model: PricingModel }) {
         )}
         <span className='text-muted-foreground/30'>·</span>
         <span className='text-muted-foreground/70'>
-          {model.quota_type === QUOTA_TYPE_VALUES.TOKEN
-            ? t('Token-based')
-            : t('Per Request')}
+          {(() => {
+            const mode = getBillingMode(model)
+            if (mode === 'token') return t('Token-based')
+            if (mode === 'per_second') return t('Per Second')
+            return t('Per Request')
+          })()}
         </span>
         {model.billing_mode === 'tiered_expr' && model.billing_expr && (
           <>
@@ -347,7 +350,9 @@ function PriceSection(props: {
   showRechargePrice: boolean
 }) {
   const { t } = useTranslation()
-  const isTokenBased = isTokenBasedModel(props.model)
+  const billingMode = getBillingMode(props.model)
+  const isTokenBased = billingMode === 'token'
+  const isPerSecond = billingMode === 'per_second'
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
   const baseGroupKey = '_base'
   const baseGroupRatioMap = { [baseGroupKey]: 1 }
@@ -471,6 +476,32 @@ function PriceSection(props: {
             </div>
           </div>
         )}
+      </section>
+    )
+  }
+
+  if (isPerSecond) {
+    return (
+      <section>
+        <SectionTitle>{t('Base Price')}</SectionTitle>
+        <div className='bg-muted/20 rounded-lg border p-3'>
+          <div className='text-muted-foreground text-xs'>{t('Per Second')}</div>
+          <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
+            {formatGroupPrice(
+              props.model,
+              baseGroupKey,
+              'input',
+              props.tokenUnit,
+              props.showRechargePrice,
+              props.priceRate,
+              props.usdExchangeRate,
+              baseGroupRatioMap
+            )}
+            <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
+              / {t('second')}
+            </span>
+          </div>
+        </div>
       </section>
     )
   }
@@ -606,7 +637,9 @@ function GroupPricingSection(props: {
     [props.model, props.usableGroup]
   )
 
-  const isTokenBased = isTokenBasedModel(props.model)
+  const billingMode = getBillingMode(props.model)
+  const isTokenBased = billingMode === 'token'
+  const isPerSecond = billingMode === 'per_second'
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
 
   const extraPriceTypes = useMemo(() => {
@@ -630,12 +663,10 @@ function GroupPricingSection(props: {
   if (availableGroups.length === 0) {
     return (
       <section>
-        <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+        <SectionTitle>{t('Group pricing')}</SectionTitle>
         <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
         <p className='text-muted-foreground text-sm'>
-          {t(
-            'This model is not available in any group, or no group pricing information is configured.'
-          )}
+          {t('No groups available for this model.')}
         </p>
       </section>
     )
@@ -650,7 +681,7 @@ function GroupPricingSection(props: {
     if (dynamicTiers.length === 0) {
       return (
         <section>
-          <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+          <SectionTitle>{t('Group pricing')}</SectionTitle>
           <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
           <div className='rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10'>
             <div className='text-sm font-medium text-amber-800 dark:text-amber-200'>
@@ -692,7 +723,7 @@ function GroupPricingSection(props: {
 
     return (
       <section>
-        <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+        <SectionTitle>{t('Group pricing')}</SectionTitle>
         <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
         <div className='space-y-3'>
           {availableGroups.map((group) => {
@@ -768,7 +799,7 @@ function GroupPricingSection(props: {
 
   return (
     <section>
-      <SectionTitle>{t('Pricing by Group')}</SectionTitle>
+      <SectionTitle>{t('Group pricing')}</SectionTitle>
       <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
       <div className='-mx-4 overflow-x-auto sm:mx-0'>
         <Table className='text-sm'>
@@ -793,6 +824,10 @@ function GroupPricingSection(props: {
                     </TableHead>
                   ))}
                 </>
+              ) : isPerSecond ? (
+                <TableHead className={`${thClass} text-right`}>
+                  {t('Per Second')}
+                </TableHead>
               ) : (
                 <TableHead className={`${thClass} text-right`}>
                   {t('Price')}
@@ -855,6 +890,19 @@ function GroupPricingSection(props: {
                         </TableCell>
                       ))}
                     </>
+                  ) : isPerSecond ? (
+                    <TableCell className='py-2.5 text-right font-mono'>
+                      {formatGroupPrice(
+                        props.model,
+                        group,
+                        'input',
+                        props.tokenUnit,
+                        showRechargePrice,
+                        props.priceRate,
+                        props.usdExchangeRate,
+                        props.groupRatio
+                      )}
+                    </TableCell>
                   ) : (
                     <TableCell className='py-2.5 text-right font-mono'>
                       {formatFixedPrice(
@@ -875,6 +923,11 @@ function GroupPricingSection(props: {
         {isTokenBased && (
           <p className='text-muted-foreground/40 mt-1.5 px-4 text-[10px] sm:px-0'>
             {t('Prices shown per')} {tokenUnitLabel} tokens
+          </p>
+        )}
+        {isPerSecond && (
+          <p className='text-muted-foreground/40 mt-1.5 px-4 text-[10px] sm:px-0'>
+            {t('Prices shown per second')}
           </p>
         )}
       </div>

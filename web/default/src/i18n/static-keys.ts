@@ -22,7 +22,7 @@ export const STATIC_I18N_KEYS = [
   // Header navigation
   'Home',
   'Console',
-  'Model Square',
+  'Model Library',
   'Rankings',
   'Docs',
   'About',
@@ -48,6 +48,7 @@ export const STATIC_I18N_KEYS = [
   'All Models',
   'Token-based',
   'Per Request',
+  'Per Second',
   'All Types',
   'Chat',
   'Response',

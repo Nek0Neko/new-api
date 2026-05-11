@@ -27,13 +27,13 @@ import {
 } from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table/column-header'
 import { GroupBadge } from '@/components/group-badge'
-import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
+import { DEFAULT_TOKEN_UNIT } from '../constants'
 import {
   getDynamicDisplayGroupRatio,
   getDynamicPricingSummary,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
-import { isTokenBasedModel } from '../lib/model-helpers'
+import { getBillingMode } from '../lib/model-helpers'
 import {
   formatPrice,
   formatRequestPrice,
@@ -139,10 +139,16 @@ export function usePricingColumns(
       meta: { label: t('Type') },
       header: t('Type'),
       cell: ({ row }) => {
-        const isTokenBased = row.original.quota_type === QUOTA_TYPE_VALUES.TOKEN
+        const mode = getBillingMode(row.original)
+        const label =
+          mode === 'token'
+            ? t('Token')
+            : mode === 'per_second'
+              ? t('Per Second')
+              : t('Request')
         return (
           <span className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
-            {isTokenBased ? t('Token') : t('Request')}
+            {label}
           </span>
         )
       },
@@ -216,9 +222,9 @@ export function usePricingColumns(
           )
         }
 
-        const isTokenBased = isTokenBasedModel(model)
+        const billingMode = getBillingMode(model)
 
-        if (isTokenBased) {
+        if (billingMode === 'token') {
           const inputPrice = stripTrailingZeros(
             formatPrice(
               model,
@@ -249,6 +255,27 @@ export function usePricingColumns(
               </span>
               <div className='text-muted-foreground/50 text-[10px]'>
                 / {tokenUnitLabel} tokens
+              </div>
+            </div>
+          )
+        }
+
+        if (billingMode === 'per_second') {
+          const price = stripTrailingZeros(
+            formatPrice(
+              model,
+              'input',
+              tokenUnit,
+              showRechargePrice,
+              priceRate,
+              usdExchangeRate
+            )
+          )
+          return (
+            <div className='min-w-[100px]'>
+              <span className='font-mono text-sm tabular-nums'>{price}</span>
+              <div className='text-muted-foreground/50 text-[10px]'>
+                / {t('second')}
               </div>
             </div>
           )
@@ -319,9 +346,7 @@ export function usePricingColumns(
           )
         }
 
-        const isTokenBased = isTokenBasedModel(model)
-
-        if (!isTokenBased || model.cache_ratio == null) {
+        if (getBillingMode(model) !== 'token' || model.cache_ratio == null) {
           return <span className='text-muted-foreground/30 text-xs'>—</span>
         }
 

@@ -47,6 +47,7 @@ export const FILTER_ALL = 'all'
 export const QUOTA_TYPES = {
   ALL: 'all',
   TOKEN: 'token',
+  PER_SECOND: 'per_second',
   REQUEST: 'request',
 } as const
 
@@ -59,9 +60,13 @@ export function getQuotaTypeLabels(
   return {
     [QUOTA_TYPES.ALL]: t('All Models'),
     [QUOTA_TYPES.TOKEN]: t('Token-based'),
+    [QUOTA_TYPES.PER_SECOND]: t('Per Second'),
     [QUOTA_TYPES.REQUEST]: t('Per Request'),
   }
 }
+
+/** Tag string that signals per-second billing on a token-quota model. */
+export const PER_SECOND_TAG = 'PER-SECOND'
 
 /** Endpoint type options */
 export const ENDPOINT_TYPES = {

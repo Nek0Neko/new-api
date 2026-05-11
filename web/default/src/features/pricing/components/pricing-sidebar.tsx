@@ -17,32 +17,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ReactNode } from 'react'
-import { ChevronDown, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  ENDPOINT_TYPES,
   FILTER_ALL,
+  PER_SECOND_TAG,
   QUOTA_TYPES,
-  getEndpointTypeLabels,
   getQuotaTypeLabels,
 } from '../constants'
-import { parseTags } from '../lib/filters'
+import { VENDOR_OTHERS, parseTags } from '../lib/filters'
 import type { PricingModel, PricingVendor } from '../types'
 
 type FilterOption = {
   value: string
   label: string
-  count?: number
-  suffix?: string
   icon?: ReactNode
 }
 
@@ -55,22 +46,20 @@ type FilterSectionProps = {
 
 export interface PricingSidebarProps {
   quotaTypeFilter: string
-  endpointTypeFilter: string
   vendorFilter: string
-  groupFilter: string
   tagFilter: string
   onQuotaTypeChange: (value: string) => void
-  onEndpointTypeChange: (value: string) => void
   onVendorChange: (value: string) => void
-  onGroupChange: (value: string) => void
   onTagChange: (value: string) => void
   vendors: PricingVendor[]
-  groups: string[]
-  groupRatios?: Record<string, number>
   tags: string[]
   models: PricingModel[]
   hasActiveFilters: boolean
   onClearFilters: () => void
+  /** Current user's channel group (e.g. "default"). Empty for anonymous. */
+  userTier?: string
+  /** Channel-group → ratio map; ratio is multiplied into request-time billing. */
+  groupRatio?: Record<string, number>
   className?: string
 }
 
@@ -81,15 +70,7 @@ function countBy(
   return models.reduce((count, model) => count + (predicate(model) ? 1 : 0), 0)
 }
 
-function formatGroupRatio(ratio: number | undefined): string | undefined {
-  if (ratio == null) return undefined
-  const formatted = Number.isInteger(ratio)
-    ? ratio.toString()
-    : ratio.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
-  return `x${formatted}`
-}
-
-function FilterChip(props: {
+function MenuItem(props: {
   option: FilterOption
   active: boolean
   onClick: () => void
@@ -99,159 +80,148 @@ function FilterChip(props: {
       type='button'
       onClick={props.onClick}
       className={cn(
-        'group inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-all',
+        'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors',
         props.active
-          ? 'border-foreground/30 bg-foreground/5 text-foreground shadow-sm'
-          : 'border-border/70 bg-background text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground'
+          ? 'bg-foreground text-background font-semibold'
+          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
       )}
       title={props.option.label}
     >
       {props.option.icon && (
-        <span className='shrink-0'>{props.option.icon}</span>
-      )}
-      <span className='truncate'>{props.option.label}</span>
-      {(props.option.suffix || props.option.count != null) && (
         <span
           className={cn(
-            'rounded-md px-1.5 py-0.5 text-[10px]',
-            props.active
-              ? 'bg-background text-foreground'
-              : 'bg-muted text-muted-foreground'
+            'shrink-0',
+            props.active ? 'text-background' : 'text-muted-foreground'
           )}
         >
-          {props.option.suffix ?? props.option.count}
+          {props.option.icon}
         </span>
       )}
+      <span className='truncate'>{props.option.label}</span>
     </button>
+  )
+}
+
+function formatRatio(ratio: number): string {
+  if (Number.isInteger(ratio)) return ratio.toString()
+  return ratio.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
+}
+
+function GroupBadge(props: {
+  userTier?: string
+  groupRatio?: Record<string, number>
+}) {
+  const { t } = useTranslation()
+  if (!props.userTier) return null
+  const ratio = props.groupRatio?.[props.userTier]
+  return (
+    <div className='border-border/70 bg-muted/30 mx-3 mb-4 flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5'>
+      <span className='text-muted-foreground text-[11px] font-medium tracking-wide uppercase'>
+        {t('Your group')}
+      </span>
+      <span className='flex items-center gap-1.5 text-xs'>
+        <span className='text-foreground font-semibold'>{props.userTier}</span>
+        {ratio != null && (
+          <span className='bg-foreground/10 text-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums'>
+            ×{formatRatio(ratio)}
+          </span>
+        )}
+      </span>
+    </div>
   )
 }
 
 function FilterSection(props: FilterSectionProps) {
   return (
-    <Collapsible
-      defaultOpen
-      className='border-border/70 border-b pb-3 last:border-b-0'
-    >
-      <CollapsibleTrigger className='group flex w-full items-center justify-between py-2.5 text-left'>
-        <span className='text-foreground text-sm font-semibold'>
-          {props.title}
-        </span>
-        <ChevronDown className='text-muted-foreground size-4 transition-transform group-data-[panel-open]:rotate-180' />
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className='flex flex-wrap gap-1.5'>
-          {props.options.map((option) => (
-            <FilterChip
-              key={option.value}
-              option={option}
-              active={props.value === option.value}
-              onClick={() => props.onChange(option.value)}
-            />
-          ))}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+    <div className='pb-4'>
+      <h3 className='text-muted-foreground/70 mb-1.5 px-3 text-xs font-semibold tracking-wider'>
+        {props.title}
+      </h3>
+      <div className='flex flex-col gap-0.5'>
+        {props.options.map((option) => (
+          <MenuItem
+            key={option.value}
+            option={option}
+            active={props.value === option.value}
+            onClick={() => props.onChange(option.value)}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
 export function PricingSidebar(props: PricingSidebarProps) {
   const { t } = useTranslation()
   const quotaTypeLabels = getQuotaTypeLabels(t)
-  const endpointTypeLabels = getEndpointTypeLabels(t)
 
+  const sortedVendors = [...props.vendors].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+  const knownVendorEntries: FilterOption[] = sortedVendors
+    .map((vendor) => ({
+      value: vendor.name,
+      label: vendor.name,
+      count: countBy(
+        props.models,
+        (model) => model.vendor_name === vendor.name
+      ),
+      icon: vendor.icon ? getLobeIcon(vendor.icon, 16) : undefined,
+    }))
+    .filter((entry) => entry.count > 0)
+    .map(({ value, label, icon }) => ({ value, label, icon }))
+
+  const othersCount = countBy(props.models, (model) => !model.vendor_name)
   const vendorOptions: FilterOption[] = [
-    {
-      value: FILTER_ALL,
-      label: t('All Vendors'),
-      count: props.models.length,
-    },
-    ...props.vendors
-      .map((vendor) => ({
-        value: vendor.name,
-        label: vendor.name,
-        count: countBy(
-          props.models,
-          (model) => model.vendor_name === vendor.name
-        ),
-        icon: vendor.icon ? getLobeIcon(vendor.icon, 14) : undefined,
-      }))
-      .filter((vendor) => vendor.count > 0),
+    { value: FILTER_ALL, label: t('All Vendors') },
+    ...knownVendorEntries,
+    ...(othersCount > 0
+      ? [
+          {
+            value: VENDOR_OTHERS,
+            label: t('Others'),
+          },
+        ]
+      : []),
   ]
 
-  const groupOptions: FilterOption[] = [
-    {
-      value: FILTER_ALL,
-      label: t('All Groups'),
-    },
-    ...props.groups.map((group) => ({
-      value: group,
-      label: group,
-      suffix: formatGroupRatio(props.groupRatios?.[group]),
-    })),
-  ]
+  const isPerSecond = (model: PricingModel) =>
+    parseTags(model.tags)
+      .map((tag) => tag.toUpperCase())
+      .includes(PER_SECOND_TAG)
 
   const quotaOptions: FilterOption[] = [
+    { value: QUOTA_TYPES.ALL, label: quotaTypeLabels[QUOTA_TYPES.ALL] },
+    { value: QUOTA_TYPES.TOKEN, label: quotaTypeLabels[QUOTA_TYPES.TOKEN] },
+    { value: QUOTA_TYPES.REQUEST, label: quotaTypeLabels[QUOTA_TYPES.REQUEST] },
     {
-      value: QUOTA_TYPES.ALL,
-      label: quotaTypeLabels[QUOTA_TYPES.ALL],
-      count: props.models.length,
+      value: QUOTA_TYPES.PER_SECOND,
+      label: quotaTypeLabels[QUOTA_TYPES.PER_SECOND],
     },
-    {
-      value: QUOTA_TYPES.TOKEN,
-      label: quotaTypeLabels[QUOTA_TYPES.TOKEN],
-      count: countBy(props.models, (model) => model.quota_type === 0),
-    },
-    {
-      value: QUOTA_TYPES.REQUEST,
-      label: quotaTypeLabels[QUOTA_TYPES.REQUEST],
-      count: countBy(props.models, (model) => model.quota_type === 1),
-    },
-  ]
+  ].filter((opt) => {
+    if (opt.value === QUOTA_TYPES.ALL) return true
+    if (opt.value === QUOTA_TYPES.PER_SECOND) {
+      return props.models.some(
+        (model) => model.quota_type === 0 && isPerSecond(model)
+      )
+    }
+    if (opt.value === QUOTA_TYPES.REQUEST) {
+      return props.models.some((model) => model.quota_type === 1)
+    }
+    return props.models.some(
+      (model) => model.quota_type === 0 && !isPerSecond(model)
+    )
+  })
 
   const tagOptions: FilterOption[] = [
-    {
-      value: FILTER_ALL,
-      label: t('All Tags'),
-      count: props.models.length,
-    },
-    ...props.tags.map((tag) => ({
-      value: tag,
-      label: tag,
-      count: countBy(props.models, (model) =>
-        parseTags(model.tags)
-          .map((item) => item.toLowerCase())
-          .includes(tag.toLowerCase())
-      ),
-    })),
-  ]
-
-  const endpointOptions: FilterOption[] = [
-    {
-      value: ENDPOINT_TYPES.ALL,
-      label: endpointTypeLabels[ENDPOINT_TYPES.ALL],
-      count: props.models.length,
-    },
-    ...Object.entries(endpointTypeLabels)
-      .filter(([value]) => value !== ENDPOINT_TYPES.ALL)
-      .map(([value, label]) => ({
-        value,
-        label,
-        count: countBy(
-          props.models,
-          (model) => model.supported_endpoint_types?.includes(value) ?? false
-        ),
-      })),
+    { value: FILTER_ALL, label: t('All Tags') },
+    ...props.tags.map((tag) => ({ value: tag, label: tag })),
   ]
 
   return (
-    <aside className={cn('rounded-xl border p-3', props.className)}>
-      <div className='mb-2.5 flex items-center justify-between gap-2'>
-        <div>
-          <h2 className='text-foreground text-sm font-bold'>{t('Filter')}</h2>
-          <p className='text-muted-foreground mt-1 text-xs'>
-            {t('Refine models by provider, group, type, and tags.')}
-          </p>
-        </div>
+    <aside className={cn('rounded-xl py-3', props.className)}>
+      <div className='mb-3 flex items-center justify-between gap-2 px-3'>
+        <h2 className='text-foreground text-sm font-bold'>{t('Filter')}</h2>
         <Button
           type='button'
           variant='ghost'
@@ -265,44 +235,26 @@ export function PricingSidebar(props: PricingSidebarProps) {
         </Button>
       </div>
 
-      {props.hasActiveFilters && (
-        <Badge variant='secondary' className='mb-3'>
-          {t('Filters active')}
-        </Badge>
-      )}
+      <GroupBadge userTier={props.userTier} groupRatio={props.groupRatio} />
 
-      <div className='space-y-1'>
-        <FilterSection
-          title={t('Groups')}
-          value={props.groupFilter}
-          options={groupOptions}
-          onChange={props.onGroupChange}
-        />
-        <FilterSection
-          title={t('All Vendors')}
-          value={props.vendorFilter}
-          options={vendorOptions}
-          onChange={props.onVendorChange}
-        />
-        <FilterSection
-          title={t('Model Tags')}
-          value={props.tagFilter}
-          options={tagOptions}
-          onChange={props.onTagChange}
-        />
-        <FilterSection
-          title={t('Pricing Type')}
-          value={props.quotaTypeFilter}
-          options={quotaOptions}
-          onChange={props.onQuotaTypeChange}
-        />
-        <FilterSection
-          title={t('Endpoint Type')}
-          value={props.endpointTypeFilter}
-          options={endpointOptions}
-          onChange={props.onEndpointTypeChange}
-        />
-      </div>
+      <FilterSection
+        title={t('Pricing Type')}
+        value={props.quotaTypeFilter}
+        options={quotaOptions}
+        onChange={props.onQuotaTypeChange}
+      />
+      <FilterSection
+        title={t('Model Tags')}
+        value={props.tagFilter}
+        options={tagOptions}
+        onChange={props.onTagChange}
+      />
+      <FilterSection
+        title={t('Vendors')}
+        value={props.vendorFilter}
+        options={vendorOptions}
+        onChange={props.onVendorChange}
+      />
     </aside>
   )
 }

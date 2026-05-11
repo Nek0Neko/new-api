@@ -17,8 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useMemo, useState } from 'react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
 import {
@@ -31,7 +34,7 @@ import {
   ModelCardGrid,
   ModelDetailsDrawer,
 } from './components'
-import { EXCLUDED_GROUPS, VIEW_MODES } from './constants'
+import { VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
 import { usePricingData } from './hooks/use-pricing-data'
 
@@ -52,6 +55,9 @@ export function Pricing() {
     topupRatio,
     userTierMeta,
     isLoading,
+    isFetching,
+    error,
+    refetch,
     priceRate,
     usdExchangeRate,
   } = usePricingData()
@@ -60,9 +66,7 @@ export function Pricing() {
     searchInput,
     sortBy,
     vendorFilter,
-    groupFilter,
     quotaTypeFilter,
-    endpointTypeFilter,
     tagFilter,
     tokenUnit,
     viewMode,
@@ -70,9 +74,7 @@ export function Pricing() {
     setSearchInput,
     setSortBy,
     setVendorFilter,
-    setGroupFilter,
     setQuotaTypeFilter,
-    setEndpointTypeFilter,
     setTagFilter,
     setTokenUnit,
     setViewMode,
@@ -97,14 +99,6 @@ export function Pricing() {
           ) || null
         : null,
     [models, selectedModelName]
-  )
-
-  const availableGroups = useMemo(
-    () =>
-      Object.keys(usableGroup || {}).filter(
-        (g) => !EXCLUDED_GROUPS.includes(g)
-      ),
-    [usableGroup]
   )
 
   const handleClearAll = useCallback(() => {
@@ -158,6 +152,42 @@ export function Pricing() {
     )
   }
 
+  if (error && (models?.length ?? 0) === 0) {
+    return (
+      <PublicLayout showMainContainer={false}>
+        <div className='mx-auto flex w-full max-w-2xl flex-col items-center px-3 pt-24 pb-8 text-center sm:px-6 sm:pt-32 sm:pb-10'>
+          <AlertCircle
+            className='text-muted-foreground mb-4 size-10'
+            aria-hidden
+          />
+          <h2 className='text-foreground text-xl font-semibold'>
+            {t('Failed to load models')}
+          </h2>
+          <p className='text-muted-foreground/80 mt-2 max-w-md text-sm'>
+            {error instanceof Error
+              ? error.message
+              : t('Please check your network and try again.')}
+          </p>
+          <Button
+            type='button'
+            variant='default'
+            size='sm'
+            onClick={() => {
+              void refetch()
+            }}
+            disabled={isFetching}
+            className='mt-5 gap-1.5'
+          >
+            <RefreshCw
+              className={cn('size-3.5', isFetching && 'animate-spin')}
+            />
+            {t('Retry')}
+          </Button>
+        </div>
+      </PublicLayout>
+    )
+  }
+
   return (
     <PublicLayout showMainContainer={false}>
       <div className='relative'>
@@ -178,21 +208,16 @@ export function Pricing() {
         />
         <PageTransition className='relative mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
           <header className='mx-auto mb-5 max-w-3xl pt-5 text-center sm:mb-10 sm:pt-10'>
-            <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-              {t('Models Directory')}
-            </p>
             <h1 className='text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.15] font-bold tracking-tight'>
-              {t('Model Square')}
+              {t('Model Library')}
             </h1>
             <p className='text-muted-foreground/80 mt-3 text-sm sm:mt-4 sm:text-base'>
+              {t('Browse and filter all integrated models')}
+            </p>
+            <p className='text-muted-foreground/60 mt-2 text-xs sm:text-sm'>
               {t('This site currently has {{count}} models enabled', {
                 count: models?.length || 0,
               })}
-            </p>
-            <p className='text-muted-foreground/60 mx-auto mt-2 max-w-2xl text-xs leading-relaxed sm:text-sm'>
-              {t(
-                'Discover curated AI models, compare pricing and capabilities, and choose the right model for every scenario.'
-              )}
             </p>
             <SearchBar
               value={searchInput}
@@ -220,22 +245,18 @@ export function Pricing() {
           <div className='grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]'>
             <PricingSidebar
               quotaTypeFilter={quotaTypeFilter}
-              endpointTypeFilter={endpointTypeFilter}
               vendorFilter={vendorFilter}
-              groupFilter={groupFilter}
               tagFilter={tagFilter}
               onQuotaTypeChange={setQuotaTypeFilter}
-              onEndpointTypeChange={setEndpointTypeFilter}
               onVendorChange={setVendorFilter}
-              onGroupChange={setGroupFilter}
               onTagChange={setTagFilter}
               vendors={vendors || []}
-              groups={availableGroups}
-              groupRatios={groupRatio}
               tags={availableTags}
               models={models || []}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}
+              userTier={userTier}
+              groupRatio={groupRatio}
               className='hover-scrollbar sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto xl:block'
             />
 
@@ -252,23 +273,23 @@ export function Pricing() {
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
                 quotaTypeFilter={quotaTypeFilter}
-                endpointTypeFilter={endpointTypeFilter}
                 vendorFilter={vendorFilter}
-                groupFilter={groupFilter}
                 tagFilter={tagFilter}
                 onQuotaTypeChange={setQuotaTypeFilter}
-                onEndpointTypeChange={setEndpointTypeFilter}
                 onVendorChange={setVendorFilter}
-                onGroupChange={setGroupFilter}
                 onTagChange={setTagFilter}
                 vendors={vendors || []}
-                groups={availableGroups}
-                groupRatios={groupRatio}
                 tags={availableTags}
                 models={models || []}
                 hasActiveFilters={hasActiveFilters}
                 activeFilterCount={activeFilterCount}
                 onClearFilters={clearFilters}
+                userTier={userTier}
+                groupRatio={groupRatio}
+                onRefresh={() => {
+                  void refetch()
+                }}
+                isRefreshing={isFetching}
               />
 
               {renderPricingContent()}

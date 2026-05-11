@@ -24,7 +24,7 @@ import { getPricing } from '../api'
 export function usePricingData() {
   const { status } = useStatus()
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['pricing'],
     queryFn: getPricing,
     staleTime: 5 * 60 * 1000,
@@ -71,6 +71,7 @@ export function usePricingData() {
     topupRatio: data?.topup_ratio ?? 1,
     userTierMeta: data?.user_tier_meta,
     isLoading,
+    isFetching,
     error,
     refetch,
     priceRate,

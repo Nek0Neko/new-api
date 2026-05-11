@@ -17,7 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useState } from 'react'
-import { ArrowUpDown, Check, Filter, Grid2X2, Table2 } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Check,
+  Filter,
+  Grid2X2,
+  RefreshCw,
+  Table2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -68,23 +75,21 @@ export interface PricingToolbarProps {
   viewMode: ViewMode
   onViewModeChange: (value: ViewMode) => void
   quotaTypeFilter: string
-  endpointTypeFilter: string
   vendorFilter: string
-  groupFilter: string
   tagFilter: string
   onQuotaTypeChange: (value: string) => void
-  onEndpointTypeChange: (value: string) => void
   onVendorChange: (value: string) => void
-  onGroupChange: (value: string) => void
   onTagChange: (value: string) => void
   vendors: PricingVendor[]
-  groups: string[]
-  groupRatios?: Record<string, number>
   tags: string[]
   models: PricingModel[]
   hasActiveFilters: boolean
   activeFilterCount: number
   onClearFilters: () => void
+  userTier?: string
+  groupRatio?: Record<string, number>
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
 function SegmentedControl(props: {
@@ -189,6 +194,34 @@ export function PricingToolbar(props: PricingToolbarProps) {
               </span>
             )}
           </div>
+
+          {props.onRefresh && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    onClick={props.onRefresh}
+                    disabled={props.isRefreshing}
+                    aria-label={t('Refresh')}
+                    className='size-7'
+                  />
+                }
+              >
+                <RefreshCw
+                  className={cn(
+                    'size-3.5',
+                    props.isRefreshing && 'animate-spin'
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent side='bottom' className='text-xs'>
+                {t('Refresh')}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         <div className='flex flex-wrap items-center gap-2'>
@@ -274,28 +307,24 @@ export function PricingToolbar(props: PricingToolbarProps) {
           <SheetHeader className='border-b px-4 py-3 sm:px-6 sm:py-4'>
             <SheetTitle>{t('Filter')}</SheetTitle>
             <SheetDescription>
-              {t('Filter models by provider, group, type, endpoint, and tags.')}
+              {t('Refine models by pricing type, tags, and provider.')}
             </SheetDescription>
           </SheetHeader>
           <div className='flex-1 overflow-y-auto p-3 sm:p-4'>
             <PricingSidebar
               quotaTypeFilter={props.quotaTypeFilter}
-              endpointTypeFilter={props.endpointTypeFilter}
               vendorFilter={props.vendorFilter}
-              groupFilter={props.groupFilter}
               tagFilter={props.tagFilter}
               onQuotaTypeChange={props.onQuotaTypeChange}
-              onEndpointTypeChange={props.onEndpointTypeChange}
               onVendorChange={props.onVendorChange}
-              onGroupChange={props.onGroupChange}
               onTagChange={props.onTagChange}
               vendors={props.vendors}
-              groups={props.groups}
-              groupRatios={props.groupRatios}
               tags={props.tags}
               models={props.models}
               hasActiveFilters={props.hasActiveFilters}
               onClearFilters={props.onClearFilters}
+              userTier={props.userTier}
+              groupRatio={props.groupRatio}
               className='border-0 bg-transparent p-0 shadow-none'
             />
           </div>

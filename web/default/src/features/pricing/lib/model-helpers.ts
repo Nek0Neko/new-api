@@ -16,8 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { EXCLUDED_GROUPS, QUOTA_TYPE_VALUES } from '../constants'
-import type { PricingModel } from '../types'
+import {
+  EXCLUDED_GROUPS,
+  PER_SECOND_TAG,
+  QUOTA_TYPE_VALUES,
+} from '../constants'
+import type { BillingMode, PricingModel } from '../types'
+import { parseTags } from './filters'
 
 // ----------------------------------------------------------------------------
 // Model Helper Utilities
@@ -51,4 +56,16 @@ export function replaceModelInPath(path: string, modelName: string): string {
  */
 export function isTokenBasedModel(model: PricingModel): boolean {
   return model.quota_type === QUOTA_TYPE_VALUES.TOKEN
+}
+
+/**
+ * Resolve a model's display-level billing mode. Per-second models still carry
+ * `quota_type = 0`; the `PER-SECOND` tag (case-insensitive) flags them so the
+ * UI can render `/秒` instead of `/1M tokens`.
+ */
+export function getBillingMode(model: PricingModel): BillingMode {
+  if (model.quota_type === QUOTA_TYPE_VALUES.REQUEST) return 'request'
+  const tags = parseTags(model.tags).map((t) => t.toUpperCase())
+  if (tags.includes(PER_SECOND_TAG)) return 'per_second'
+  return 'token'
 }
