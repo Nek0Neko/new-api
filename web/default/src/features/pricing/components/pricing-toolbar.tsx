@@ -16,18 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import {
   Check,
   ChevronDown,
-  Filter,
   Grid2X2,
   RefreshCw,
   Table2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -36,20 +34,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { VIEW_MODES, type ViewMode } from '../constants'
-import type { PricingModel, PricingVendor } from '../types'
-import { PricingSidebar } from './pricing-sidebar'
 import { SearchBar } from './search-bar'
 
 type SegmentOption = {
@@ -61,16 +50,6 @@ type SegmentOption = {
 export interface PricingToolbarProps {
   viewMode: ViewMode
   onViewModeChange: (value: ViewMode) => void
-  quotaTypeFilter: string
-  vendorFilter: string
-  tagFilter: string
-  onQuotaTypeChange: (value: string) => void
-  onVendorChange: (value: string) => void
-  onTagChange: (value: string) => void
-  vendors: PricingVendor[]
-  tags: string[]
-  models: PricingModel[]
-  activeFilterCount: number
   /** Search input value (now lives inside the toolbar row). */
   searchValue: string
   onSearchChange: (value: string) => void
@@ -135,7 +114,6 @@ function SegmentedControl(props: {
 
 export function PricingToolbar(props: PricingToolbarProps) {
   const { t } = useTranslation()
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
   const handleViewModeChange = useCallback(
     (value: string) => props.onViewModeChange(value as ViewMode),
@@ -147,22 +125,6 @@ export function PricingToolbar(props: PricingToolbarProps) {
 
   return (
     <div className='flex items-center gap-2'>
-      <Button
-        type='button'
-        variant='outline'
-        size='sm'
-        onClick={() => setMobileFiltersOpen(true)}
-        className='shrink-0 gap-1.5 xl:hidden'
-      >
-        <Filter className='size-4' />
-        {t('Filter')}
-        {props.activeFilterCount > 0 && (
-          <Badge className='ml-0.5 size-5 justify-center p-0 text-[10px]'>
-            {props.activeFilterCount}
-          </Badge>
-        )}
-      </Button>
-
       <SearchBar
         value={props.searchValue}
         onChange={props.onSearchChange}
@@ -247,33 +209,6 @@ export function PricingToolbar(props: PricingToolbarProps) {
         onChange={handleViewModeChange}
         ariaLabel={t('View mode')}
       />
-
-      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <SheetContent
-          side='right'
-          className='flex h-dvh w-full flex-col overflow-hidden p-0 sm:max-w-md'
-        >
-          <SheetHeader className='border-b px-4 py-3 sm:px-6 sm:py-4'>
-            <SheetTitle>{t('Filter')}</SheetTitle>
-            <SheetDescription>
-              {t('Refine models by pricing type, tags, and provider.')}
-            </SheetDescription>
-          </SheetHeader>
-          <div className='flex-1 overflow-y-auto p-3 sm:p-4'>
-            <PricingSidebar
-              quotaTypeFilter={props.quotaTypeFilter}
-              vendorFilter={props.vendorFilter}
-              tagFilter={props.tagFilter}
-              onQuotaTypeChange={props.onQuotaTypeChange}
-              onVendorChange={props.onVendorChange}
-              onTagChange={props.onTagChange}
-              vendors={props.vendors}
-              tags={props.tags}
-              models={props.models}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

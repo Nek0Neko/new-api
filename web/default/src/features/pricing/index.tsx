@@ -27,8 +27,8 @@ import {
   LoadingSkeleton,
   EmptyState,
   PricingTable,
-  PricingSidebar,
   PricingToolbar,
+  PricingFilterBar,
   ModelCardGrid,
   ModelDetailsDrawer,
 } from './components'
@@ -80,7 +80,6 @@ export function Pricing() {
     setViewMode,
     filteredModels,
     hasActiveFilters,
-    activeFilterCount,
     availableTags,
     clearFilters,
     clearSearch,
@@ -171,7 +170,7 @@ export function Pricing() {
   if (isLoading) {
     return (
       <PublicLayout showMainContainer={false}>
-        <div className='mx-auto w-full max-w-[1800px] px-3 pt-16 pb-8 sm:px-6 sm:pt-20 sm:pb-10 xl:px-8'>
+        <div className='mx-auto w-full max-w-[1800px] px-3 pt-8 pb-8 sm:px-6 sm:pt-12 sm:pb-10 xl:px-8'>
           <LoadingSkeleton viewMode={viewMode} />
         </div>
       </PublicLayout>
@@ -216,35 +215,21 @@ export function Pricing() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <PageTransition className='mx-auto w-full max-w-[1800px] px-3 pt-12 pb-8 sm:px-6 sm:pt-14 sm:pb-10 xl:px-8'>
-        <div className='grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)]'>
-          <PricingSidebar
-            quotaTypeFilter={quotaTypeFilter}
-            vendorFilter={vendorFilter}
-            tagFilter={tagFilter}
-            onQuotaTypeChange={setQuotaTypeFilter}
-            onVendorChange={setVendorFilter}
-            onTagChange={setTagFilter}
-            vendors={vendors || []}
-            tags={availableTags}
-            models={models || []}
-            className='hover-scrollbar sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto xl:block'
-          />
+      <PageTransition className='mx-auto w-full max-w-[1800px] px-3 pt-8 pb-8 sm:px-6 sm:pt-12 sm:pb-10 xl:px-8'>
+        <header className='mb-6 sm:mb-8'>
+          <h1 className='text-foreground text-2xl font-bold tracking-tight sm:text-3xl'>
+            {t('Models')}
+          </h1>
+          <p className='text-muted-foreground mt-2 text-sm sm:text-base'>
+            {t('Browse and filter all integrated models')}
+          </p>
+        </header>
 
-          <main className='min-w-0 space-y-4'>
+        <main className='min-w-0 space-y-4'>
+          <div className='bg-background/80 sticky top-0 z-20 -mx-3 border-b border-border/60 px-3 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8'>
             <PricingToolbar
               viewMode={viewMode}
               onViewModeChange={setViewMode}
-              quotaTypeFilter={quotaTypeFilter}
-              vendorFilter={vendorFilter}
-              tagFilter={tagFilter}
-              onQuotaTypeChange={setQuotaTypeFilter}
-              onVendorChange={setVendorFilter}
-              onTagChange={setTagFilter}
-              vendors={vendors || []}
-              tags={availableTags}
-              models={models || []}
-              activeFilterCount={activeFilterCount}
               searchValue={searchInput}
               onSearchChange={setSearchInput}
               onSearchClear={clearSearch}
@@ -257,40 +242,51 @@ export function Pricing() {
               }}
               isRefreshing={isFetching}
             />
+            <PricingFilterBar
+              quotaTypeFilter={quotaTypeFilter}
+              vendorFilter={vendorFilter}
+              tagFilter={tagFilter}
+              onQuotaTypeChange={setQuotaTypeFilter}
+              onVendorChange={setVendorFilter}
+              onTagChange={setTagFilter}
+              vendors={vendors || []}
+              tags={availableTags}
+              models={models || []}
+              className='mt-3'
+            />
+          </div>
 
-            {previewGroup && (
-              <div className='bg-muted/30 border-border/60 flex items-center justify-between rounded-lg border px-3 py-2 text-xs sm:text-sm'>
-                <div className='flex items-center gap-3'>
-                  <span className='text-foreground font-semibold'>
-                    {previewGroup}
-                  </span>
-                  {previewRatio != null && (
-                    <span className='text-muted-foreground flex items-center gap-1'>
-                      <span>{t('Group ratio')}</span>
-                      <span className='text-foreground font-mono tabular-nums'>
-                        {formatRatio(previewRatio)}×
-                      </span>
-                    </span>
-                  )}
-                </div>
-                {previewIsUserGroup && (
-                  <span className='inline-flex items-center rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300'>
-                    {t('My group')}
-                  </span>
-                )}
-              </div>
-            )}
-
-            <p className='text-muted-foreground text-xs sm:text-sm'>
+          <p className='text-muted-foreground flex items-center gap-2 text-xs sm:text-sm'>
+            <span>
               <span className='text-foreground font-semibold tabular-nums'>
                 {filteredModels.length.toLocaleString()}
               </span>{' '}
               {t('results')}
-            </p>
+            </span>
+            {previewGroup && (
+              <>
+                <span className='text-border'>·</span>
+                <span className='flex items-center gap-1'>
+                  <span className='text-foreground font-semibold'>
+                    {previewGroup}
+                  </span>
+                  {previewRatio != null && (
+                    <span className='text-foreground font-mono tabular-nums'>
+                      ×{formatRatio(previewRatio)}
+                    </span>
+                  )}
+                  {previewIsUserGroup && (
+                    <span className='inline-flex items-center rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300'>
+                      {t('My group')}
+                    </span>
+                  )}
+                </span>
+              </>
+            )}
+          </p>
 
-            {renderPricingContent()}
-          </main>
-        </div>
+          {renderPricingContent()}
+        </main>
 
         {selectedModel && (
           <ModelDetailsDrawer

@@ -142,7 +142,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
       type='button'
       onClick={props.onClick}
       className={cn(
-        'group bg-card hover:border-foreground/30 flex flex-col rounded-xl border p-5 text-left transition-colors'
+        'group bg-background hover:border-foreground/30 flex flex-col gap-4 rounded-xl border border-border p-5 text-left transition-colors'
       )}
     >
       {/* Vendor row + model name + copy */}
@@ -178,7 +178,7 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
 
       {/* Tags */}
       {tags.length > 0 && (
-        <div className='mt-3 flex flex-wrap gap-1.5'>
+        <div className='flex flex-wrap gap-1.5'>
           {tags.map((tag) => (
             <span
               key={tag}
@@ -189,8 +189,6 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
           ))}
         </div>
       )}
-
-      <div className='border-border/60 my-4 border-t' />
 
       {/* Pricing footer */}
       <div className='grid grid-cols-3 gap-4'>
