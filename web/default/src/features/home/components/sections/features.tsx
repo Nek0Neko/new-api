@@ -111,6 +111,7 @@ interface StoryBlockProps {
 }
 
 function StoryBlock(props: StoryBlockProps) {
+  const { t } = useTranslation()
   return (
     <div className='border-border/60 border-t'>
       <div className='mx-auto max-w-6xl px-6 py-20 md:py-28'>
@@ -150,7 +151,7 @@ function StoryBlock(props: StoryBlockProps) {
               href='#'
               className='text-foreground mt-8 inline-flex items-center gap-1 text-sm font-medium tracking-tight transition-colors hover:text-violet-600 dark:hover:text-violet-300'
             >
-              Learn more
+              {t('Learn more')}
               <ArrowRight className='size-3.5' />
             </a>
           </div>
@@ -164,6 +165,7 @@ function StoryBlock(props: StoryBlockProps) {
 /* ─── Mock visuals ─── */
 
 function UnifiedApiMock() {
+  const { t } = useTranslation()
   return (
     <div className='bg-card border-border relative overflow-hidden rounded-xl border shadow-lg'>
       <div className='border-border bg-muted/40 flex items-center gap-2 border-b px-4 py-2.5'>
@@ -185,7 +187,7 @@ function UnifiedApiMock() {
       </div>
       <pre className='text-foreground/80 px-5 py-5 font-mono text-[12px] leading-relaxed'>
         <span className='text-muted-foreground/60'>
-          {'// One client, every model'}
+          {`// ${t('One client, every model')}`}
           {'\n'}
         </span>
         <span className='text-violet-600 dark:text-violet-300'>const</span>
@@ -204,7 +206,7 @@ function UnifiedApiMock() {
         {',\n})'}
         {'\n\n'}
         <span className='text-muted-foreground/60'>
-          {'// Switch model — no code change'}
+          {`// ${t('Switch model — no code change')}`}
           {'\n'}
         </span>
         <span className='text-violet-600 dark:text-violet-300'>await</span>
@@ -222,6 +224,7 @@ function UnifiedApiMock() {
 }
 
 function ObservabilityMock() {
+  const { t } = useTranslation()
   const bars = [38, 52, 41, 67, 58, 72, 81, 64, 75, 88, 70, 92, 84]
   return (
     <div className='bg-card border-border relative overflow-hidden rounded-xl border shadow-lg'>
@@ -229,7 +232,7 @@ function ObservabilityMock() {
         <div className='flex items-center gap-2'>
           <Activity className='size-3.5 text-violet-600 dark:text-violet-300' />
           <span className='text-foreground text-sm font-medium tracking-tight'>
-            Request volume
+            {t('Request volume')}
           </span>
         </div>
         <div className='text-muted-foreground/70 flex items-center gap-2 font-mono text-[10px] tabular-nums'>
@@ -246,7 +249,7 @@ function ObservabilityMock() {
           </span>
         </div>
         <p className='text-muted-foreground mt-1 text-xs'>
-          Requests routed across all providers
+          {t('Requests routed across all providers')}
         </p>
 
         {/* Sparkline */}
@@ -290,11 +293,12 @@ function Metric(props: { label: string; value: string; tone?: 'good' }) {
 }
 
 function ControlsMock() {
+  const { t } = useTranslation()
   const roles = [
-    { name: 'Production', perm: 'Full access', count: 4, tone: 'emerald' },
-    { name: 'Staging', perm: 'Read + write', count: 2, tone: 'sky' },
-    { name: 'Read-only', perm: 'Read only', count: 8, tone: 'violet' },
-    { name: 'Disabled', perm: 'Revoked', count: 1, tone: 'muted' },
+    { name: t('Production'), initial: 'P', perm: t('Full access'), count: 4, tone: 'emerald' },
+    { name: t('Staging'), initial: 'S', perm: t('Read + write'), count: 2, tone: 'sky' },
+    { name: t('Read-only'), initial: 'R', perm: t('Read only'), count: 8, tone: 'violet' },
+    { name: t('Disabled'), initial: 'D', perm: t('Revoked'), count: 1, tone: 'muted' },
   ]
   return (
     <div className='bg-card border-border relative overflow-hidden rounded-xl border shadow-lg'>
@@ -302,17 +306,17 @@ function ControlsMock() {
         <div className='flex items-center gap-2'>
           <Shield className='size-3.5 text-violet-600 dark:text-violet-300' />
           <span className='text-foreground text-sm font-medium tracking-tight'>
-            Access policies
+            {t('Access policies')}
           </span>
         </div>
         <span className='text-muted-foreground/60 font-mono text-[10px] tracking-wider uppercase'>
-          15 keys
+          {t('{{count}} keys', { count: 15 })}
         </span>
       </div>
       <div className='divide-border/60 divide-y'>
         {roles.map((r) => (
           <div
-            key={r.name}
+            key={r.initial}
             className='hover:bg-muted/30 flex items-center justify-between px-5 py-3.5 transition-colors'
           >
             <div className='flex items-center gap-3'>
@@ -321,7 +325,7 @@ function ControlsMock() {
                   r.tone
                 )}`}
               >
-                {r.name[0]}
+                {r.initial}
               </span>
               <div>
                 <p className='text-foreground text-sm font-medium tracking-tight'>
@@ -331,7 +335,7 @@ function ControlsMock() {
               </div>
             </div>
             <span className='text-muted-foreground/70 font-mono text-xs tabular-nums'>
-              {r.count} {r.count === 1 ? 'key' : 'keys'}
+              {r.count === 1 ? t('{{count}} key', { count: r.count }) : t('{{count}} keys', { count: r.count })}
             </span>
           </div>
         ))}

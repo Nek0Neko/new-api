@@ -200,11 +200,13 @@ export function Footer(props: FooterProps) {
           {/* Brand column */}
           <div className='shrink-0'>
             <Link to='/' className='group flex items-center gap-2.5'>
-              <img
-                src={displayLogo}
-                alt={displayName}
-                className='size-7 rounded-lg object-contain'
-              />
+              <div className='flex size-7 items-center justify-center overflow-hidden rounded-lg dark:bg-white'>
+                <img
+                  src={displayLogo}
+                  alt={displayName}
+                  className='size-full rounded-lg object-contain'
+                />
+              </div>
               <span className='text-sm font-semibold tracking-tight'>
                 {displayName}
               </span>

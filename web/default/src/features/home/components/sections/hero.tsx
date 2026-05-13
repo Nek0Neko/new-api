@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useSystemConfig } from '@/hooks/use-system-config'
 import { Button } from '@/components/ui/button'
 
 interface HeroProps {
@@ -80,6 +81,7 @@ const ROUTING_LOG: RoutingRow[] = [
 
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
+  const { systemName } = useSystemConfig()
 
   return (
     <section className='bg-background text-foreground relative isolate overflow-hidden border-b'>
@@ -199,7 +201,7 @@ function RoutingConsole() {
               {t('Routing console')}
             </span>
             <span className='text-muted-foreground/60 font-mono text-[11px]'>
-              · production
+              · {t('production')}
             </span>
           </div>
           <div className='text-muted-foreground hidden items-center gap-3 font-mono text-[11px] tabular-nums sm:flex'>
@@ -208,7 +210,7 @@ function RoutingConsole() {
             </span>
             <span className='bg-border size-1 rounded-full' />
             <span>
-              <span className='text-foreground'>0.02</span>% errors
+              <span className='text-foreground'>0.02</span>% {t('errors')}
             </span>
             <span className='bg-border size-1 rounded-full' />
             <span className='text-foreground'>{t('healthy')}</span>
@@ -259,7 +261,7 @@ function RoutingConsole() {
             <span className='relative inline-flex size-1.5 rounded-full bg-violet-500' />
           </span>
           <span className='font-mono text-[10px] tracking-wider uppercase'>
-            live
+            {t('live')}
           </span>
         </div>
       </div>
