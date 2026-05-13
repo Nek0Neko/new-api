@@ -90,6 +90,7 @@ interface StatsProps {
 interface StatItem {
   end: number
   suffix: string
+  prefix?: string
   label: string
   decimals?: number
 }
@@ -98,31 +99,36 @@ export function Stats(_props: StatsProps) {
   const { t } = useTranslation()
 
   const stats: StatItem[] = [
-    { end: 50, suffix: '+', label: t('upstream services integrated') },
-    { end: 100, suffix: '+', label: t('model billing support') },
-    { end: 50, suffix: '+', label: t('compatible API routes') },
-    { end: 10, suffix: '+', label: t('scheduling controls') },
+    { end: 100, suffix: '+', label: t('Upstream providers') },
+    { end: 99.9, suffix: '%', decimals: 1, label: t('Routing uptime') },
+    { end: 100, prefix: '<', suffix: 'ms', label: t('Gateway overhead') },
+    { end: 10, suffix: 'K+', label: t('Requests served daily') },
   ]
 
   return (
-    <div className='border-border/40 bg-muted/10 relative z-10 border-y'>
-      <div className='mx-auto max-w-6xl px-6 py-10 md:py-12'>
-        <div className='grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-12'>
-          {stats.map((s) => (
+    <section className='bg-background relative z-10 border-b'>
+      <div className='mx-auto max-w-6xl px-6 py-12 md:py-14'>
+        <div className='grid grid-cols-2 gap-y-8 md:grid-cols-4 md:gap-0'>
+          {stats.map((s, i) => (
             <div
               key={s.label}
-              className='flex flex-col items-center text-center'
+              className={`flex flex-col gap-1.5 px-1 md:px-8 ${
+                i > 0 ? 'md:border-border/60 md:border-l' : ''
+              }`}
             >
-              <span className='text-2xl font-bold tracking-tight md:text-3xl'>
-                <Counter end={s.end} suffix={s.suffix} decimals={s.decimals} />
+              <span className='text-foreground text-[clamp(1.875rem,3.2vw,2.25rem)] leading-none font-semibold tracking-[-0.03em]'>
+                <Counter
+                  end={s.end}
+                  prefix={s.prefix}
+                  suffix={s.suffix}
+                  decimals={s.decimals}
+                />
               </span>
-              <span className='text-muted-foreground mt-1.5 text-xs'>
-                {s.label}
-              </span>
+              <span className='text-muted-foreground text-xs'>{s.label}</span>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   )
 }
