@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, Info, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -216,17 +216,32 @@ export function Pricing() {
   return (
     <PublicLayout showMainContainer={false}>
       <PageTransition className='mx-auto w-full max-w-[1800px] px-3 pt-8 pb-8 sm:px-6 sm:pt-12 sm:pb-10 xl:px-8'>
-        <header className='mb-6 sm:mb-8'>
+        <header className='mb-4 sm:mb-5'>
           <h1 className='text-foreground text-2xl font-bold tracking-tight sm:text-3xl'>
-            {t('Models')}
+            {t('Model Library')}
           </h1>
           <p className='text-muted-foreground mt-2 text-sm sm:text-base'>
             {t('Browse and filter all integrated models')}
           </p>
         </header>
 
+        <div
+          role='note'
+          className='border-border/60 bg-muted/40 text-muted-foreground mb-6 flex items-start gap-2 rounded-md border px-3 py-2 text-xs sm:mb-8 sm:text-sm'
+        >
+          <Info
+            className='text-foreground/70 mt-0.5 size-4 shrink-0'
+            aria-hidden
+          />
+          <span>
+            {t(
+              'Prices update in real time as you switch groups. Click any model card for full billing details.'
+            )}
+          </span>
+        </div>
+
         <main className='min-w-0 space-y-4'>
-          <div className='bg-background/80 sticky top-0 z-20 -mx-3 border-b border-border/60 px-3 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8'>
+          <div className='bg-background/80 border-border/60 sticky top-0 z-20 -mx-3 border-b px-3 pt-20 pb-3 backdrop-blur-md sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8'>
             <PricingToolbar
               viewMode={viewMode}
               onViewModeChange={setViewMode}
