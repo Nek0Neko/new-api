@@ -142,7 +142,6 @@ export function Footer(props: FooterProps) {
   ]
 
   const companyLinks: FooterLink[] = [
-    { label: t('About'), href: '/about' },
     { label: t('Terms'), href: '/user-agreement' },
     { label: t('Privacy Policy'), href: '/privacy-policy' },
   ]
