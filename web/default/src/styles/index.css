@@ -477,6 +477,222 @@ For commercial licensing, please contact support@quantumnous.com
   }
 }
 
+/* ── Landing page typography system (Linear-style) ── */
+@layer utilities {
+  /* Editorial eyebrow: small-caps tracked label with leading indicator */
+  .home-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
+  }
+  .home-eyebrow::before {
+    content: '';
+    inline-size: 1.5rem;
+    block-size: 1px;
+    background: currentColor;
+    opacity: 0.45;
+  }
+  .home-eyebrow-violet {
+    color: oklch(0.55 0.2 290);
+  }
+  .dark .home-eyebrow-violet {
+    color: oklch(0.78 0.18 290);
+  }
+
+  /* Section rule: eyebrow label followed by a thin line extending to the
+     right edge of the section. Linear-style chapter delimiter. */
+  .home-section-rule {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    color: var(--muted-foreground);
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
+  }
+  .home-section-rule::after {
+    content: '';
+    flex: 1;
+    block-size: 1px;
+    background: color-mix(in oklch, var(--border) 60%, transparent);
+  }
+
+  /* Centered section rule: short hairline · label · short hairline.
+     Used by trusted-by-style horizontal bands. */
+  .home-section-rule-center {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    color: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
+  }
+  .home-section-rule-center::before,
+  .home-section-rule-center::after {
+    content: '';
+    inline-size: 2.5rem;
+    block-size: 1px;
+    background: color-mix(in oklch, var(--border) 60%, transparent);
+  }
+
+  /* Display headline — Linear-style large, optically tight, balanced wrap */
+  .home-display {
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 0.95;
+    text-wrap: balance;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on,
+      'kern' on;
+  }
+  .home-display-xl {
+    font-size: clamp(2.75rem, 7vw, 5.5rem);
+  }
+  .home-display-lg {
+    font-size: clamp(2.25rem, 5.5vw, 4rem);
+    line-height: 1;
+  }
+  .home-display-md {
+    font-size: clamp(1.75rem, 3.4vw, 2.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+  }
+
+  /* Italic emphasis inside display headlines — Linear-style serif accent feel */
+  .home-display-italic {
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.05em;
+  }
+
+  /* Muted continuation line for two-line headlines */
+  .home-display-muted {
+    color: color-mix(in oklch, var(--foreground) 38%, transparent);
+  }
+  .dark .home-display-muted {
+    color: color-mix(in oklch, var(--foreground) 50%, transparent);
+  }
+
+  /* Body lead paragraph — sits under headlines */
+  .home-lead {
+    color: var(--muted-foreground);
+    font-size: clamp(0.95rem, 1.1vw, 1.0625rem);
+    line-height: 1.65;
+    text-wrap: balance;
+    letter-spacing: -0.005em;
+    max-width: 32rem;
+  }
+
+  /* Numeric display for stats */
+  .home-numeric {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on,
+      'tnum' on;
+  }
+
+  /* Section vertical rhythm helpers */
+  .home-section-pad {
+    padding-top: clamp(6rem, 12vw, 10rem);
+    padding-bottom: clamp(6rem, 12vw, 10rem);
+  }
+  .home-section-pad-sm {
+    padding-top: clamp(3.5rem, 6vw, 5rem);
+    padding-bottom: clamp(3.5rem, 6vw, 5rem);
+  }
+
+  /* Standard section rhythm — used by content sections (features, how-it-works) */
+  .home-section {
+    padding-top: clamp(5rem, 9vw, 8rem);
+    padding-bottom: clamp(5rem, 9vw, 8rem);
+  }
+  /* Compact horizontal band — used by trusted-by, stats */
+  .home-section-band {
+    padding-top: clamp(3rem, 5vw, 4.5rem);
+    padding-bottom: clamp(3rem, 5vw, 4.5rem);
+  }
+
+  /* Cell padding token — keeps grid cells (features / how-it-works / stats)
+     on the same vertical rhythm so cross-section dividers line up. */
+  .home-cell {
+    padding: 2.5rem 1.5rem;
+  }
+  @media (min-width: 768px) {
+    .home-cell {
+      padding: 3rem 2rem;
+    }
+  }
+
+  /* Subtle radial backdrop used behind hero / CTA */
+  .home-radial-backdrop {
+    background:
+      radial-gradient(
+        ellipse 80% 60% at 50% 0%,
+        oklch(0.65 0.2 290 / 0.07) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 50% 100%,
+        oklch(0.6 0.18 320 / 0.04) 0%,
+        transparent 60%
+      );
+  }
+  .dark .home-radial-backdrop {
+    background:
+      radial-gradient(
+        ellipse 80% 60% at 50% 0%,
+        oklch(0.65 0.2 290 / 0.12) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 50% 100%,
+        oklch(0.6 0.18 320 / 0.08) 0%,
+        transparent 60%
+      );
+  }
+
+  /* Faint grid backdrop for hero */
+  .home-grid-backdrop {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 64px 64px;
+    opacity: 0.35;
+    mask-image: radial-gradient(
+      ellipse 65% 60% at 50% 30%,
+      black 0%,
+      transparent 75%
+    );
+  }
+  .dark .home-grid-backdrop {
+    opacity: 0.22;
+  }
+}
+
 /* Micro-interactions — Vercel-style subtle hover/active feedback */
 @media (prefers-reduced-motion: no-preference) {
   [data-slot='card'] {
@@ -562,6 +778,29 @@ For commercial licensing, please contact support@quantumnous.com
 .content-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 80px;
+}
+
+/* ── Hero showcase floating chips ── */
+@keyframes home-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.home-float {
+  animation: home-float 5.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-float {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /* ── Hero terminal demo animations ── */

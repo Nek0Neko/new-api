@@ -18,11 +18,18 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
 import { AnimateInView } from '@/components/animate-in-view'
+import { getCellDividers } from '@/features/home/lib/cell-dividers'
+
+interface Step {
+  num: string
+  title: string
+  desc: string
+}
 
 export function HowItWorks() {
   const { t } = useTranslation()
 
-  const steps = [
+  const steps: Step[] = [
     {
       num: '01',
       title: t('Drop in your provider keys'),
@@ -47,49 +54,54 @@ export function HowItWorks() {
   ]
 
   return (
-    <section className='bg-background relative z-10 border-b'>
-      <div className='mx-auto max-w-6xl px-6 py-28 md:py-36'>
-        <AnimateInView className='mb-16 max-w-2xl md:mb-20'>
-          <p className='mb-4 text-[11px] font-medium tracking-[0.18em] text-violet-600 uppercase dark:text-violet-300'>
-            {t('How it works')}
-          </p>
-          <h2 className='text-foreground text-[clamp(1.875rem,3.8vw,2.75rem)] leading-[1.05] font-semibold tracking-[-0.03em]'>
-            {t('Get up and running in')}{' '}
-            <span className='text-muted-foreground'>{t('three steps.')}</span>
-          </h2>
+    <section className='bg-background border-border/60 home-section relative z-10 overflow-hidden border-b'>
+      <div className='mx-auto max-w-6xl px-6'>
+        <AnimateInView>
+          <span className='home-section-rule'>{t('How it works')}</span>
         </AnimateInView>
 
-        <div className='relative'>
-          {/* Connector line — desktop only */}
-          <div
-            aria-hidden
-            className='via-border/80 absolute top-7 left-0 hidden h-px w-full bg-gradient-to-r from-transparent to-transparent md:block'
-          />
-
-          <div className='grid gap-12 md:grid-cols-3 md:gap-8'>
-            {steps.map((step, i) => (
-              <AnimateInView
-                key={step.num}
-                delay={i * 120}
-                animation='fade-up'
-                className='relative'
-              >
-                <div className='bg-background border-border relative z-10 flex size-14 items-center justify-center rounded-xl border shadow-sm'>
-                  <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
-                    {step.num}
-                  </span>
-                </div>
-                <h3 className='text-foreground mt-7 text-lg font-semibold tracking-[-0.02em]'>
-                  {step.title}
-                </h3>
-                <p className='text-muted-foreground mt-2.5 text-sm leading-relaxed'>
-                  {step.desc}
-                </p>
-              </AnimateInView>
-            ))}
-          </div>
+        <div className='mt-12 grid grid-cols-1 sm:mt-16 sm:grid-cols-2 lg:grid-cols-3'>
+          {steps.map((step, i) => (
+            <StepCell key={step.num} step={step} index={i} />
+          ))}
         </div>
       </div>
     </section>
+  )
+}
+
+function StepCell(props: { step: Step; index: number }) {
+  const { step, index } = props
+  const { t } = useTranslation()
+
+  const dividerClass = getCellDividers(index, { base: 1, sm: 2, lg: 3 })
+
+  return (
+    <AnimateInView
+      animation='fade-up'
+      delay={index * 100}
+      className={`group home-cell relative flex flex-col gap-5 ${dividerClass}`}
+    >
+      <div className='flex items-baseline justify-between'>
+        <span className='home-numeric text-foreground/90 text-[clamp(2.5rem,4vw,3.25rem)] leading-none'>
+          {step.num}
+        </span>
+        <span className='text-muted-foreground/60 text-[10.5px] font-medium tracking-[0.22em] uppercase'>
+          {t('Step')}
+        </span>
+      </div>
+
+      <div
+        aria-hidden
+        className='bg-border/70 group-hover:bg-foreground/50 mt-1 h-px w-10 transition-all duration-300 group-hover:w-16'
+      />
+
+      <h3 className='home-display text-foreground text-[1.375rem] leading-[1.15] font-semibold tracking-[-0.025em]'>
+        {step.title}
+      </h3>
+      <p className='text-muted-foreground max-w-sm text-[13.5px] leading-[1.65]'>
+        {step.desc}
+      </p>
+    </AnimateInView>
   )
 }

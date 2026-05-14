@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { getCellDividers } from '@/features/home/lib/cell-dividers'
 
 interface CounterProps {
   end: number
@@ -101,22 +102,23 @@ export function Stats(_props: StatsProps) {
   const stats: StatItem[] = [
     { end: 100, suffix: '+', label: t('Upstream providers') },
     { end: 99.9, suffix: '%', decimals: 1, label: t('Routing uptime') },
-    { end: 100, prefix: '<', suffix: 'ms', label: t('Gateway overhead') },
+    { end: 150, prefix: '<', suffix: 'ms', label: t('Gateway overhead') },
     { end: 10, suffix: 'K+', label: t('Requests served daily') },
   ]
 
   return (
-    <section className='bg-background relative z-10 border-b'>
-      <div className='mx-auto max-w-6xl px-6 py-12 md:py-14'>
-        <div className='grid grid-cols-2 gap-y-8 md:grid-cols-4 md:gap-0'>
+    <section className='bg-background border-border/60 relative z-10 border-b'>
+      <div className='home-section-band mx-auto max-w-6xl px-6'>
+        <div className='grid grid-cols-2 md:grid-cols-4'>
           {stats.map((s, i) => (
             <div
               key={s.label}
-              className={`flex flex-col gap-1.5 px-1 md:px-8 ${
-                i > 0 ? 'md:border-border/60 md:border-l' : ''
-              }`}
+              className={`relative flex flex-col gap-3 px-4 py-6 sm:px-6 md:px-8 md:py-4 ${getCellDividers(
+                i,
+                { base: 2, md: 4 }
+              )}`}
             >
-              <span className='text-foreground text-[clamp(1.875rem,3.2vw,2.25rem)] leading-none font-semibold tracking-[-0.03em]'>
+              <span className='text-foreground home-numeric text-[clamp(2.25rem,4vw,3rem)] leading-none'>
                 <Counter
                   end={s.end}
                   prefix={s.prefix}
@@ -124,7 +126,9 @@ export function Stats(_props: StatsProps) {
                   decimals={s.decimals}
                 />
               </span>
-              <span className='text-muted-foreground text-xs'>{s.label}</span>
+              <span className='text-muted-foreground text-[11px] font-medium tracking-[0.14em] uppercase'>
+                {s.label}
+              </span>
             </div>
           ))}
         </div>

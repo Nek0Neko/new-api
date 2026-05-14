@@ -16,30 +16,51 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { ComponentType } from 'react'
+import {
+  Anthropic,
+  Azure,
+  Bedrock,
+  Cohere,
+  DeepSeek,
+  Gemini,
+  Meta,
+  Mistral,
+  OpenAI,
+  Qwen,
+} from '@lobehub/icons'
 import { useTranslation } from 'react-i18next'
 
-const PROVIDERS: { id: string; label: string }[] = [
-  { id: 'openai', label: 'OpenAI' },
-  { id: 'anthropic', label: 'Anthropic' },
-  { id: 'google', label: 'Google' },
-  { id: 'mistral', label: 'Mistral' },
-  { id: 'meta', label: 'Meta' },
-  { id: 'cohere', label: 'Cohere' },
-  { id: 'azure', label: 'Azure' },
-  { id: 'aws', label: 'AWS Bedrock' },
-  { id: 'deepseek', label: 'DeepSeek' },
-  { id: 'qwen', label: 'Qwen' },
+interface Provider {
+  id: string
+  label: string
+  Icon: ComponentType<{ size?: number | string }>
+}
+
+const PROVIDERS: Provider[] = [
+  { id: 'openai', label: 'OpenAI', Icon: OpenAI },
+  { id: 'anthropic', label: 'Anthropic', Icon: Anthropic },
+  { id: 'google', label: 'Google', Icon: Gemini },
+  { id: 'mistral', label: 'Mistral', Icon: Mistral },
+  { id: 'meta', label: 'Meta', Icon: Meta },
+  { id: 'cohere', label: 'Cohere', Icon: Cohere },
+  { id: 'azure', label: 'Azure', Icon: Azure },
+  { id: 'aws', label: 'AWS Bedrock', Icon: Bedrock },
+  { id: 'deepseek', label: 'DeepSeek', Icon: DeepSeek },
+  { id: 'qwen', label: 'Qwen', Icon: Qwen },
 ]
 
 export function TrustedBy() {
   const { t } = useTranslation()
 
   return (
-    <section className='bg-background relative z-10 border-b'>
-      <div className='mx-auto max-w-6xl px-6 py-12 md:py-14'>
-        <p className='text-muted-foreground/70 mb-6 text-center text-[11px] font-medium tracking-[0.18em] uppercase'>
-          {t('Built on top of the providers your team already uses')}
-        </p>
+    <section className='bg-background border-border/60 relative z-10 border-b'>
+      <div className='home-section-band mx-auto max-w-6xl px-6'>
+        <div className='mb-8 flex justify-center'>
+          <span className='home-section-rule-center'>
+            {t('Powered by the providers your team already trusts')}
+          </span>
+        </div>
 
         <div className='relative overflow-hidden'>
           <div
@@ -51,20 +72,20 @@ export function TrustedBy() {
             }}
           />
           <div className='marquee-track flex w-max items-center gap-10 py-1'>
-            {[...PROVIDERS, ...PROVIDERS, ...PROVIDERS].map((p, i) => (
-              <div
-                key={`${p.id}-${i}`}
-                className='text-muted-foreground/60 hover:text-foreground flex h-7 shrink-0 items-center gap-2 transition-colors'
-              >
-                <span
-                  aria-hidden
-                  className='bg-muted-foreground/30 size-1.5 rounded-full'
-                />
-                <span className='text-sm font-medium tracking-tight'>
-                  {p.label}
-                </span>
-              </div>
-            ))}
+            {[...PROVIDERS, ...PROVIDERS, ...PROVIDERS].map((p, i) => {
+              const Icon = p.Icon
+              return (
+                <div
+                  key={`${p.id}-${i}`}
+                  className='text-muted-foreground/60 hover:text-foreground flex h-7 shrink-0 items-center gap-2 transition-colors'
+                >
+                  <Icon size={18} aria-hidden />
+                  <span className='text-sm font-medium tracking-tight'>
+                    {p.label}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
