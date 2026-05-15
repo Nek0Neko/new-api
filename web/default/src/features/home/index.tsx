@@ -31,7 +31,7 @@ export function Home() {
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
   const { content, isLoaded, isUrl } = useHomePageContent()
-  const showLoading = useMinimumLoadingTime(!isLoaded, 1000)
+  const showLoading = useMinimumLoadingTime(!isLoaded, 2000)
 
   if (showLoading) {
     return (

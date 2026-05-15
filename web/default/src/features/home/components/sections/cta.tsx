@@ -151,11 +151,15 @@ export function CTA(props: CTAProps) {
                       {t('The promise')}
                     </span>
                     <blockquote className='mt-5 text-[18px] leading-[1.5] font-medium tracking-tight text-zinc-800 sm:text-[20px] dark:text-zinc-100'>
-                      <span className='text-zinc-400 dark:text-zinc-500'>“</span>
+                      <span className='text-zinc-400 dark:text-zinc-500'>
+                        “
+                      </span>
                       {t(
                         'Skip the infrastructure. Ship AI features today on a managed gateway built for production traffic.'
                       )}
-                      <span className='text-zinc-400 dark:text-zinc-500'>”</span>
+                      <span className='text-zinc-400 dark:text-zinc-500'>
+                        ”
+                      </span>
                     </blockquote>
                     <div className='mt-6 flex items-center gap-3'>
                       <span
@@ -192,7 +196,8 @@ function SpecCellView(props: { cell: SpecCell; index: number }) {
         'flex flex-col gap-2 px-2 md:px-7',
         index === 0 && 'md:pl-0',
         index === 3 && 'md:pr-0',
-        index > 0 && 'md:border-l md:border-zinc-200/90 dark:md:border-zinc-800/80',
+        index > 0 &&
+          'md:border-l md:border-zinc-200/90 dark:md:border-zinc-800/80',
         // Mobile: hairline between columns within each row
         index === 1 && 'border-l border-zinc-200/90 dark:border-zinc-800/80',
         index === 3 && 'border-l border-zinc-200/90 dark:border-zinc-800/80'
