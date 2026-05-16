@@ -38,7 +38,13 @@ const (
 	defaultRegistryHost = "registry-1.docker.io"
 	defaultRegistryAuth = "auth.docker.io"
 
-	dockerAPIVersion = "v1.41"
+	// Docker Engine API path prefix. We intentionally omit the version
+	// segment ("/v1.41/..." etc.) so the daemon serves whatever API version
+	// it supports. Docker 25+ rejects clients that pin to v1.41 or older
+	// ("client version 1.41 is too old"). All fields we consume from
+	// /containers/<id>/json and /images/<id>/json are stable since v1.21,
+	// so an unversioned path is the safest forward-compatible choice.
+	dockerAPIBase = "http://docker"
 
 	// HTTP timeouts. Tuned so the UI's "Check for updates" button completes
 	// within ~30s in the worst case while still failing fast on local errors.
@@ -193,7 +199,7 @@ func inspectSelfContainer(ctx context.Context) (imageRef, localDigest string, er
 	for _, cid := range candidates {
 		req, _ := http.NewRequestWithContext(ctx,
 			http.MethodGet,
-			"http://docker/"+dockerAPIVersion+"/containers/"+url.PathEscape(cid)+"/json",
+			dockerAPIBase+"/containers/"+url.PathEscape(cid)+"/json",
 			nil)
 		resp, doErr := client.Do(req)
 		if doErr != nil {
@@ -226,7 +232,7 @@ func inspectSelfContainer(ctx context.Context) (imageRef, localDigest string, er
 	}
 	req2, _ := http.NewRequestWithContext(ctx,
 		http.MethodGet,
-		"http://docker/"+dockerAPIVersion+"/images/"+url.PathEscape(ci.Image)+"/json",
+		dockerAPIBase+"/images/"+url.PathEscape(ci.Image)+"/json",
 		nil)
 	resp2, err := client.Do(req2)
 	if err != nil {
