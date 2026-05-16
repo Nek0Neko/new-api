@@ -59,13 +59,6 @@ type UpdateCheckerSectionProps = {
   startTime?: number | null
 }
 
-// Shorten "sha256:abcdef..." → "sha256:abcdef…" for human display.
-function shortDigest(digest?: string): string {
-  if (!digest) return ''
-  if (digest.length <= 20) return digest
-  return `${digest.slice(0, 19)}…`
-}
-
 export function UpdateCheckerSection({
   currentVersion,
   startTime,
@@ -267,14 +260,14 @@ export function UpdateCheckerSection({
                   {status.node_name || t('Unknown')}
                 </dd>
                 <dt className='text-muted-foreground'>{t('Running digest')}</dt>
-                <dd className='font-mono' title={status.local_digest}>
-                  {shortDigest(status.local_digest) || '—'}
+                <dd className='font-mono break-all'>
+                  {status.local_digest || '—'}
                 </dd>
                 <dt className='text-muted-foreground'>
                   {t('Registry digest')}
                 </dt>
-                <dd className='font-mono' title={status.remote_digest}>
-                  {shortDigest(status.remote_digest) || '—'}
+                <dd className='font-mono break-all'>
+                  {status.remote_digest || '—'}
                 </dd>
               </dl>
               {status.message && (

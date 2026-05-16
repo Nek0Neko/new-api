@@ -2,8 +2,18 @@
 # One-click deploy: build the new-api Docker image and push it to
 # Tencent Cloud Container Registry (ccr.ccs.tencentyun.com).
 #
+# Version is auto-bumped on every run and written back to the VERSION file.
+# Default bump is patch (vX.Y.Z → vX.Y.(Z+1)). An empty/missing VERSION is
+# treated as v0.0.0, so the first run produces v0.0.1.
+#
 # Usage:
-#   ./deploy-tencent.sh                            # build linux/amd64, tag with VERSION + latest, push
+#   ./deploy-tencent.sh                            # bump patch and deploy
+#   ./deploy-tencent.sh --patch                    # explicit patch bump
+#   ./deploy-tencent.sh --minor                    # bump minor, reset patch
+#   ./deploy-tencent.sh --major                    # bump major, reset minor+patch
+#   ./deploy-tencent.sh --keep                     # do NOT bump, reuse current VERSION
+#   ./deploy-tencent.sh --commit                   # also git-commit the VERSION change
+#   ./deploy-tencent.sh --minor --commit           # combine
 #   PLATFORMS=linux/amd64,linux/arm64 ./deploy-tencent.sh
 #   TENCENT_CCR_PASSWORD=xxx ./deploy-tencent.sh    # non-interactive login
 #   SKIP_LOGIN=1 ./deploy-tencent.sh                # already logged in
@@ -16,6 +26,8 @@
 #   USERNAME    default: 100011375079
 #   PLATFORMS   default: linux/amd64
 #   DOCKERFILE  default: Dockerfile
+#   BUMP        default: patch     (alternative to --major/--minor/--patch flag)
+#   COMMIT      default: 0         (set to 1 as an alternative to --commit)
 
 set -euo pipefail
 
@@ -39,15 +51,87 @@ cd "$(dirname "$0")"
 
 command -v docker >/dev/null 2>&1 || fatal "docker is not installed or not on PATH"
 
-# ---- compute tags ----------------------------------------------------------
-VERSION_TAG="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
+# ---- parse arguments -------------------------------------------------------
+# Flags here only control bump / commit behavior. Everything else is env-var driven.
+BUMP="${BUMP:-patch}"
+COMMIT="${COMMIT:-0}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --major)  BUMP=major; shift ;;
+    --minor)  BUMP=minor; shift ;;
+    --patch)  BUMP=patch; shift ;;
+    --keep)   BUMP=keep;  shift ;;
+    --commit) COMMIT=1;   shift ;;
+    -h|--help)
+      # Print the leading comment block as help text.
+      sed -n '2,/^set -euo pipefail/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *) fatal "unknown argument: $1 (try --major/--minor/--patch/--keep/--commit/--help)" ;;
+  esac
+done
+
+# ---- bump VERSION ----------------------------------------------------------
+# Read current vX.Y.Z, increment one component, write back, then use the new
+# value as the primary image tag. The Dockerfile bakes this value into both
+# the frontend bundle (VITE_REACT_APP_VERSION) and the Go binary
+# (-X common.Version=...), so a real bump always changes the image digest —
+# which is what makes watchtower's "click to upgrade" flow actually recreate
+# the container instead of skipping a no-op pull.
+VERSION_FILE="VERSION"
+CURRENT_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE" 2>/dev/null || true)"
+CLEAN="${CURRENT_VERSION#v}"
+
+if [[ -z "$CLEAN" ]]; then
+  major=0; minor=0; patch=0
+elif [[ "$CLEAN" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  major="${BASH_REMATCH[1]}"
+  minor="${BASH_REMATCH[2]}"
+  patch="${BASH_REMATCH[3]}"
+else
+  fatal "VERSION file content '${CURRENT_VERSION}' is not in vX.Y.Z form"
+fi
+
+case "$BUMP" in
+  major) major=$((major+1)); minor=0; patch=0 ;;
+  minor) minor=$((minor+1)); patch=0 ;;
+  patch) patch=$((patch+1)) ;;
+  keep)
+    if [[ -z "$CLEAN" ]]; then
+      fatal "--keep requires a non-empty VERSION file"
+    fi
+    ;;
+  *) fatal "unknown BUMP value: $BUMP (expected major/minor/patch/keep)" ;;
+esac
+
+VERSION_TAG="v${major}.${minor}.${patch}"
+if [[ "$BUMP" != "keep" ]]; then
+  echo "$VERSION_TAG" > "$VERSION_FILE"
+  info "bumped version: ${CURRENT_VERSION:-<empty>} → ${VERSION_TAG} (${BUMP})"
+else
+  info "keeping version: ${VERSION_TAG} (no bump)"
+fi
+
+# Optionally commit the VERSION change before building, so GIT_SHA / the
+# date-tag both reflect the release commit. Only stages VERSION itself —
+# other dirty paths in the working tree are left alone.
+if [[ "$COMMIT" == "1" ]]; then
+  if ! command -v git >/dev/null 2>&1; then
+    fatal "--commit requires git on PATH"
+  fi
+  if [[ "$BUMP" == "keep" ]]; then
+    info "--commit is a no-op with --keep (VERSION was not modified)"
+  elif git diff --quiet -- "$VERSION_FILE" 2>/dev/null; then
+    info "VERSION already committed; nothing new to commit"
+  else
+    info "committing VERSION bump"
+    git add "$VERSION_FILE"
+    git commit -m "chore: release ${VERSION_TAG}" >/dev/null
+  fi
+fi
+
 GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo nogit)"
 DATE_TAG="$(date +%Y%m%d-%H%M%S)"
-
-if [[ -z "${VERSION_TAG}" ]]; then
-  VERSION_TAG="${GIT_SHA}"
-  warn "VERSION file is empty; falling back to git sha tag: ${VERSION_TAG}"
-fi
 
 TAGS=("${VERSION_TAG}" "latest" "${GIT_SHA}-${DATE_TAG}")
 if [[ -n "${EXTRA_TAGS}" ]]; then
