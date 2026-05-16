@@ -105,6 +105,14 @@ services:
       - WATCHTOWER_LABEL_ENABLE=true # Only update containers explicitly opted-in via label
       - WATCHTOWER_CLEANUP=true      # Remove old images after a successful update
       - WATCHTOWER_INCLUDE_RESTARTING=true
+      # Registry credentials for pulling private images. Watchtower checks
+      # REPO_USER / REPO_PASS first and only falls back to /config.json when
+      # they are empty. Wiring these through means the in-app upgrade keeps
+      # working even if DOCKER_CONFIG_PATH points at a missing file (in which
+      # case docker silently bind-mounts an empty directory at /config.json
+      # and watchtower fails authentication with a hard-to-spot error).
+      - REPO_USER=${REGISTRY_USERNAME:-}
+      - REPO_PASS=${REGISTRY_PASSWORD:-}
       - TZ=Asia/Shanghai
     # No scheduled run; --http-api-update disables periodic polling.
     command: --http-api-update --label-enable
