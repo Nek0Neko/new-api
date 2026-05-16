@@ -17,12 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { useSystemConfig } from '@/hooks/use-system-config'
-import { useStatus } from '@/hooks/use-status'
 import { useTheme } from '@/context/theme-provider'
+import { useStatus } from '@/hooks/use-status'
+import { useSystemConfig } from '@/hooks/use-system-config'
 
 interface FooterProps {
   logo?: string
@@ -195,7 +195,8 @@ export function Footer(props: FooterProps) {
 
             <p className='text-muted-foreground/60 text-xs leading-relaxed'>
               &copy; {currentYear} {displayName}.{' '}
-              {props.copyright ?? t('All rights reserved.')} <NewApiInlineLink />
+              {props.copyright ?? t('All rights reserved.')}{' '}
+              <NewApiInlineLink />
             </p>
 
             <div className='text-muted-foreground/70 inline-flex items-center gap-1.5 text-xs'>
