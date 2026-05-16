@@ -1,0 +1,60 @@
+# Local smoke-test override for docker-compose.yml.
+#
+# Use:
+#   docker build -t new-api:local .
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+#
+# What this overrides:
+#   - Points new-api at a locally built image instead of the private TCR
+#     image, so no registry credentials are needed.
+#   - Replaces the production passwords with deterministic local-only values
+#     so the smoke test is reproducible. NEVER use these in production.
+#
+# Limitations vs. the real upgrade flow:
+#   - "Check for updates" will fail to find a public manifest for new-api:local
+#     (there is no such public image). The endpoint will still successfully
+#     report in_container=true and watchtower reachability — that proves the
+#     wiring works. To exercise the full update flow locally, run a local
+#     registry on :5001 and tag the image as localhost:5001/new-api:latest
+#     (see docs/in-app-upgrade.md if/when written).
+
+services:
+  new-api:
+    # Use the production image reference so the digest check inside the
+    # container queries the real registry (TCR). The local build is tagged with
+    # this same name via the smoke-test workflow:
+    #   docker build -t new-api:local .
+    #   docker tag new-api:local ccr.ccs.tencentyun.com/puddi/new-api:latest
+    # Override IMAGE in .env.local if your image lives elsewhere.
+    image: ${IMAGE:-ccr.ccs.tencentyun.com/puddi/new-api:latest}
+    environment:
+      - SQL_DSN=postgresql://root:localdev@postgres:5432/new-api
+      - REDIS_CONN_STRING=redis://:localdev@redis:6379
+      - TZ=Asia/Shanghai
+      - WATCHTOWER_URL=http://watchtower:8080
+      - WATCHTOWER_TOKEN=local-smoke-test-token-do-not-use-in-prod
+      # Pass through registry credentials from .env.local so the digest check
+      # can authenticate against private registries (e.g. TCR).
+      - REGISTRY_USERNAME=${REGISTRY_USERNAME:-}
+      - REGISTRY_PASSWORD=${REGISTRY_PASSWORD:-}
+      - ERROR_LOG_ENABLED=true
+      - BATCH_UPDATE_ENABLED=true
+      - NODE_NAME=local-test-node
+
+  watchtower:
+    environment:
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_TOKEN=local-smoke-test-token-do-not-use-in-prod
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - TZ=Asia/Shanghai
+
+  redis:
+    command: ["redis-server", "--requirepass", "localdev"]
+
+  postgres:
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: localdev
+      POSTGRES_DB: new-api

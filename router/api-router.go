@@ -199,6 +199,13 @@ func SetApiRouter(router *gin.Engine) {
 			customOAuthRoute.PUT("/:id", controller.UpdateCustomOAuthProvider)
 			customOAuthRoute.DELETE("/:id", controller.DeleteCustomOAuthProvider)
 		}
+		maintenanceRoute := apiRouter.Group("/maintenance")
+		maintenanceRoute.Use(middleware.RootAuth())
+		{
+			maintenanceRoute.GET("/image-status", controller.GetImageStatus)
+			maintenanceRoute.POST("/upgrade", middleware.CriticalRateLimit(), controller.TriggerUpgrade)
+		}
+
 		performanceRoute := apiRouter.Group("/performance")
 		performanceRoute.Use(middleware.RootAuth())
 		{

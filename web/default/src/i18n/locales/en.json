@@ -4579,6 +4579,26 @@
     "Automatically picks the best node by latency, cost, and availability — fewer failures, less babysitting.": "Automatically picks the best node by latency, cost, and availability — fewer failures, less babysitting.",
     "Global edge coverage with sub-100ms response — built for real-time inference and heavy concurrency.": "Global edge coverage with sub-100ms response — built for real-time inference and heavy concurrency.",
     "We pool the volume, you pocket the discount — up to 30% cheaper than calling the official API direct.": "We pool the volume, you pocket the discount — up to 30% cheaper than calling the official API direct.",
-    "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package.": "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package."
+    "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package.": "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package.",
+    "A newer image is available.": "A newer image is available.",
+    "Compare the running container image against the registry and roll out updates.": "Compare the running container image against the registry and roll out updates.",
+    "Confirm upgrade": "Confirm upgrade",
+    "Container image": "Container image",
+    "Failed to trigger upgrade": "Failed to trigger upgrade",
+    "Node": "Node",
+    "Note: upgrade only affects the node serving this request. Repeat on each node in multi-host deployments.": "Note: upgrade only affects the node serving this request. Repeat on each node in multi-host deployments.",
+    "Registry digest": "Registry digest",
+    "Running digest": "Running digest",
+    "Start upgrade": "Start upgrade",
+    "This will pull the latest image and recreate the container. The service will be unavailable for a few seconds.": "This will pull the latest image and recreate the container. The service will be unavailable for a few seconds.",
+    "Up to date": "Up to date",
+    "Update available": "Update available",
+    "Upgrade complete. Please sign in again.": "Upgrade complete. Please sign in again.",
+    "Upgrade did not complete within the expected window. Check the host logs.": "Upgrade did not complete within the expected window. Check the host logs.",
+    "Upgrade now": "Upgrade now",
+    "Upgrade triggered. The container will restart shortly. This page will refresh state automatically.": "Upgrade triggered. The container will restart shortly. This page will refresh state automatically.",
+    "Upgrading...": "Upgrading...",
+    "Watchtower service is not reachable. One-click upgrade is disabled.": "Watchtower service is not reachable. One-click upgrade is disabled.",
+    "You are already on the latest image.": "You are already on the latest image."
   }
 }

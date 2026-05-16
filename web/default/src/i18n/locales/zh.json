@@ -4579,6 +4579,26 @@
     "Automatically picks the best node by latency, cost, and availability — fewer failures, less babysitting.": "按延迟、成本、可用性自动挑最优节点——少出故障，省心省力。",
     "Global edge coverage with sub-100ms response — built for real-time inference and heavy concurrency.": "全球边缘节点覆盖，亚 100 ms 响应——专为实时推理与高并发而生。",
     "We pool the volume, you pocket the discount — up to 30% cheaper than calling the official API direct.": "我们把调用量聚起来，把折扣直接还到你手上——相较直连官方 API，最多省下 30%。",
-    "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package.": "端到端加密、SOC 2 Type II 合规，支持 VPC 私有部署与定制 SLA——企业要的，一样不少。"
+    "End-to-end encryption, SOC 2 Type II compliant, with VPC private deployment and custom SLA — the full package.": "端到端加密、SOC 2 Type II 合规，支持 VPC 私有部署与定制 SLA——企业要的，一样不少。",
+    "A newer image is available.": "发现新版本镜像。",
+    "Compare the running container image against the registry and roll out updates.": "对比当前容器镜像与镜像仓库，并下发在线更新。",
+    "Confirm upgrade": "确认升级",
+    "Container image": "容器镜像",
+    "Failed to trigger upgrade": "触发升级失败",
+    "Node": "节点",
+    "Note: upgrade only affects the node serving this request. Repeat on each node in multi-host deployments.": "说明：升级仅作用于当前接收请求的节点。多主机部署需在每个节点上分别触发。",
+    "Registry digest": "仓库摘要",
+    "Running digest": "运行摘要",
+    "Start upgrade": "开始升级",
+    "This will pull the latest image and recreate the container. The service will be unavailable for a few seconds.": "将拉取最新镜像并重建容器，服务会短暂不可用（数秒）。",
+    "Up to date": "已是最新",
+    "Update available": "有可用更新",
+    "Upgrade complete. Please sign in again.": "升级完成，请重新登录。",
+    "Upgrade did not complete within the expected window. Check the host logs.": "升级未在预期时间内完成，请检查宿主机日志。",
+    "Upgrade now": "立即升级",
+    "Upgrade triggered. The container will restart shortly. This page will refresh state automatically.": "已触发升级，容器即将重启，本页将自动刷新状态。",
+    "Upgrading...": "升级中...",
+    "Watchtower service is not reachable. One-click upgrade is disabled.": "无法连接 Watchtower 服务，一键升级已禁用。",
+    "You are already on the latest image.": "已运行最新镜像。"
   }
 }

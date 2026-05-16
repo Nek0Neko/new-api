@@ -90,6 +90,10 @@ for t in "${UNIQUE_TAGS[@]}"; do
   TAG_ARGS+=(--tag "${REPO}:${t}")
 done
 
+# Bake the same value used for the primary image tag into the binary so
+# /api/status and the UI banner report a real version instead of v0.0.0.
+BUILD_ARGS=(--build-arg "VERSION=${VERSION_TAG}")
+
 # Multi-platform builds require buildx + --push (cannot --load multi-arch).
 # Single-platform: prefer buildx for caching; fall back to plain docker build.
 if [[ "${PLATFORMS}" == *","* ]]; then
@@ -102,6 +106,7 @@ if [[ "${PLATFORMS}" == *","* ]]; then
   docker buildx build \
     --platform "${PLATFORMS}" \
     --file "${DOCKERFILE}" \
+    "${BUILD_ARGS[@]}" \
     "${TAG_ARGS[@]}" \
     --push \
     .
@@ -111,12 +116,14 @@ else
     docker buildx build \
       --platform "${PLATFORMS}" \
       --file "${DOCKERFILE}" \
+      "${BUILD_ARGS[@]}" \
       "${TAG_ARGS[@]}" \
       --load \
       .
   else
     docker build \
       --file "${DOCKERFILE}" \
+      "${BUILD_ARGS[@]}" \
       "${TAG_ARGS[@]}" \
       .
   fi

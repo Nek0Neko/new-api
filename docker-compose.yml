@@ -18,18 +18,43 @@ services:
   new-api:
     image: ccr.ccs.tencentyun.com/puddi/new-api:latest
     container_name: new-api
+    # Pin hostname so self-inspect via the docker API resolves even after a
+    # watchtower-driven recreate. Without this, the hostname auto-generated at
+    # first start gets copied to recreated containers as a stale short-id and
+    # the /containers/<hostname>/json lookup returns 404.
+    hostname: new-api
     restart: always
     command: --log-dir /app/logs
+    labels:
+      # Enable watchtower for this container (used by the in-app upgrade button)
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       - "3000:3000"
     volumes:
       - ./data:/data
       - ./logs:/app/logs
+      # Read-only docker socket: lets the app inspect its own image digest.
+      # Update execution itself is delegated to the watchtower service below.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - SQL_DSN=postgresql://root:123456@postgres:5432/new-api # ⚠️ IMPORTANT: Change the password in production!
 #      - SQL_DSN=root:123456@tcp(mysql:3306)/new-api  # Point to the mysql service, uncomment if using MySQL
       - REDIS_CONN_STRING=redis://:123456@redis:6379 # ⚠️ IMPORTANT: Change the password in production!
       - TZ=Asia/Shanghai
+      # In-app upgrade endpoint configuration (consumed by controller/maintenance.go).
+      # Both values must match the watchtower service. Generate the token with:
+      #   openssl rand -hex 32
+      # Recommended: put real values in a .env file (next to this compose file) and
+      # use ${VAR} substitution instead of inlining the secrets here.
+      - WATCHTOWER_URL=http://watchtower:8080
+      - WATCHTOWER_TOKEN=${WATCHTOWER_TOKEN:?set WATCHTOWER_TOKEN in .env}
+      # Private registry credentials used ONLY for the image-status digest check.
+      # The actual pull/recreate is performed by the watchtower service below, which
+      # reads credentials from the host's /root/.docker/config.json (mounted ro).
+      # Multi-registry deployments: also support REGISTRY_USERNAME_<HOST> /
+      # REGISTRY_PASSWORD_<HOST> with the host's dots replaced by underscores.
+      - REGISTRY_USERNAME=${REGISTRY_USERNAME:-}
+      - REGISTRY_PASSWORD=${REGISTRY_PASSWORD:-}
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
       - BATCH_UPDATE_ENABLED=true  # 是否启用批量更新 (Whether to enable batch update)
       - NODE_NAME=new-api-node-1  # 节点名称，用于审计日志中标识节点身份；多节点/容器部署时建议设置 (Node name used in audit logs; recommended when running multiple instances or in containers)
@@ -51,6 +76,40 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Watchtower drives the in-app "click to update" flow.
+  # It only acts on containers labeled com.centurylinklabs.watchtower.enable=true.
+  # Triggered via HTTP API (no scheduled polling) so updates happen only on user request.
+  #
+  # Image note: the original containrrr/watchtower stopped publishing releases in
+  # 2023 and its bundled Docker client (API v1.25) no longer talks to Docker
+  # Engine 25+ ("client version 1.25 is too old"). nickfedor/watchtower is an
+  # actively maintained fork that keeps the same env-var contract.
+  watchtower:
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Pass through the host's docker login credentials so watchtower can pull
+      # private images (e.g. ccr.ccs.tencentyun.com). On the production host run:
+      #   docker login ccr.ccs.tencentyun.com -u <username>
+      # which writes ~/.docker/config.json. If running docker as root that file
+      # lives at /root/.docker/config.json — set DOCKER_CONFIG_PATH in .env to
+      # the actual host path. Defaults to an empty config so local smoke tests
+      # with public images work without any host setup.
+      - ${DOCKER_CONFIG_PATH:-./.docker/config.empty.json}:/config.json:ro
+    environment:
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN:?set WATCHTOWER_TOKEN in .env}
+      - WATCHTOWER_LABEL_ENABLE=true # Only update containers explicitly opted-in via label
+      - WATCHTOWER_CLEANUP=true      # Remove old images after a successful update
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - TZ=Asia/Shanghai
+    # No scheduled run; --http-api-update disables periodic polling.
+    command: --http-api-update --label-enable
+    networks:
+      - new-api-network
 
   redis:
     image: redis:latest

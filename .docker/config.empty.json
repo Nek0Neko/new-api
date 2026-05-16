@@ -1,0 +1,4 @@
+{
+  "_comment": "Empty docker config used as a default mount target for the watchtower service in docker-compose.yml. Production deployments should override DOCKER_CONFIG_PATH in .env to point at the real host config (e.g. /root/.docker/config.json) so watchtower can pull private images. Local smoke tests using only public images work fine with this empty config.",
+  "auths": {}
+}
