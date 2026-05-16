@@ -57,7 +57,7 @@ export function Hero(props: HeroProps) {
       {/* Tint + readability overlay, lives above the video, below content */}
       <div
         aria-hidden
-        className='pointer-events-none absolute inset-0 z-[1]'
+        className='pointer-events-none absolute inset-0 z-1'
         style={{
           background:
             'linear-gradient(180deg, color-mix(in oklch, var(--background) 35%, transparent) 0%, color-mix(in oklch, var(--background) 55%, transparent) 50%, var(--background) 100%)',
@@ -67,7 +67,7 @@ export function Hero(props: HeroProps) {
       {/* Subtle grid backdrop for texture, above tint */}
       <div
         aria-hidden
-        className='home-grid-backdrop pointer-events-none absolute inset-0 z-[1] opacity-40 mix-blend-overlay'
+        className='home-grid-backdrop pointer-events-none absolute inset-0 z-1 opacity-40 mix-blend-overlay'
       />
 
       {/* Content */}

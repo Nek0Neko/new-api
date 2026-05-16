@@ -84,7 +84,7 @@ export function CTA(props: CTAProps) {
             {/* Subtle top highlight for layered surface feel */}
             <div
               aria-hidden
-              className='pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-900/10 to-transparent dark:via-white/10'
+              className='pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-zinc-900/10 to-transparent dark:via-white/10'
             />
 
             <div className='relative px-7 py-14 sm:px-12 sm:py-20 lg:px-20 lg:py-24'>
@@ -150,7 +150,7 @@ export function CTA(props: CTAProps) {
                     <span className='text-[10.5px] font-semibold tracking-[0.22em] text-emerald-700 uppercase dark:text-emerald-400/90'>
                       {t('The promise')}
                     </span>
-                    <blockquote className='mt-5 text-[18px] leading-[1.5] font-medium tracking-tight text-zinc-800 sm:text-[20px] dark:text-zinc-100'>
+                    <blockquote className='mt-5 text-[18px] leading-normal font-medium tracking-tight text-zinc-800 sm:text-[20px] dark:text-zinc-100'>
                       <span className='text-zinc-400 dark:text-zinc-500'>
                         “
                       </span>
