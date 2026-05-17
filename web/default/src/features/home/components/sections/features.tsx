@@ -29,9 +29,11 @@ import {
   Boxes,
   Sparkles,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimateInView } from '@/components/animate-in-view'
 import { getCellDividers } from '@/features/home/lib/cell-dividers'
+import { useStatus } from '@/hooks/use-status'
 
 interface FeaturesProps {
   className?: string
@@ -186,6 +188,27 @@ export function Features(_props: FeaturesProps) {
 
 function BaseUrlSwapCard() {
   const { t } = useTranslation()
+  const { status } = useStatus()
+
+  const baseUrl = useMemo(() => {
+    const candidate =
+      (status as Record<string, unknown> | null)?.server_address ??
+      (status as Record<string, unknown> | null)?.serverAddress ??
+      (status?.data as Record<string, unknown> | undefined)?.server_address ??
+      (status?.data as Record<string, unknown> | undefined)?.serverAddress
+    const trimmed =
+      typeof candidate === 'string' ? candidate.trim().replace(/\/$/, '') : ''
+    // Skip backend's unconfigured localhost default so visitors don't see it
+    const isLocalhostDefault = /^https?:\/\/localhost(:\d+)?$/i.test(trimmed)
+    const origin =
+      trimmed && !isLocalhostDefault
+        ? trimmed
+        : typeof window !== 'undefined'
+          ? window.location.origin
+          : 'https://your-gateway'
+    return `${origin}/v1`
+  }, [status])
+
   return (
     <div className='border-border/60 bg-card/40 mt-9 overflow-hidden rounded-xl border shadow-sm'>
       <div className='border-border/60 flex items-center justify-between border-b px-4 py-2.5'>
@@ -225,7 +248,7 @@ function BaseUrlSwapCard() {
         <span className='text-violet-600 dark:text-violet-300'>base_url</span>
         {' = '}
         <span className='text-emerald-700 dark:text-emerald-300'>
-          "https://your-gateway/v1"
+          {`"${baseUrl}"`}
         </span>
       </pre>
     </div>
