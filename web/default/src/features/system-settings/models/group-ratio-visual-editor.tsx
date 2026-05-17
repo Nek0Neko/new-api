@@ -56,11 +56,19 @@ type GroupRatioVisualEditorProps = {
   onChange: (field: string, value: string) => void
 }
 
-type GroupPricingRow = {
+// A single conceptual group. The same name may have a consumption ratio,
+// a top-up ratio, both, or neither; the two tables below render the slice
+// of rows that apply to each side.
+type GroupRow = {
   _id: string
   name: string
+  // Consumption side (channel group / 消费分组)
+  hasRatio: boolean
   ratio: number
+  // Recharge side (user tier / 充值分组)
+  hasTopupRatio: boolean
   topupRatio: number
+  // Shared metadata (stored in userUsableGroups)
   selectable: boolean
   description: string
   adminOnly: boolean
@@ -81,10 +89,10 @@ const sectionCardClassName =
   'relative shadow-sm ring-0 before:pointer-events-none before:absolute before:inset-0 before:rounded-xl before:border before:border-border/90'
 const sectionHeaderClassName = 'border-b bg-muted/20'
 
-let groupPricingIdCounter = 0
-function createGroupPricingId() {
-  groupPricingIdCounter += 1
-  return `gpr_${groupPricingIdCounter}`
+let groupRowIdCounter = 0
+function createGroupRowId() {
+  groupRowIdCounter += 1
+  return `gpr_${groupRowIdCounter}`
 }
 
 function normalizeRatio(value: unknown): number {
@@ -108,11 +116,11 @@ function normalizeUsableGroupsMap(
   return out
 }
 
-function buildGroupPricingRows(
+function buildGroupRows(
   groupRatio: string,
   topupGroupRatio: string,
   userUsableGroups: string
-): GroupPricingRow[] {
+): GroupRow[] {
   const ratioMap = safeJsonParse<Record<string, number>>(groupRatio, {
     fallback: {},
     context: 'group ratios',
@@ -134,11 +142,18 @@ function buildGroupPricingRows(
 
   return Array.from(names).map((name) => {
     const meta = usableMap[name] ?? {}
+    const hasRatio = Object.prototype.hasOwnProperty.call(ratioMap, name)
+    const hasTopupRatio = Object.prototype.hasOwnProperty.call(
+      topupRatioMap,
+      name
+    )
     return {
-      _id: createGroupPricingId(),
+      _id: createGroupRowId(),
       name,
-      ratio: normalizeRatio(ratioMap[name]),
-      topupRatio: normalizeRatio(topupRatioMap[name]),
+      hasRatio,
+      ratio: hasRatio ? normalizeRatio(ratioMap[name]) : 1,
+      hasTopupRatio,
+      topupRatio: hasTopupRatio ? normalizeRatio(topupRatioMap[name]) : 1,
       selectable: Object.prototype.hasOwnProperty.call(usableMap, name),
       description: String(meta.description ?? ''),
       adminOnly: Boolean(meta.admin_only),
@@ -151,7 +166,7 @@ function buildGroupPricingRows(
   })
 }
 
-function serializeGroupPricingRows(rows: GroupPricingRow[]) {
+function serializeGroupRows(rows: GroupRow[]) {
   const groupRatio: Record<string, number> = {}
   const topupGroupRatio: Record<string, number> = {}
   const userUsableGroups: Record<string, StoredGroupMeta> = {}
@@ -159,8 +174,12 @@ function serializeGroupPricingRows(rows: GroupPricingRow[]) {
   for (const row of rows) {
     const name = row.name.trim()
     if (!name) continue
-    groupRatio[name] = normalizeRatio(row.ratio)
-    topupGroupRatio[name] = normalizeRatio(row.topupRatio)
+    if (row.hasRatio) {
+      groupRatio[name] = normalizeRatio(row.ratio)
+    }
+    if (row.hasTopupRatio) {
+      topupGroupRatio[name] = normalizeRatio(row.topupRatio)
+    }
     if (row.selectable) {
       const meta: StoredGroupMeta = {
         description: row.description,
@@ -184,8 +203,8 @@ function serializeGroupPricingRows(rows: GroupPricingRow[]) {
   }
 }
 
-function groupPricingSignature(rows: GroupPricingRow[]): string {
-  const serialized = serializeGroupPricingRows(rows)
+function groupRowsSignature(rows: GroupRow[]): string {
+  const serialized = serializeGroupRows(rows)
   return JSON.stringify({
     groupRatio: safeJsonParse(serialized.GroupRatio, {
       fallback: {},
@@ -202,7 +221,7 @@ function groupPricingSignature(rows: GroupPricingRow[]): string {
   })
 }
 
-function sourceGroupPricingSignature(
+function sourceGroupRowsSignature(
   groupRatio: string,
   topupGroupRatio: string,
   userUsableGroups: string
@@ -271,7 +290,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
 
   return (
     <div className='space-y-4'>
-      <GroupPricingTable
+      <GroupPricingTables
         groupRatio={groupRatio}
         topupGroupRatio={topupGroupRatio}
         userUsableGroups={userUsableGroups}
@@ -370,46 +389,42 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   )
 })
 
-type GroupPricingTableProps = {
+type GroupPricingTablesProps = {
   groupRatio: string
   topupGroupRatio: string
   userUsableGroups: string
   onChange: (field: string, value: string) => void
 }
 
-function GroupPricingTable({
+function GroupPricingTables({
   groupRatio,
   topupGroupRatio,
   userUsableGroups,
   onChange,
-}: GroupPricingTableProps) {
+}: GroupPricingTablesProps) {
   const { t } = useTranslation()
-  const [rows, setRows] = useState<GroupPricingRow[]>(() =>
-    buildGroupPricingRows(groupRatio, topupGroupRatio, userUsableGroups)
+  const [rows, setRows] = useState<GroupRow[]>(() =>
+    buildGroupRows(groupRatio, topupGroupRatio, userUsableGroups)
   )
 
   useEffect(() => {
-    const incomingSignature = sourceGroupPricingSignature(
+    const incomingSignature = sourceGroupRowsSignature(
       groupRatio,
       topupGroupRatio,
       userUsableGroups
     )
     setRows((currentRows) => {
-      if (groupPricingSignature(currentRows) === incomingSignature) {
+      if (groupRowsSignature(currentRows) === incomingSignature) {
         return currentRows
       }
-      return buildGroupPricingRows(
-        groupRatio,
-        topupGroupRatio,
-        userUsableGroups
-      )
+      return buildGroupRows(groupRatio, topupGroupRatio, userUsableGroups)
     })
   }, [groupRatio, topupGroupRatio, userUsableGroups])
 
   const emitRows = useCallback(
-    (nextRows: GroupPricingRow[]) => {
+    (nextRows: GroupRow[]) => {
       setRows(nextRows)
-      const serialized = serializeGroupPricingRows(nextRows)
+      const serialized = serializeGroupRows(nextRows)
       onChange('GroupRatio', serialized.GroupRatio)
       onChange('TopupGroupRatio', serialized.TopupGroupRatio)
       onChange('UserUsableGroups', serialized.UserUsableGroups)
@@ -420,7 +435,7 @@ function GroupPricingTable({
   const updateRow = useCallback(
     (
       id: string,
-      field: Exclude<keyof GroupPricingRow, '_id'>,
+      field: Exclude<keyof GroupRow, '_id'>,
       value: string | number | boolean
     ) => {
       emitRows(
@@ -430,7 +445,42 @@ function GroupPricingTable({
     [emitRows, rows]
   )
 
-  const addRow = useCallback(() => {
+  const removeFromConsumption = useCallback(
+    (id: string) => {
+      const next = rows
+        .map((row) => (row._id === id ? { ...row, hasRatio: false } : row))
+        // Drop a row entirely if it no longer participates in either side
+        // AND has no user-facing metadata.
+        .filter(
+          (row) => row.hasRatio || row.hasTopupRatio || row.selectable
+        )
+      emitRows(next)
+    },
+    [emitRows, rows]
+  )
+
+  const removeFromRecharge = useCallback(
+    (id: string) => {
+      const next = rows
+        .map((row) =>
+          row._id === id
+            ? {
+                ...row,
+                hasTopupRatio: false,
+                autoUpgrade: false,
+                upgradeThresholdYuan: 0,
+              }
+            : row
+        )
+        .filter(
+          (row) => row.hasRatio || row.hasTopupRatio || row.selectable
+        )
+      emitRows(next)
+    },
+    [emitRows, rows]
+  )
+
+  const addConsumptionRow = useCallback(() => {
     const existingNames = new Set(rows.map((row) => row.name))
     let index = 1
     let name = `group_${index}`
@@ -441,9 +491,11 @@ function GroupPricingTable({
     emitRows([
       ...rows,
       {
-        _id: createGroupPricingId(),
+        _id: createGroupRowId(),
         name,
+        hasRatio: true,
         ratio: 1,
+        hasTopupRatio: false,
         topupRatio: 1,
         selectable: true,
         description: '',
@@ -454,11 +506,39 @@ function GroupPricingTable({
     ])
   }, [emitRows, rows])
 
-  const removeRow = useCallback(
-    (id: string) => {
-      emitRows(rows.filter((row) => row._id !== id))
-    },
-    [emitRows, rows]
+  const addRechargeRow = useCallback(() => {
+    const existingNames = new Set(rows.map((row) => row.name))
+    let index = 1
+    let name = `tier_${index}`
+    while (existingNames.has(name)) {
+      index += 1
+      name = `tier_${index}`
+    }
+    emitRows([
+      ...rows,
+      {
+        _id: createGroupRowId(),
+        name,
+        hasRatio: false,
+        ratio: 1,
+        hasTopupRatio: true,
+        topupRatio: 1,
+        selectable: true,
+        description: '',
+        adminOnly: false,
+        autoUpgrade: false,
+        upgradeThresholdYuan: 0,
+      },
+    ])
+  }, [emitRows, rows])
+
+  const consumptionRows = useMemo(
+    () => rows.filter((row) => row.hasRatio),
+    [rows]
+  )
+  const rechargeRows = useMemo(
+    () => rows.filter((row) => row.hasTopupRatio),
+    [rows]
   )
 
   const duplicateNames = useMemo(() => {
@@ -474,203 +554,364 @@ function GroupPricingTable({
   }, [rows])
 
   return (
-    <Card className={sectionCardClassName}>
-      <CardHeader className={sectionHeaderClassName}>
-        <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-          <div>
-            <CardTitle>{t('Pricing groups')}</CardTitle>
-            <CardDescription>
-              {t(
-                'Edit billing ratios and user-selectable groups in one table.'
-              )}
-            </CardDescription>
+    <div className='space-y-4'>
+      {/* 消费分组 — Consumption groups (channel-side billing ratio) */}
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+            <div>
+              <CardTitle>{t('Consumption groups')}</CardTitle>
+              <CardDescription>
+                {t(
+                  'Channel-side groups tagged on channels and tokens. The ratio multiplies the per-request billing cost.'
+                )}
+              </CardDescription>
+            </div>
+            <Button
+              onClick={addConsumptionRow}
+              size='sm'
+              className='sm:self-start'
+            >
+              <Plus className='mr-2 h-4 w-4' />
+              {t('Add group')}
+            </Button>
           </div>
-          <Button onClick={addRow} size='sm' className='sm:self-start'>
-            <Plus className='mr-2 h-4 w-4' />
-            {t('Add group')}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className='space-y-3'>
-          <div className='overflow-x-auto rounded-md border'>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className='min-w-32'>{t('Group name')}</TableHead>
-                  <TableHead className='w-24'>{t('Ratio')}</TableHead>
-                  <TableHead className='w-28'>{t('Top-up ratio')}</TableHead>
-                  <TableHead className='w-24 text-center'>
-                    {t('User selectable')}
-                  </TableHead>
-                  <TableHead className='w-24 text-center'>
-                    {t('Admin only')}
-                  </TableHead>
-                  <TableHead className='w-24 text-center'>
-                    {t('Auto upgrade')}
-                  </TableHead>
-                  <TableHead className='w-32'>{t('Threshold (¥)')}</TableHead>
-                  <TableHead className='min-w-40'>{t('Description')}</TableHead>
-                  <TableHead className='w-16 text-right'>
-                    {t('Actions')}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 ? (
+        </CardHeader>
+        <CardContent>
+          <div className='space-y-3'>
+            <div className='overflow-x-auto rounded-md border'>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className='text-muted-foreground h-20 text-center text-sm'
-                    >
-                      {t('No groups yet. Add a group to get started.')}
-                    </TableCell>
+                    <TableHead className='min-w-32'>
+                      {t('Group name')}
+                    </TableHead>
+                    <TableHead className='w-24'>{t('Ratio')}</TableHead>
+                    <TableHead className='w-24 text-center'>
+                      {t('User selectable')}
+                    </TableHead>
+                    <TableHead className='w-24 text-center'>
+                      {t('Admin only')}
+                    </TableHead>
+                    <TableHead className='min-w-40'>
+                      {t('Description')}
+                    </TableHead>
+                    <TableHead className='w-16 text-right'>
+                      {t('Actions')}
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  rows.map((row) => (
-                    <TableRow key={row._id}>
-                      <TableCell>
-                        <Input
-                          value={row.name}
-                          onChange={(event) =>
-                            updateRow(row._id, 'name', event.target.value)
-                          }
-                          aria-invalid={duplicateNames.includes(
-                            row.name.trim()
-                          )}
-                        />
+                </TableHeader>
+                <TableBody>
+                  {consumptionRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className='text-muted-foreground h-20 text-center text-sm'
+                      >
+                        {t(
+                          'No consumption groups yet. Add a group to get started.'
+                        )}
                       </TableCell>
-                      <TableCell>
-                        <Input
-                          type='number'
-                          min={0}
-                          step={0.1}
-                          value={String(row.ratio)}
-                          onChange={(event) =>
-                            updateRow(
-                              row._id,
-                              'ratio',
-                              normalizeRatio(event.target.value)
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type='number'
-                          min={0}
-                          step={0.05}
-                          value={String(row.topupRatio)}
-                          onChange={(event) =>
-                            updateRow(
-                              row._id,
-                              'topupRatio',
-                              normalizeRatio(event.target.value)
-                            )
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex justify-center'>
-                          <Checkbox
-                            checked={row.selectable}
-                            onCheckedChange={(checked) =>
-                              updateRow(row._id, 'selectable', checked === true)
-                            }
-                            aria-label={t('User selectable')}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex justify-center'>
-                          <Checkbox
-                            checked={row.adminOnly}
-                            disabled={!row.selectable}
-                            onCheckedChange={(checked) =>
-                              updateRow(row._id, 'adminOnly', checked === true)
-                            }
-                            aria-label={t('Admin only')}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex justify-center'>
-                          <Checkbox
-                            checked={row.autoUpgrade}
-                            disabled={!row.selectable || row.adminOnly}
-                            onCheckedChange={(checked) =>
-                              updateRow(
-                                row._id,
-                                'autoUpgrade',
-                                checked === true
-                              )
-                            }
-                            aria-label={t('Auto upgrade')}
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type='number'
-                          min={0}
-                          step={1}
-                          value={String(row.upgradeThresholdYuan)}
-                          disabled={!row.autoUpgrade}
-                          onChange={(event) => {
-                            const v = parseFloat(event.target.value)
-                            updateRow(
-                              row._id,
-                              'upgradeThresholdYuan',
-                              Number.isFinite(v) ? Math.max(0, v) : 0
-                            )
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {row.selectable ? (
+                    </TableRow>
+                  ) : (
+                    consumptionRows.map((row) => (
+                      <TableRow key={row._id}>
+                        <TableCell>
                           <Input
-                            value={row.description}
-                            placeholder={t('Group description')}
+                            value={row.name}
+                            onChange={(event) =>
+                              updateRow(row._id, 'name', event.target.value)
+                            }
+                            aria-invalid={duplicateNames.includes(
+                              row.name.trim()
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type='number'
+                            min={0}
+                            step={0.1}
+                            value={String(row.ratio)}
                             onChange={(event) =>
                               updateRow(
                                 row._id,
-                                'description',
-                                event.target.value
+                                'ratio',
+                                normalizeRatio(event.target.value)
                               )
                             }
                           />
-                        ) : (
-                          <span className='text-muted-foreground px-3 text-sm'>
-                            -
-                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex justify-center'>
+                            <Checkbox
+                              checked={row.selectable}
+                              onCheckedChange={(checked) =>
+                                updateRow(
+                                  row._id,
+                                  'selectable',
+                                  checked === true
+                                )
+                              }
+                              aria-label={t('User selectable')}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex justify-center'>
+                            <Checkbox
+                              checked={row.adminOnly}
+                              disabled={!row.selectable}
+                              onCheckedChange={(checked) =>
+                                updateRow(
+                                  row._id,
+                                  'adminOnly',
+                                  checked === true
+                                )
+                              }
+                              aria-label={t('Admin only')}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {row.selectable ? (
+                            <Input
+                              value={row.description}
+                              placeholder={t('Group description')}
+                              onChange={(event) =>
+                                updateRow(
+                                  row._id,
+                                  'description',
+                                  event.target.value
+                                )
+                              }
+                            />
+                          ) : (
+                            <span className='text-muted-foreground px-3 text-sm'>
+                              -
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => removeFromConsumption(row._id)}
+                            aria-label={t('Delete')}
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 充值分组 — Recharge groups (user-tier topup ratio) */}
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+            <div>
+              <CardTitle>{t('Recharge groups')}</CardTitle>
+              <CardDescription>
+                {t(
+                  'User-tier groups assigned to a user. The top-up ratio multiplies the recharge price; auto-upgrade promotes users once they pass the cumulative threshold.'
+                )}
+              </CardDescription>
+            </div>
+            <Button onClick={addRechargeRow} size='sm' className='sm:self-start'>
+              <Plus className='mr-2 h-4 w-4' />
+              {t('Add group')}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className='space-y-3'>
+            <div className='overflow-x-auto rounded-md border'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='min-w-32'>
+                      {t('Group name')}
+                    </TableHead>
+                    <TableHead className='w-28'>
+                      {t('Top-up ratio')}
+                    </TableHead>
+                    <TableHead className='w-24 text-center'>
+                      {t('Admin only')}
+                    </TableHead>
+                    <TableHead className='w-24 text-center'>
+                      {t('Auto upgrade')}
+                    </TableHead>
+                    <TableHead className='w-32'>
+                      {t('Threshold (¥)')}
+                    </TableHead>
+                    <TableHead className='min-w-40'>
+                      {t('Description')}
+                    </TableHead>
+                    <TableHead className='w-16 text-right'>
+                      {t('Actions')}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rechargeRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className='text-muted-foreground h-20 text-center text-sm'
+                      >
+                        {t(
+                          'No recharge groups yet. Add a group to get started.'
                         )}
                       </TableCell>
-                      <TableCell className='text-right'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => removeRow(row._id)}
-                          aria-label={t('Delete')}
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </Button>
-                      </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : (
+                    rechargeRows.map((row) => (
+                      <TableRow key={row._id}>
+                        <TableCell>
+                          <Input
+                            value={row.name}
+                            onChange={(event) =>
+                              updateRow(row._id, 'name', event.target.value)
+                            }
+                            aria-invalid={duplicateNames.includes(
+                              row.name.trim()
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type='number'
+                            min={0}
+                            step={0.05}
+                            value={String(row.topupRatio)}
+                            onChange={(event) =>
+                              updateRow(
+                                row._id,
+                                'topupRatio',
+                                normalizeRatio(event.target.value)
+                              )
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex justify-center'>
+                            <Checkbox
+                              checked={row.adminOnly}
+                              onCheckedChange={(checked) => {
+                                const isAdminOnly = checked === true
+                                emitRows(
+                                  rows.map((r) =>
+                                    r._id === row._id
+                                      ? {
+                                          ...r,
+                                          // Recharge rows always carry metadata
+                                          selectable: true,
+                                          adminOnly: isAdminOnly,
+                                          // Admin-only tiers can't also auto-upgrade
+                                          autoUpgrade: isAdminOnly
+                                            ? false
+                                            : r.autoUpgrade,
+                                        }
+                                      : r
+                                  )
+                                )
+                              }}
+                              aria-label={t('Admin only')}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className='flex justify-center'>
+                            <Checkbox
+                              checked={row.autoUpgrade}
+                              disabled={row.adminOnly}
+                              onCheckedChange={(checked) => {
+                                emitRows(
+                                  rows.map((r) =>
+                                    r._id === row._id
+                                      ? {
+                                          ...r,
+                                          selectable: true,
+                                          autoUpgrade: checked === true,
+                                        }
+                                      : r
+                                  )
+                                )
+                              }}
+                              aria-label={t('Auto upgrade')}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type='number'
+                            min={0}
+                            step={1}
+                            value={String(row.upgradeThresholdYuan)}
+                            disabled={!row.autoUpgrade}
+                            onChange={(event) => {
+                              const v = parseFloat(event.target.value)
+                              updateRow(
+                                row._id,
+                                'upgradeThresholdYuan',
+                                Number.isFinite(v) ? Math.max(0, v) : 0
+                              )
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.description}
+                            placeholder={t('Group description')}
+                            onChange={(event) => {
+                              emitRows(
+                                rows.map((r) =>
+                                  r._id === row._id
+                                    ? {
+                                        ...r,
+                                        selectable: true,
+                                        description: event.target.value,
+                                      }
+                                    : r
+                                )
+                              )
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => removeFromRecharge(row._id)}
+                            aria-label={t('Delete')}
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-          {duplicateNames.length > 0 && (
-            <p className='text-destructive text-sm'>
-              {t('Duplicate group names: {{names}}', {
-                names: duplicateNames.join(', '),
-              })}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            {duplicateNames.length > 0 && (
+              <p className='text-destructive text-sm'>
+                {t('Duplicate group names: {{names}}', {
+                  names: duplicateNames.join(', '),
+                })}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

@@ -17,17 +17,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import {
+  CherryStudio,
+  ClaudeCode,
+  Cursor,
+  LobeHub,
+  OpenClaw,
+  OpenWebUI,
+} from '@lobehub/icons'
+import {
   TerminalSquare,
-  Cpu,
   GitBranch,
   Zap,
   DollarSign,
   ShieldCheck,
-  Bot,
-  Cherry,
-  Ghost,
-  Boxes,
-  Sparkles,
 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,40 +60,40 @@ export function Features(_props: FeaturesProps) {
     {
       name: 'Cursor',
       desc: t('AI code editor. Swap the Base URL in Settings → Models.'),
-      icon: <Boxes className='size-4' />,
+      icon: <Cursor size={16} />,
     },
     {
       name: 'Claude Code',
       desc: t(
         "Anthropic's official CLI. Set ANTHROPIC_BASE_URL and you're in."
       ),
-      icon: <Cpu className='size-4' />,
+      icon: <ClaudeCode size={16} />,
     },
     {
       name: 'OpenClaw',
       desc: t(
         'Open-source personal AI assistant that runs locally, takes orders over WhatsApp or Telegram, and accepts any custom endpoint.'
       ),
-      icon: <Ghost className='size-4' />,
+      icon: <OpenClaw size={16} />,
     },
     {
       name: 'Cherry Studio',
       desc: t(
         'Cross-platform AI client. Point it at any OpenAI-compatible endpoint.'
       ),
-      icon: <Cherry className='size-4' />,
+      icon: <CherryStudio size={16} />,
     },
     {
       name: 'LobeHub',
       desc: t(
         'Open-source AI assistant. Bring your own providers, plug in any endpoint.'
       ),
-      icon: <Sparkles className='size-4' />,
+      icon: <LobeHub size={16} />,
     },
     {
       name: 'OpenWebUI',
       desc: t('Local AI interface that speaks OpenAI API natively.'),
-      icon: <Bot className='size-4' />,
+      icon: <OpenWebUI size={16} />,
     },
   ]
 

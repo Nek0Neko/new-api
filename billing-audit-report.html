@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>new-api 计费系统审计报告</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-elev2: #1f2630;
+    --fg: #e6edf3;
+    --fg-mute: #8b949e;
+    --border: #30363d;
+    --link: #58a6ff;
+    --code-bg: #0a0e14;
+    --sev-critical: #f85149;
+    --sev-medium: #d29922;
+    --sev-minor: #58a6ff;
+    --ok: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 15px; line-height: 1.65; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 24px; }
+  h1 { margin: 0 0 6px; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { margin-top: 40px; font-size: 22px; font-weight: 600; border-bottom: 1px solid var(--border);
+    padding-bottom: 8px; }
+  h3 { margin-top: 28px; font-size: 17px; font-weight: 600; }
+  .subtitle { color: var(--fg-mute); margin: 0; }
+  .meta { color: var(--fg-mute); font-size: 13px; margin-top: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+  .stat { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; }
+  .stat .num { font-size: 24px; font-weight: 600; }
+  .stat .lbl { color: var(--fg-mute); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat.critical .num { color: var(--sev-critical); }
+  .stat.medium .num { color: var(--sev-medium); }
+  .stat.minor .num { color: var(--sev-minor); }
+  nav.toc { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 24px; }
+  nav.toc ol { margin: 6px 0 0; padding-left: 22px; }
+  nav.toc a { color: var(--link); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 0 0; font-size: 13px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px;
+    font-weight: 600; color: #fff; vertical-align: middle; }
+  .badge.critical { background: var(--sev-critical); }
+  .badge.medium { background: var(--sev-medium); color: #0d1117; }
+  .badge.minor { background: var(--sev-minor); color: #0d1117; }
+  .badge.ok { background: var(--ok); }
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
+  .filter-bar button { background: var(--bg-elev2); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .filter-bar button.active { background: var(--link); color: #0d1117; border-color: var(--link); }
+  details.issue { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px;
+    margin: 12px 0; overflow: hidden; }
+  details.issue[open] { border-color: #484f58; }
+  details.issue summary { padding: 12px 16px; cursor: pointer; user-select: none;
+    display: flex; align-items: center; gap: 10px; }
+  details.issue summary::-webkit-details-marker { display: none; }
+  details.issue summary::before { content: "▶"; color: var(--fg-mute); font-size: 10px;
+    transition: transform 0.15s; }
+  details.issue[open] summary::before { transform: rotate(90deg); }
+  details.issue .body { padding: 4px 16px 16px; border-top: 1px solid var(--border);
+    background: var(--bg); }
+  details.issue .id { color: var(--fg-mute); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; }
+  details.issue .title { font-weight: 600; flex: 1; }
+  .section-block { margin-top: 8px; }
+  .section-block .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--fg-mute); font-weight: 600; margin: 12px 0 4px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, "Roboto Mono", monospace;
+    font-size: 13px; }
+  code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 14px; overflow-x: auto; margin: 6px 0; }
+  pre code { background: transparent; padding: 0; }
+  .file-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    color: var(--link); }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: top; }
+  th { background: var(--bg-elev2); font-weight: 600; }
+  ul { padding-left: 22px; }
+  li { margin: 3px 0; }
+  .hidden { display: none !important; }
+  .footer-note { color: var(--fg-mute); font-size: 13px; margin-top: 40px;
+    padding-top: 16px; border-top: 1px solid var(--border); }
+  .pill { display: inline-block; background: var(--bg-elev2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 8px; font-size: 12px; color: var(--fg-mute);
+    font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>new-api 计费系统审计报告</h1>
+  <p class="subtitle">充值 / 消费扣费 / 分组倍率 / 模型-渠道-分组映射 — 端到端审计</p>
+  <p class="meta">
+    项目: <code>github.com/QuantumNous/new-api</code>(本地 <code>/Users/leon/github/new-api</code>)
+    &middot; 审计日期: 2026-05-17
+    &middot; 由 4 个并行审计代理生成、人工汇总
+  </p>
+</header>
+
+<section>
+  <div class="stats">
+    <div class="stat critical"><div class="num">17</div><div class="lbl">严重 (Critical)</div></div>
+    <div class="stat medium"><div class="num">22</div><div class="lbl">中等 (Medium)</div></div>
+    <div class="stat minor"><div class="num">14</div><div class="lbl">轻微 (Minor)</div></div>
+    <div class="stat"><div class="num">53</div><div class="lbl">合计 (Total)</div></div>
+  </div>
+  <div class="legend">
+    <span><span class="badge critical">CRITICAL</span> 直接资金损失 / 安全漏洞</span>
+    <span><span class="badge medium">MEDIUM</span> 设计性缺陷 / 数据失真</span>
+    <span><span class="badge minor">MINOR</span> 隐患 / 死代码 / 体验问题</span>
+  </div>
+</section>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#summary">执行摘要 &amp; 共性根因</a></li>
+    <li><a href="#topup">A. 充值 / Topup 子系统</a></li>
+    <li><a href="#consume">B. 消费 / 扣费子系统</a></li>
+    <li><a href="#group">C. 分组倍率子系统</a></li>
+    <li><a href="#mapping">D. 模型-渠道-分组映射</a></li>
+    <li><a href="#fixplan">E. 修复优先级与排期</a></li>
+  </ol>
+</nav>
+
+<div class="filter-bar" id="filter-bar">
+  <button data-filter="all" class="active">全部</button>
+  <button data-filter="critical">仅严重</button>
+  <button data-filter="medium">仅中等</button>
+  <button data-filter="minor">仅轻微</button>
+  <button data-filter="open" id="open-all">展开当前可见</button>
+  <button data-filter="close" id="close-all">折叠所有</button>
+</div>
+
+<!-- ========================= 摘要 ========================= -->
+<section id="summary">
+<h2>1. 执行摘要 &amp; 共性根因</h2>
+
+<p>4 个并行审计覆盖了充值流程、流式与非流式扣费、分组与令牌权限、以及模型路由分发，共发现 <strong>17 条严重</strong>、<strong>22 条中等</strong>、<strong>14 条轻微</strong>问题。最值得立即处理的有：</p>
+
+<ul>
+  <li><strong>3 个支付渠道的 webhook 可以被绕过或被白嫖额度</strong>（Stripe / Creem / Waffo Pancake）。</li>
+  <li>用户余额字段 <code>User.Quota</code> 在 MySQL 是 <code>INT32</code>，单笔 <strong>≥ $4,296</strong> 充值会溢出/截断。</li>
+  <li>Realtime 流式扣费有 <strong>双计费 / 双扣 / 白嫖</strong> 三个可叠加的 bug。</li>
+  <li>分组权限（<code>admin_only</code>）完全没有后端强制；普通用户可通过 API 设置 token 到任意 VIP 分组。</li>
+  <li>渠道路由的内存缓存有多处失效遗漏，会出现 503 或粘连到坏渠道。</li>
+</ul>
+
+<h3>共性根因</h3>
+<ol>
+  <li><strong>支付回调缺统一抽象</strong>：每个支付渠道独立实现导致"金额校验 / 幂等 / 先入账后 ACK"这些应当统一的步骤各有疏漏。</li>
+  <li><strong>缓存失效散落各处</strong>：渠道、用户、令牌、ratio、pricing 的失效逻辑各自维护，导致同一类问题在多个子系统重复出现。</li>
+  <li><strong>整型类型不统一</strong>：<code>int</code>(MySQL INT32) 贯穿计费链路，大额客户和企业用户必触发溢出。</li>
+  <li><strong>死代码 + 误导性 UI</strong>：<code>GroupSpecialRatio</code> 这类被读不被写的字段、前端写明可配实际无效的字段反映出"前端创新 → 后端未跟进"的协作缺口。</li>
+  <li><strong>"auto" 分组的概念在多处理解不一</strong>：限流按 auto 桶统计、计费按子分组扣、token group 校验时机错位。</li>
+</ol>
+
+</section>
+
+<!-- ========================= 充值 ========================= -->
+<section id="topup">
+<h2>A. 充值 / Topup 子系统</h2>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S1</span><span class="title">易支付 webhook 在入账前就回写 "success"</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">controller/topup.go:422-425</span> (<code>EpayNotify</code>)</div>
+<div class="section-block"><div class="label">问题</div>
+验签成功后立即 <code>c.Writer.Write([]byte("success"))</code>，<strong>之后</strong>才执行 <code>LockOrder</code> / <code>IncreaseUserQuota</code>。若 <code>topUp.Update()</code> / <code>IncreaseUserQuota</code> 失败（行 459/469 仅记日志并 <code>return</code>），易支付不会重发该回调，用户付了钱永久拿不到额度。</div>
+<div class="section-block"><div class="label">解决方案</div>
+把 <code>c.Writer.Write([]byte("success"))</code> 移到所有入账逻辑成功之后。失败路径返回非 "success" 字符串让易支付重试。
+<pre><code>// 调整后伪代码
+if err := persistTopup(ctx, topUp); err != nil {
+    c.String(500, "fail") // 易支付看到非 success 会重试
+    return
+}
+c.Writer.Write([]byte("success"))</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S2</span><span class="title">Stripe webhook 完全不校验实际支付金额</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">controller/topup_stripe.go:192-208</span> · <span class="file-ref">model/topup.go:107-162</span> (<code>Recharge</code>)</div>
+<div class="section-block"><div class="label">问题</div>
+<code>sessionCompleted</code> 只校验 <code>payment_status == "paid"</code>，<strong>从未</strong>比较 <code>event.amount_total</code> 与本地 <code>topUp.Money</code>。<code>Recharge()</code> 直接用 <code>quota = topUp.Money × QuotaPerUnit</code>。当 <code>AllowPromotionCodes</code> 开启时，用户可用优惠码以极低金额成交却得到全额 quota。订阅订单同样不校验。</div>
+<div class="section-block"><div class="label">解决方案</div>
+在 webhook 处理函数中加入金额比对：
+<pre><code>// session.AmountTotal 单位为 cent
+expectedCents := int64(math.Round(topUp.Money * 100))
+if session.AmountTotal &lt; expectedCents {
+    common.SysError(fmt.Sprintf("stripe amount mismatch: order=%d expected=%d got=%d",
+        topUp.Id, expectedCents, session.AmountTotal))
+    return errors.New("amount mismatch")
+}</code></pre>
+对订阅产品同样比对 <code>invoice.amount_paid</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S3</span><span class="title">User.Quota 是 INT32, 单笔 ≥ $4,296 充值溢出</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">model/topup.go:141</span> · <span class="file-ref">model/user.go:40</span></div>
+<div class="section-block"><div class="label">问题</div>
+<code>User.Quota int gorm:"type:int"</code>。MySQL <code>INT</code> 是 INT32（最大 2,147,483,647）。<code>quota = topUp.Money × QuotaPerUnit</code>，当 <code>QuotaPerUnit = 500_000</code>、<code>topUp.Money ≥ 4296</code>($) → 单笔写入溢出/截断；Creem 路径用 <code>topUp.Amount</code>(int64) 写入也会被 DB 截到 int32。</div>
+<div class="section-block"><div class="label">解决方案</div>
+分两步：
+<ol>
+<li>Go 类型：<code>User.Quota</code> / <code>Token.Quota</code> / <code>TopUp.Amount</code> / <code>TopUp.Money</code> 全部 <code>int</code> → <code>int64</code>。</li>
+<li>数据库迁移：MySQL <code>ALTER TABLE users MODIFY COLUMN quota BIGINT NOT NULL DEFAULT 0;</code>（PostgreSQL <code>BIGINT</code>；SQLite 容忍）。注意 CLAUDE.md Rule 2 要求三库兼容。</li>
+</ol>
+迁移前可临时在 <code>Recharge</code> 入口拒绝 <code>quota &gt; math.MaxInt32 - currentQuota</code> 的请求，避免无声损失。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S4</span><span class="title">Stripe groupRatio 用反：VIP 用户付全价反而少得 quota</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">controller/topup_stripe.go:90, 388-395</span> · <span class="file-ref">model/topup.go:141</span></div>
+<div class="section-block"><div class="label">问题</div>
+<code>GetChargedAmount(count, user) = count × topUpGroupRatio</code> 存入 <code>topUp.Money</code>。<code>Recharge()</code> 用 <code>quota = Money × QuotaPerUnit</code>。但 Stripe 实际仍按固定 <code>StripePriceId × Quantity=req.Amount</code> 全价付款。结果：VIP 用户付全价、拿到的 quota 是 <code>count × ratio × QuotaPerUnit</code>，<strong>比普通用户少</strong>。逻辑与 epay 路径相反。</div>
+<div class="section-block"><div class="label">解决方案</div>
+统一语义为 "groupRatio 作用于价格而非 quota"：
+<ul>
+<li>Stripe 端：把 <code>Quantity</code> 或 <code>UnitAmount</code> 按 <code>topUpGroupRatio</code> 调整（折扣付款）。</li>
+<li><code>topUp.Money</code> 始终存 "<strong>用户支付金额</strong>"；<code>quota</code> 始终按 "<strong>原始申购金额</strong> × QuotaPerUnit" 计算。</li>
+<li>或者更简单：<code>topUp.Money = req.Amount</code>(全额)，付款金额另存 <code>actual_paid</code> 字段；<code>Recharge()</code> 依然按 <code>Money</code> 给 quota。</li>
+</ul></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S5</span><span class="title">Waffo Pancake webhook 不校验金额/状态/币种</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">controller/topup_waffo_pancake.go:236-258</span> · <span class="file-ref">service/waffo_pancake.go:163-177</span> · <span class="file-ref">model/topup.go:544</span></div>
+<div class="section-block"><div class="label">问题</div>
+只判 <code>NormalizedEventType() == "order.completed"</code> 就调 <code>RechargeWaffoPancake</code>，从不查 <code>Data.Amount</code> / <code>Data.PaymentStatus</code>，也不比对币种。<code>RechargeWaffoPancake</code> 内部也不校验 <code>Money</code>。</div>
+<div class="section-block"><div class="label">解决方案</div>
+在 <code>resolveAndRecharge</code> 中加入：
+<pre><code>if event.Data.PaymentStatus != "paid" {
+    return errors.New("not paid")
+}
+if event.Data.Amount &lt; localOrder.Money {
+    return errors.New("amount mismatch")
+}
+if !strings.EqualFold(event.Data.Currency, localOrder.Currency) {
+    return errors.New("currency mismatch")
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S6</span><span class="title">Waffo Pancake 验签的公钥由请求 payload 自身的 mode 字段决定</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">service/waffo_pancake.go:158-161, 276-303, 324-353</span></div>
+<div class="section-block"><div class="label">问题</div>
+<code>VerifyConfiguredWaffoPancakeWebhook</code> 先 <code>resolveWaffoPancakeWebhookEnvironment(payload)</code> 解析未验证的 <code>mode</code> 字段（<code>test</code>/<code>prod</code>），然后用对应公钥验签。攻击者构造 <code>"mode":"test"</code> 即可让生产环境用测试公钥验签；若测试密钥泄露/可猜则可伪造充值。</div>
+<div class="section-block"><div class="label">解决方案</div>
+环境判定固定来自服务端配置，不读 payload：
+<pre><code>func VerifyConfiguredWaffoPancakeWebhook(payload []byte, sig string) error {
+    env := "prod"
+    if setting.WaffoPancakeSandbox {
+        env = "test"
+    }
+    pubKey := waffoPancakePublicKey(env)
+    return verifyRSASignature(pubKey, payload, sig)
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">A-S7</span><span class="title">Creem 测试模式下 webhook 完全跳过验签</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div>
+<span class="file-ref">controller/topup_creem.go:36-48</span> (<code>verifyCreemSignature</code>)</div>
+<div class="section-block"><div class="label">问题</div>
+当 <code>secret == ""</code> 且 <code>CreemTestMode == true</code> 时函数 <code>return true</code>。管理员误把生产 <code>CreemWebhookSecret</code> 留空 + 勾上 TestMode 即可被任意伪造事件给任意 user 加 quota。</div>
+<div class="section-block"><div class="label">解决方案</div>
+移除该绕过，<strong>无论是否测试模式都强制 secret 非空</strong>：
+<pre><code>func verifyCreemSignature(payload []byte, sig, secret string) bool {
+    if secret == "" {
+        return false  // 永不放行空 secret
+    }
+    mac := hmac.New(sha256.New, []byte(secret))
+    mac.Write(payload)
+    return hmac.Equal([]byte(sig), []byte(hex.EncodeToString(mac.Sum(nil))))
+}</code></pre>
+另在管理后台保存配置时拒绝 "TestMode=true 且 secret 为空" 的组合。</div>
+</div>
+</details>
+
+<!-- 充值 Medium -->
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M1</span><span class="title">易支付 webhook 不校验 verifyInfo.money</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:439-486</span></div>
+<div class="section-block"><div class="label">问题</div>SDK 提供的 <code>verifyInfo.Money</code> 字段从未被使用。</div>
+<div class="section-block"><div class="label">解决方案</div>加入 <code>if verifyInfo.Money &lt; topUp.Money - 0.01 { return errors.New("amount mismatch") }</code>，允许 1 分钱浮点容差。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M2</span><span class="title">MaybeUpgradeUserGroup 在 epay 路径独立事务，与扣款不原子</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:464-480</span></div>
+<div class="section-block"><div class="label">问题</div>epay：<code>IncreaseUserQuota</code>(独立 tx) → 单独 <code>DB.Transaction(MaybeUpgradeUserGroup)</code>。两者之间崩溃 → quota 已加但 <code>total_topup_amount</code> 未累加，分组升级永久跳过。其他渠道（Stripe / Creem / Waffo*）都在同一 tx，行为不一致。</div>
+<div class="section-block"><div class="label">解决方案</div>把 <code>IncreaseUserQuota</code> 和 <code>MaybeUpgradeUserGroup</code> 合并到同一事务，参照 Stripe 路径。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M3</span><span class="title">IncreaseUserQuota 缓存异步、DB 同步，会与并发请求竞态</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/user.go:890-905</span> · <span class="file-ref">model/checkin.go:117-119</span></div>
+<div class="section-block"><div class="label">问题</div><code>gopool.Go</code> 异步写缓存 + 同步写 DB，时序倒置时其他请求读到旧值/暂时性不一致。</div>
+<div class="section-block"><div class="label">解决方案</div>改为先 DB 后缓存同步执行；或异步路径加 retry+log。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M4</span><span class="title">epay TOKENS 模式金额下溢可能落库 Amount=0</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:308-323</span></div>
+<div class="section-block"><div class="label">问题</div>TOKENS 模式 <code>amount = req.Amount / QuotaPerUnit</code>（整数除法）。若 <code>req.Amount &lt; QuotaPerUnit</code> → <code>amount = 0</code>，钱白付。</div>
+<div class="section-block"><div class="label">解决方案</div>在写入前 <code>if amount &lt;= 0 { return errors.New("amount too small") }</code>；且 <code>MinTopUp</code> 必须按 TOKENS / CNY / USD 三种模式分别校验。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M5</span><span class="title">epay 订单 TradeNo 弱随机, 可被枚举</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:287-288</span></div>
+<div class="section-block"><div class="label">问题</div><code>USR{userId}NO{random6}{timestamp10}</code>，仅 6 位字符随机；结合 A-M1 可构造充值订单号命中 pending 单。</div>
+<div class="section-block"><div class="label">解决方案</div>用 <code>crypto/rand</code> 生成 16+ 字符的订单号，或加 HMAC 校验码后缀。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M6</span><span class="title">签到日期用本地时区，跨时区可一天签两次</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/checkin.go:44, 76</span></div>
+<div class="section-block"><div class="label">问题</div><code>time.Now().Format("2006-01-02")</code> 是 Local time。服务器时区切换/迁移会让同一"自然日"产生两个 checkin_date。</div>
+<div class="section-block"><div class="label">解决方案</div>统一用 UTC：<code>time.Now().UTC().Format("2006-01-02")</code>；或固定一个业务时区（如 Asia/Shanghai）。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M7</span><span class="title">UpdateRedemption 允许把已使用兑换码回退到启用</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/redemption.go:158-160</span> · <span class="file-ref">model/redemption.go:170-174</span></div>
+<div class="section-block"><div class="label">问题</div>没有状态机校验，admin 能让 <code>Used(3) → Enabled(1)</code>，且 <code>UsedUserId</code>/<code>RedeemedTime</code> 仍在；<code>Redeem</code> 只判 <code>Status==Enabled</code> → 同一码被再次兑换。</div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>UpdateRedemption</code> 中加入状态机：
+<pre><code>if existing.Status == RedemptionUsed &amp;&amp; req.Status == RedemptionEnabled {
+    return errors.New("used redemption cannot be re-enabled")
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M8</span><span class="title">RechargeWaffoPancake 不写 RecordTopupLog, 对账缺数据</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/topup.go:603</span></div>
+<div class="section-block"><div class="label">解决方案</div>改用 <code>RecordTopupLog</code>（与其他 4 个渠道保持一致），携带 <code>payment_method</code>、<code>callback_payment_method</code>、<code>client_ip</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M9</span><span class="title">AmountDiscount key 在 TOKENS 模式下永远不命中</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:233</span> 等</div>
+<div class="section-block"><div class="label">问题</div><code>AmountDiscount[int(amount)]</code>：TOKENS 模式 <code>amount</code> 是 token 数（如 500000）；admin 通常按"金额"配置（如 10, 50, 100）。</div>
+<div class="section-block"><div class="label">解决方案</div>查表前先按 PriceType 转换：TOKENS → 美元/人民币 等管理员视角金额：<code>discountKey := convertToDisplayAmount(amount, priceType)</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">A-M10</span><span class="title">Creem webhook 不交叉校验 product 与金额</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup_creem.go:86-118, 286-358</span></div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>handleCreemEvent</code> 加入：
+<pre><code>if event.Object.Product.Id != localOrder.ProductId { return errors.New("product mismatch") }
+if event.Object.Order.AmountPaid &lt; localOrder.Money*100 { return errors.New("amount low") }</code></pre></div>
+</div>
+</details>
+
+<!-- 充值 Minor -->
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L1</span><span class="title">Recharge 把空字符串 stripe_customer 写回, 抹掉已有关联</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/topup.go:142</span></div>
+<div class="section-block"><div class="label">解决方案</div><code>map[string]any{}</code> 仅在 <code>customerId != ""</code> 时 set。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L2</span><span class="title">Stripe RequestPay 上限硬编码 10000, 错误消息显示 "10"</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup_stripe.go:73-76</span></div>
+<div class="section-block"><div class="label">解决方案</div>抽到 <code>operation_setting.StripeMaxTopUp</code>；错误消息引用同一变量避免显示错位。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L3</span><span class="title">SearchRedemptions 未对 LIKE 通配符转义</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/redemption.go:79-82</span></div>
+<div class="section-block"><div class="label">解决方案</div>调用 <code>sanitizeLikePattern(keyword)</code>，与 <code>SearchUserTopUps</code> 一致。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L4</span><span class="title">EpayNotify 覆盖 PaymentMethod 为回调声称类型</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup.go:452-457</span></div>
+<div class="section-block"><div class="label">解决方案</div>仅在不一致时记录告警日志，不静默改写。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L5</span><span class="title">getStripeMinTopup TOKENS 模式强转 int 可能溢出</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/topup_stripe.go:417-423</span></div>
+<div class="section-block"><div class="label">解决方案</div>结合 A-S3 统一改 int64。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">A-L6</span><span class="title">签到金额用 math/rand, 可被预测</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/checkin.go:5, 73</span></div>
+<div class="section-block"><div class="label">解决方案</div>改用 <code>crypto/rand</code> 或 <code>common.GetRandomInt</code>（项目内已有安全实现）。</div>
+</div>
+</details>
+
+</section>
+
+<!-- ========================= 消费 ========================= -->
+<section id="consume">
+<h2>B. 消费 / 扣费子系统</h2>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S1</span><span class="title">PostWssConsumeQuota 跳过 BuildTieredTokenParams 导致 realtime 音频双计费</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/quota.go:154-202</span></div>
+<div class="section-block"><div class="label">问题</div>直接构造 <code>billingexpr.TokenParams{P: usage.InputTokens, C: usage.OutputTokens}</code> 调用 <code>TryTieredSettle</code>，<strong>没有调用 <code>BuildTieredTokenParams</code></strong> 做 sub-category 排除。若管理员对 realtime 模型配置含 <code>ai</code>/<code>ao</code> 变量的 tiered 表达式，音频 token 会同时计入 <code>p</code>/<code>c</code> 和 <code>ai</code>/<code>ao</code>，按文本价+音频价双重收费，<strong>多扣约 8 倍</strong>。</div>
+<div class="section-block"><div class="label">解决方案</div>统一通过 <code>BuildTieredTokenParams</code> 构造参数：
+<pre><code>params := service.BuildTieredTokenParams(usage,
+    relayInfo.IsClaudeUsageSemantic(),
+    relayInfo.Billing.UsedVars)
+tieredRes, err := pkg/billingexpr.TryTieredSettle(relayInfo, params)</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S2</span><span class="title">total_tokens=0 时全额退还预扣 + 不记录 used_quota (白嫖)</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/quota.go:213-224, 334-345</span> · <span class="file-ref">service/text_quota.go:365-371</span></div>
+<div class="section-block"><div class="label">问题</div>上游 <code>total_tokens == 0</code> 时（部分 vllm/llama.cpp / 流中断在 usage chunk 前）：把 <code>quota = 0</code>，<strong>不调用 <code>UpdateUserUsedQuotaAndRequestCount</code> 与 <code>UpdateChannelUsedQuota</code></strong>，但仍 <code>SettleBilling(0)</code> → <code>delta = -preConsumed</code> → 全额退还预扣。<strong>用户拿到了内容但完全免费</strong>。</div>
+<div class="section-block"><div class="label">解决方案</div>明确区分两种情况：
+<ul>
+<li>上游协议正常但 token=0（确实无消耗）：可退还。</li>
+<li>流中断/上游未返回 usage：应当 <strong>本地估算 token</strong>（已生成内容长度）并结算，不退预扣。</li>
+</ul>
+<pre><code>if totalTokens == 0 {
+    if relayInfo.StreamingResponded {
+        // 用本地估算
+        totalTokens = estimateTokensFromResponse(relayInfo)
+    } else {
+        // 真正无消耗, 退还
+        return refundFull()
+    }
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S3</span><span class="title">PreWssConsumeQuota 不走 BillingSession, 导致后续双扣</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/quota.go:90-152</span></div>
+<div class="section-block"><div class="label">问题</div>无视 <code>relayInfo.Billing</code> 直接调 <code>PostConsumeQuota(relayInfo, quota, 0, false)</code> 扣费，<strong>不更新 <code>BillingSession.preConsumedQuota</code></strong>。后续 <code>PostWssConsumeQuota → SettleBilling</code> 把这次扣费当作"补差"算 <code>delta = actualQuota - 0</code>，<strong>再扣一次</strong>。</div>
+<div class="section-block"><div class="label">解决方案</div>统一走 <code>relayInfo.Billing.PreConsume(quota)</code>，让 BillingSession 维护正确状态：
+<pre><code>// 在 PreWssConsumeQuota 中
+if err := relayInfo.Billing.PreConsume(ctx, quota); err != nil {
+    return err
+}
+// 不要再调 PostConsumeQuota</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S4</span><span class="title">BillingSession.Settle 在 funding 已提交后吞掉 token 扣减失败</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/billing_session.go:60-79</span></div>
+<div class="section-block"><div class="label">问题</div>注释说"标记 settled 防止 Refund 误退"，但实现是仅记日志并把 <code>settled=true</code>。结果：用户钱包/订阅已扣 <code>delta</code>，但 token 的 <code>remain_quota</code>/<code>used_quota</code> 没动；token 维度统计永久失真，且 SQL 错误无重试。</div>
+<div class="section-block"><div class="label">解决方案</div>把失败入到"待修复队列"（DB 表或 Redis Stream），由后台 worker 重试。同时触发告警：
+<pre><code>if tokenErr != nil {
+    if err := persistFailedSettlement(ctx, session, tokenErr); err != nil {
+        common.SysError("BUG: cannot persist failed settlement: " + err.Error())
+    }
+    alerting.Notify("billing_token_settle_failed", session)
+}
+session.settled = true</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S5</span><span class="title">MJ 旧路径绕过 BillingSession, 失败不退预扣</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">relay/mjproxy_handler.go:204-247, 511-554</span></div>
+<div class="section-block"><div class="label">问题</div><code>RelaySwapFace</code> 与 <code>RelayMidjourneySubmit</code> 用旧 <code>GetUserQuota + userQuota - priceData.Quota &lt; 0</code> 校验后直接发请求，仅在 <code>mjResp.StatusCode == 200</code> 的 defer 中扣费。<strong>没有预扣</strong>——上游 5xx 或网络断时白嫖；不创建 <code>BillingSession</code>，外层 <code>Relay()</code> defer 的 <code>Refund</code> 也不触发。</div>
+<div class="section-block"><div class="label">解决方案</div>把 MJ 旧路径接入 <code>BillingSession</code>：
+<pre><code>session, err := service.NewBillingSession(ctx, relayInfo, priceData.Quota)
+if err != nil { return err }
+defer session.RefundOnError()
+// ... existing request logic ...
+if mjResp.Success { session.Settle(actualQuota) }</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">B-S6</span><span class="title">RecalculateTaskQuotaByTokens 用 int() 截断, 短任务可能 0 扣费</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/task_billing.go:289</span></div>
+<div class="section-block"><div class="label">问题</div><code>actualQuota := int(float64(totalTokens) × modelRatio × finalGroupRatio × otherMultiplier)</code>。截断而非 Round；若结果为 0.x，整笔任务 0 扣费。</div>
+<div class="section-block"><div class="label">解决方案</div><code>actualQuota := int64(math.Round(float64(totalTokens) × modelRatio × finalGroupRatio × otherMultiplier))</code>，并加 <code>if actualQuota &lt; 1 { actualQuota = 1 }</code> 兜底。</div>
+</div>
+</details>
+
+<!-- 消费 Medium -->
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M1</span><span class="title">BillingSession.Refund 异步, 与重试请求竞态</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/billing_session.go:106-122</span></div>
+<div class="section-block"><div class="label">解决方案</div>同步 refund，或者让前端/重试逻辑在收到失败响应后等待短暂窗口（不优雅，首选改同步）。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M2</span><span class="title">Refund 不回滚 used_quota / request_count</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/text_quota.go:368-375</span> · <span class="file-ref">service/quota.go:221-224, 343-345</span></div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>Refund</code> 中同时撤回 <code>UpdateUserUsedQuotaAndRequestCount(-quota, -1)</code> 与 <code>UpdateChannelUsedQuota(-quota)</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M3</span><span class="title">长流式中 admin 改价时, 结算用新价</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/quota.go:175-177, 296-298</span></div>
+<div class="section-block"><div class="label">问题</div><code>PostWssConsumeQuota</code> / <code>PostAudioConsumeQuota</code> 直接重新读 <code>ratio_setting.GetCompletionRatio</code> / <code>GetAudioRatio</code>。</div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>PriceData</code> 中冻结所有相关 ratio（与 chat 路径一致），结算时从 <code>relayInfo.PriceData</code> 读。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M4</span><span class="title">Tiered fallback 分支重复乘 groupRatio</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/text_quota.go:141-156, 84-138</span></div>
+<div class="section-block"><div class="label">解决方案</div>fallback 时统一使用 <code>tieredQuota</code>（已含 group）+ <code>toolCallSurchargeQuotaWithoutGroup</code> 后乘一次 group；或两者都按"含 group"语义相加。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M5</span><span class="title">extractUsedVars 把函数名也当变量</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">pkg/billingexpr/compile.go:130-140</span></div>
+<div class="section-block"><div class="label">解决方案</div>维护内置函数名集合 <code>builtinFuncs = {"tier","max","min","ceil","floor","param","header","has","hour",...}</code>，<code>ast.Find</code> 时排除。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M6</span><span class="title">"免费模型"在 group&gt;0 时仍被强制 1 unit</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/text_quota.go:287-307</span></div>
+<div class="section-block"><div class="label">解决方案</div>把判 0 的条件改为 <code>ratio.IsZero() || modelRatio == 0</code>，并通过显式 <code>FreeModel</code> 标记替代魔法值。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">B-M7</span><span class="title">tiered_settle 错误时用预扣值结算, 静默</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">service/tiered_settle.go:106-113</span></div>
+<div class="section-block"><div class="label">解决方案</div>表达式运行时错误时显式返回错误给上层（让 controller 决定按 modelRatio fallback 还是拒绝），并在监控里告警。</div>
+</div>
+</details>
+
+<!-- 消费 Minor -->
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L1</span><span class="title">User 余额缓存与 DB 时序差</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/user.go:894-924</span></div>
+<div class="section-block"><div class="label">解决方案</div>结合 A-M3，先 DB 后缓存同步执行。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L2</span><span class="title">composeTieredTextQuota 不处理负 surcharge</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">解决方案</div>加 <code>if surcharge.IsNegative() { surcharge = decimal.Zero }</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L3</span><span class="title">smokeTestExpr 测试向量未覆盖缓存场景</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/billing_setting/tiered_billing.go:78-83</span></div>
+<div class="section-block"><div class="label">解决方案</div>加入 <code>{p:1000, cr:500, cc:200, img:100, ai:50, ao:50}</code> 等组合向量。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L4</span><span class="title">GetSubscription 失败仍返回 quota</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/billing.go:25-67</span></div>
+<div class="section-block"><div class="label">解决方案</div>正确传播 err；<code>token==nil</code> 时返回 401 而非继续访问。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L5</span><span class="title">Tiered 表达式 param/header 失败直接 400</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">relay/helper/price.go:255-257</span></div>
+<div class="section-block"><div class="label">解决方案</div>失败时回退到 <code>modelRatio</code> baseline 计费并记录告警，避免请求被拒。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">B-L6</span><span class="title">重试切 channel 时 BillingSnapshot 与 PriceData 的 GroupRatio 不一致</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/relay.go:306-308</span></div>
+<div class="section-block"><div class="label">解决方案</div>重试时同步刷新 <code>BillingSnapshot.GroupRatio</code>。</div>
+</div>
+</details>
+
+</section>
+
+<!-- ========================= 分组 ========================= -->
+<section id="group">
+<h2>C. 分组倍率子系统</h2>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">C-S1</span><span class="title">AddToken / UpdateToken 不校验 token.Group 合法性</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/token.go:167-313</span></div>
+<div class="section-block"><div class="label">问题</div>直接把客户端传入的 <code>token.Group</code> 写入数据库，没有 <code>GroupInUserUsableGroups</code> 或 <code>IsAdminOnlyGroup</code> 校验。普通用户可 POST <code>"group":"enterprise"</code> 越权使用 VIP 倍率。</div>
+<div class="section-block"><div class="label">解决方案</div>
+<pre><code>if token.Group != "" &amp;&amp; token.Group != "auto" {
+    if !service.GroupInUserUsableGroups(user.Group, token.Group) {
+        return errors.New("group not allowed for current user")
+    }
+    if setting.IsAdminOnlyGroup(token.Group) &amp;&amp; user.Role &lt; common.RoleAdmin {
+        return errors.New("admin-only group")
+    }
+}</code></pre>
+在 <code>AddToken</code> 和 <code>UpdateToken</code> 都加上。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">C-S2</span><span class="title">admin_only / Visibility=private 后端完全没有强制</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/user_usable_group.go:97-103</span> · <span class="file-ref">service/group.go:23-45</span></div>
+<div class="section-block"><div class="label">问题</div><code>IsAdminOnlyGroup</code>、<code>GroupMeta.IsPublic</code>、<code>GroupVisibilityPrivate</code> 三个函数定义后<strong>全代码库无任何调用</strong>。<code>service.GetUserUsableGroups</code> 直接列出 <code>GroupRatio</code> 全部 key。</div>
+<div class="section-block"><div class="label">解决方案</div>修改 <code>GetUserUsableGroups</code>，过滤掉 admin-only 且用户不在白名单的分组：
+<pre><code>func GetUserUsableGroups(userGroup string, isAdmin bool) map[string]string {
+    out := map[string]string{}
+    for name, ratio := range ratio_setting.GroupRatioCopy() {
+        if setting.IsAdminOnlyGroup(name) &amp;&amp; !isAdmin { continue }
+        if !setting.IsGroupVisible(name, userGroup, isAdmin) { continue }
+        out[name] = ratio
+    }
+    return out
+}</code></pre>
+所有调用方传入 <code>user.Role &gt;= common.RoleAdmin</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">C-S3</span><span class="title">controller/group.go 注释撒谎</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/group.go:32-43</span></div>
+<div class="section-block"><div class="label">问题</div>注释声称"already strips admin-only"，但 <code>service.GetUserUsableGroups</code> 实际未过滤。</div>
+<div class="section-block"><div class="label">解决方案</div>连同 C-S2 一起修复；删除误导注释。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">C-S4</span><span class="title">GroupSpecialUsableGroup UI 说"数值倍率覆盖", 后端只解析 +:/-:</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">web/default/src/features/system-settings/models/group-ratio-form.tsx:406-426</span> · <span class="file-ref">service/group.go:32-41</span></div>
+<div class="section-block"><div class="label">问题</div>前端示例 <code>{"vip":{"standard":0.8}}</code> 让站长以为能配数值倍率覆盖；后端只识别 <code>+:</code>/<code>-:</code> 字符串前缀做访问授予/拒绝，<strong>数值被当字符串忽略</strong>。</div>
+<div class="section-block"><div class="label">解决方案</div>两条路径：
+<ol>
+<li><strong>最快</strong>：修前端文案，去掉数值示例，明确仅是访问列表。</li>
+<li><strong>正确</strong>：连同 C-S5 一起实现 user-tier × channel-group 矩阵倍率。</li>
+</ol></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">C-S5</span><span class="title">GroupSpecialRatio / HasSpecialRatio 是 100% 死代码</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">relay/helper/price.go:39-58</span> · <span class="file-ref">types/price_data.go</span></div>
+<div class="section-block"><div class="label">问题</div><code>HasSpecialRatio</code> 唯一写入点是初始值 <code>false</code>；<code>GroupSpecialRatio</code> 只初始化为 <code>-1</code>，无任何 setter。但 <code>service/quota.go:235,356</code> 等多处读它，希望在日志/计费里体现 user-tier × channel-group 倍率。</div>
+<div class="section-block"><div class="label">解决方案</div>二选一：
+<ol>
+<li>实现 setter：在 <code>HandleGroupRatio</code> 中查 user-tier 对应 channel-group 的 override，写入 <code>GroupSpecialRatio</code> 和 <code>HasSpecialRatio</code>；同时让计费链路在 <code>HasSpecialRatio==true</code> 时用它替换 <code>GroupRatio</code>。</li>
+<li>删除字段以及所有读取点，避免误导（最低成本）。</li>
+</ol></div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M1</span><span class="title">未配置分组静默按 1.0 计费</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/ratio_setting/group_ratio.go:88-95</span></div>
+<div class="section-block"><div class="label">解决方案</div>增加配置项 <code>StrictGroupRatio</code>，开启时未配置 → 拒绝请求并提示；默认开启。或至少把 fallback 改为可配置的 <code>DefaultGroupRatio</code>（建议 1.5 倍而非 1.0，避免套利）。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M2</span><span class="title">未配置模型默认 37.5x, 且与 ratio_sync 不可信启发式重叠</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/ratio_setting/model_ratio.go:403-417</span> · <span class="file-ref">controller/ratio_sync.go:573-583</span></div>
+<div class="section-block"><div class="label">解决方案</div>把"未配置"作为显式信号返回（如 <code>found bool</code>），让调用方决定 fallback 策略；ratio_sync 不再用魔法值检测。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M3</span><span class="title">限流按 token group (可能是 auto) 统计</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">middleware/model-rate-limit.go:180-191</span></div>
+<div class="section-block"><div class="label">解决方案</div>等 channel 选择完成后用 <code>ContextKeyAutoGroup</code> 或 <code>relayInfo.UsingGroup</code> 重新计算限流桶；rate-limit 中间件改为 channel 选择之后执行。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M4</span><span class="title">UpdateUser 改 Group 不刷令牌缓存</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/user.go:550-591</span> · <span class="file-ref">model/user.go:519-546</span></div>
+<div class="section-block"><div class="label">解决方案</div>检测到 <code>old.Group != new.Group</code> 时调用 <code>InvalidateUserTokensCache(userId)</code>；同时校验目标分组合法性。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M5</span><span class="title">Session 中 group 不刷新</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">middleware/auth.go:152-153</span></div>
+<div class="section-block"><div class="label">解决方案</div>session 仅存 userId，每次从 <code>userCache</code>(已含 group) 取实时值。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">C-M6</span><span class="title">Playground 切换分组校验传错参数</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">middleware/distributor.go:92-99</span></div>
+<div class="section-block"><div class="label">解决方案</div>第一个参数应为 <code>userGroup</code>(user.Group)，而非 <code>usingGroup</code>(可能已是 token group)：
+<pre><code>if !service.GroupInUserUsableGroups(userGroup, playgroundRequest.Group) {
+    abort()
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">C-L1</span><span class="title">setting.ContainsAutoGroup 死代码</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/auto_group.go:13-20</span></div>
+<div class="section-block"><div class="label">解决方案</div>删除，或者在 token group 校验中使用以正确识别 auto 关键字。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">C-L2</span><span class="title">分组升级阈值单位混淆</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">解决方案</div>明确以 USD cent 为内部单位；前端按 PriceType 转换显示。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">C-L3</span><span class="title">GroupRatio 改动不主动清 pricing cache</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/option.go:503</span></div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>UpdateGroupRatioByJSONString</code> 中调 <code>InvalidatePricingCache()</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">C-L4</span><span class="title">/api/ratio_config 不包含 group_ratio</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">解决方案</div>把 <code>group_ratio</code> 加入 <code>GetExposedData</code>，方便第三方对账。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">C-L5</span><span class="title">defaultGroupSpecialUsableGroup 默认含示例脏数据</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">setting/ratio_setting/group_ratio.go:35-40</span></div>
+<div class="section-block"><div class="label">解决方案</div>默认改为空 map。</div>
+</div>
+</details>
+
+</section>
+
+<!-- ========================= 模型映射 ========================= -->
+<section id="mapping">
+<h2>D. 模型 → 渠道 → 分组 映射</h2>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">D-S1</span><span class="title">AddChannel 不刷新内存路由缓存</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/channel.go:563-661</span></div>
+<div class="section-block"><div class="label">问题</div>新增渠道后只调 <code>service.ResetProxyClientCache()</code>，<strong>未调 <code>model.InitChannelCache()</code></strong>。<code>MemoryCacheEnabled</code> 模式下新渠道直到下次周期性同步才生效。</div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>AddChannel</code> 末尾加：
+<pre><code>if common.MemoryCacheEnabled {
+    if err := model.InitChannelCache(); err != nil {
+        common.SysError("InitChannelCache after AddChannel failed: " + err.Error())
+    }
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">D-S2</span><span class="title">渠道重启用后从内存路由表"消失"</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel_cache.go:225-248</span></div>
+<div class="section-block"><div class="label">问题</div><code>CacheUpdateChannelStatus(id, status)</code>：禁用时移除路由表条目；<strong>启用时只更新 status 字段，不重新加入 <code>group2model2channels</code></strong>。直到全量重建前，<code>GetRandomSatisfiedChannel</code> 不会命中它。</div>
+<div class="section-block"><div class="label">解决方案</div>
+<pre><code>func CacheUpdateChannelStatus(id int, status int) {
+    if status == ChannelStatusEnabled {
+        ch := getChannelByID(id)
+        if ch != nil {
+            addChannelToRouteMap(ch)  // 重新加入 group2model2channels
+        }
+    } else {
+        removeChannelFromRouteMap(id)
+    }
+    // 同时更新 channelsIDM[id].Status
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">D-S3</span><span class="title">channel.Group / channel.Models 解析不去空白</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/ability.go:147-148, 219-220</span> · <span class="file-ref">model/channel_cache.go:45-47</span></div>
+<div class="section-block"><div class="label">问题</div>直接 <code>strings.Split(channel.Group, ",")</code> 不 <code>TrimSpace</code>、不过滤空串。<code>"default, vip"</code> → 落库 <code>" vip"</code> 永远匹配不上 <code>"vip"</code>。</div>
+<div class="section-block"><div class="label">解决方案</div>提取工具函数：
+<pre><code>func splitAndClean(s string) []string {
+    parts := strings.Split(s, ",")
+    out := make([]string, 0, len(parts))
+    seen := map[string]bool{}
+    for _, p := range parts {
+        p = strings.TrimSpace(p)
+        if p == "" || seen[p] { continue }
+        seen[p] = true
+        out = append(out, p)
+    }
+    return out
+}</code></pre>
+所有 split channel.Group/Models 的位置统一替换。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">D-S4</span><span class="title">多 Key 渠道 usingKey="" 时误禁 key#0</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel.go:622-658</span> (<code>handlerMultiKeyUpdate</code>)</div>
+<div class="section-block"><div class="label">问题</div><code>var keyIndex int</code> 默认 0，循环里只在 <code>key == usingKey</code> 时赋值。若 <code>usingKey == ""</code> 或未匹配，函数会把 index 0 标记为禁用。</div>
+<div class="section-block"><div class="label">解决方案</div>
+<pre><code>keyIndex := -1
+for i, k := range keys {
+    if k == usingKey { keyIndex = i; break }
+}
+if keyIndex == -1 {
+    common.SysError(fmt.Sprintf("handlerMultiKeyUpdate: key not found for channel=%d", channel.Id))
+    return  // 不要瞎禁第一个 key
+}</code></pre></div>
+</div>
+</details>
+
+<details class="issue" data-sev="critical" open>
+<summary><span class="badge critical">CRITICAL</span><span class="id">D-S5</span><span class="title">多 Key 单 key 恢复后, channel.Status 不会从 AutoDisabled 回滚</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel.go:637-657</span></div>
+<div class="section-block"><div class="label">解决方案</div>在重启用 key 路径检查：若 <code>len(MultiKeyStatusList) &lt; MultiKeySize</code> 且 <code>channel.Status == AutoDisabled</code> → 回写 <code>Enabled</code>。<code>enable_all_keys</code> 路径同样修复（见 D-M6）。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M1</span><span class="title">重试不排除已失败的 channel</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/relay.go:190-236</span> · <span class="file-ref">service/channel_select.go:83-162</span></div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>relayInfo</code> 中维护 <code>FailedChannels map[int]bool</code>；<code>GetRandomSatisfiedChannel</code> 增加 <code>exclude map[int]bool</code> 参数，过滤掉已失败 id。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M2</span><span class="title">Pricing 缓存对渠道变化滞后</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/pricing.go:66-87</span></div>
+<div class="section-block"><div class="label">解决方案</div>在 <code>AddChannel</code>/<code>UpdateChannel</code>/<code>DeleteChannel</code>/<code>CacheUpdateChannelStatus</code> 后都调 <code>InvalidatePricingCache()</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M3</span><span class="title">Affinity 缓存粘连到已禁用渠道</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">middleware/distributor.go:102-128</span> · <span class="file-ref">service/channel_affinity.go:545-619</span></div>
+<div class="section-block"><div class="label">解决方案</div>命中 affinity 但发现渠道已禁用时，立即 <code>InvalidateAffinityEntry(rule, model, group, key)</code> 并回退到随机选择。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M4</span><span class="title">IsChannelEnabledForGroupModel 与 status 缓存不一致</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel_satisfy.go:8-31</span></div>
+<div class="section-block"><div class="label">解决方案</div>与 D-S2 同时修复（路由表恢复后该函数自然一致）。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M5</span><span class="title">FixAbility 阻断式重建造成短暂全局 503</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/ability.go:287-341</span></div>
+<div class="section-block"><div class="label">解决方案</div>双表切换：先写入 <code>abilities_new</code>，校验通过后 <code>RENAME TABLE</code> 原子替换。三库兼容方案可用"先 insert 后 delete 旧记录"策略。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="medium">
+<summary><span class="badge medium">MEDIUM</span><span class="id">D-M6</span><span class="title">enable_all_keys 不重置 channel.Status</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">controller/channel.go:1468-1490</span></div>
+<div class="section-block"><div class="label">解决方案</div>清空 <code>MultiKeyStatusList</code> 后同时 <code>channel.Status = ChannelStatusEnabled</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">D-L1</span><span class="title">delete_key 路径未清 disabled 元数据</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel.go:637-638</span></div>
+<div class="section-block"><div class="label">解决方案</div>同时 <code>delete(MultiKeyDisabledReason, idx)</code> 与 <code>delete(MultiKeyDisabledTime, idx)</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">D-L2</span><span class="title">MultiKeyPollingIndex 调试 println 残留</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">model/channel_cache.go:260-264</span></div>
+<div class="section-block"><div class="label">解决方案</div>删除或改 <code>common.SysLog</code>。</div>
+</div>
+</details>
+
+<details class="issue" data-sev="minor">
+<summary><span class="badge minor">MINOR</span><span class="id">D-L3</span><span class="title">分组检查未规范化空格</span></summary>
+<div class="body">
+<div class="section-block"><div class="label">位置</div><span class="file-ref">middleware/auth.go:386</span> · <span class="file-ref">service/group.go:47-50</span></div>
+<div class="section-block"><div class="label">解决方案</div>所有写入 <code>user.Group</code> / <code>token.Group</code> 的入口统一 <code>TrimSpace</code>。</div>
+</div>
+</details>
+
+</section>
+
+<!-- ========================= 修复优先级 ========================= -->
+<section id="fixplan">
+<h2>E. 修复优先级与排期</h2>
+
+<p>按"风险 × 修复成本"排序，建议分 4 个 milestone 实施。</p>
+
+<h3>M1 · 立即（本周内）— 资金/安全</h3>
+<table>
+<thead><tr><th>问题</th><th>类别</th><th>预估工作量</th></tr></thead>
+<tbody>
+<tr><td>A-S2 Stripe 金额校验</td><td>资金白嫖</td><td>0.5 天</td></tr>
+<tr><td>A-S6 Waffo Pancake 验签固定 prod key</td><td>资金白嫖</td><td>1 小时</td></tr>
+<tr><td>A-S7 Creem 强制非空 secret</td><td>资金白嫖</td><td>1 小时</td></tr>
+<tr><td>A-S5 Pancake amount/status 校验</td><td>资金白嫖</td><td>0.5 天</td></tr>
+<tr><td>A-S1 易支付 ACK 时序</td><td>漏账</td><td>1 小时</td></tr>
+<tr><td>C-S1 + C-S2 + C-S3 admin_only 强制 + token.Group 校验</td><td>越权</td><td>0.5 天</td></tr>
+<tr><td>B-S1 + B-S3 PostWss / PreWss BillingSession 接入</td><td>双扣/双计费</td><td>1 天</td></tr>
+<tr><td>B-S2 total_tokens=0 不白嫖</td><td>白嫖</td><td>0.5 天</td></tr>
+</tbody>
+</table>
+
+<h3>M2 · 本月 — 资金正确性 &amp; 类型迁移</h3>
+<table>
+<thead><tr><th>问题</th><th>类别</th><th>预估工作量</th></tr></thead>
+<tbody>
+<tr><td>A-S3 全链路 int64 迁移 + DB BIGINT</td><td>资金溢出</td><td>1-2 天 + 灰度</td></tr>
+<tr><td>A-S4 Stripe groupRatio 修正</td><td>资金错算</td><td>0.5 天</td></tr>
+<tr><td>D-S1 + D-S2 渠道缓存失效修复</td><td>路由 / 503</td><td>1 天</td></tr>
+<tr><td>D-S3 group/models 解析规范化</td><td>路由错配</td><td>0.5 天</td></tr>
+<tr><td>D-S4 + D-S5 多 Key 状态修复</td><td>路由稳定</td><td>0.5 天</td></tr>
+<tr><td>B-S4 Settle 失败入队 + 告警</td><td>对账</td><td>1 天</td></tr>
+<tr><td>B-S5 MJ 旧路径接入 BillingSession</td><td>资金</td><td>1 天</td></tr>
+<tr><td>B-S6 task_billing Round</td><td>资金</td><td>1 小时</td></tr>
+</tbody>
+</table>
+
+<h3>M3 · 下个 release — 设计性缺陷</h3>
+<table>
+<thead><tr><th>问题</th><th>类别</th><th>预估工作量</th></tr></thead>
+<tbody>
+<tr><td>C-S4 + C-S5 GroupSpecialRatio 实现或删除</td><td>死代码 / UI 误导</td><td>1-2 天</td></tr>
+<tr><td>缓存失效总线 (M-tier 缓存项汇总)</td><td>架构</td><td>2-3 天</td></tr>
+<tr><td>D-M1 重试排除失败 channel</td><td>体验</td><td>0.5 天</td></tr>
+<tr><td>D-M3 Affinity 失败时主动剔除</td><td>体验</td><td>0.5 天</td></tr>
+<tr><td>A-M1～A-M10 充值 medium 项</td><td>对账 / 安全</td><td>2-3 天</td></tr>
+<tr><td>C-M1～C-M6 分组 medium 项</td><td>权限 / 限流</td><td>1-2 天</td></tr>
+</tbody>
+</table>
+
+<h3>M4 · 长期改造</h3>
+<ul>
+<li><strong>PaymentVerifier 接口抽象</strong>：把所有支付渠道收敛到统一的 <code>VerifyAmount/VerifyIdempotency/Persist</code> 模板。</li>
+<li><strong>计费表达式扩展</strong>：在 <code>billingexpr</code> 中暴露 user-tier × channel-group 矩阵参数（与 C-S5 合流）。</li>
+<li><strong>异步对账系统</strong>：每日跑批比对 <code>user.used_quota = sum(logs.quota)</code>、<code>topup.amount = sum(payment_provider_records)</code> 自动告警差异。</li>
+<li><strong>"auto" 分组语义重整</strong>：限流 / 计费 / 日志统一按实际命中子分组维度记账。</li>
+</ul>
+
+<p class="footer-note">报告生成: 2026-05-17 · 审计方式: 4 个并行 read-only 代理对源码进行静态分析 + 人工汇总 · 未对代码做任何修改。所有问题均带有文件:行号锚点，可直接 <code>grep -n</code> 复现。</p>
+
+</section>
+
+</div>
+
+<script>
+(function(){
+  const buttons = document.querySelectorAll('#filter-bar button[data-filter]');
+  const issues = document.querySelectorAll('details.issue');
+  function applyFilter(sev) {
+    issues.forEach(d => {
+      if (sev === 'all' || d.dataset.sev === sev) d.classList.remove('hidden');
+      else d.classList.add('hidden');
+    });
+  }
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = btn.dataset.filter;
+      if (f === 'open') {
+        issues.forEach(d => { if (!d.classList.contains('hidden')) d.open = true; });
+        return;
+      }
+      if (f === 'close') { issues.forEach(d => d.open = false); return; }
+      buttons.forEach(b => {
+        if (['all','critical','medium','minor'].includes(b.dataset.filter))
+          b.classList.toggle('active', b === btn);
+      });
+      applyFilter(f);
+    });
+  });
+})();
+</script>
+</body>
+</html>
