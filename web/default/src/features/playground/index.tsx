@@ -16,187 +16,90 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getUserModels, getUserGroups } from './api'
-import { PlaygroundChat } from './components/playground-chat'
-import { PlaygroundInput } from './components/playground-input'
-import { usePlaygroundState, useChatHandler } from './hooks'
-import { createUserMessage, createLoadingAssistantMessage } from './lib'
-import type { Message as MessageType } from './types'
+import { useEffect, useState } from 'react'
+import {
+  MessageSquareIcon,
+  ImageIcon,
+  VideoIcon,
+  Music2Icon,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ChatPlayground } from './chat-panel'
+import { ImagePlayground } from './image'
+import { VideoPlayground } from './video'
+import { MusicPlayground } from './music'
+
+type PlaygroundTab = 'chat' | 'image' | 'video' | 'music'
+
+const STORAGE_KEY = 'playground_active_tab'
+const DEFAULT_TAB: PlaygroundTab = 'chat'
+const VALID_TABS: PlaygroundTab[] = ['chat', 'image', 'video', 'music']
+
+function loadActiveTab(): PlaygroundTab {
+  if (typeof window === 'undefined') return DEFAULT_TAB
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (raw && VALID_TABS.includes(raw as PlaygroundTab)) {
+      return raw as PlaygroundTab
+    }
+  } catch {
+    // localStorage may be unavailable (private mode, SSR, etc.)
+  }
+  return DEFAULT_TAB
+}
 
 export function Playground() {
-  const {
-    config,
-    parameterEnabled,
-    messages,
-    models,
-    groups,
-    updateMessages,
-    setModels,
-    setGroups,
-    updateConfig,
-  } = usePlaygroundState()
+  const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState<PlaygroundTab>(loadActiveTab)
 
-  const { sendChat, stopGeneration, isGenerating } = useChatHandler({
-    config,
-    parameterEnabled,
-    onMessageUpdate: updateMessages,
-  })
-
-  // Edit dialog state
-  const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
-    null
-  )
-
-  // Load models
-  const { data: modelsData, isLoading: isLoadingModels } = useQuery({
-    queryKey: ['playground-models'],
-    queryFn: getUserModels,
-  })
-
-  // Load groups
-  const { data: groupsData } = useQuery({
-    queryKey: ['playground-groups'],
-    queryFn: getUserGroups,
-  })
-
-  // Update models when data changes
   useEffect(() => {
-    if (!modelsData) return
-
-    setModels(modelsData)
-
-    // Set default model if current model is not available
-    const isCurrentModelValid = modelsData.some((m) => m.value === config.model)
-    if (modelsData.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', modelsData[0].value)
+    try {
+      window.localStorage.setItem(STORAGE_KEY, activeTab)
+    } catch {
+      // ignore quota/private-mode errors
     }
-  }, [modelsData, config.model, setModels, updateConfig])
-
-  // Update groups when data changes
-  useEffect(() => {
-    if (!groupsData) return
-
-    setGroups(groupsData)
-
-    const hasCurrentGroup = groupsData.some((g) => g.value === config.group)
-    if (!hasCurrentGroup && groupsData.length > 0) {
-      const fallback =
-        groupsData.find((g) => g.value === 'default')?.value ??
-        groupsData[0].value
-      updateConfig('group', fallback)
-    }
-  }, [groupsData, setGroups, config.group, updateConfig])
-
-  const handleSendMessage = (text: string) => {
-    const userMessage = createUserMessage(text)
-    const assistantMessage = createLoadingAssistantMessage()
-
-    const newMessages = [...messages, userMessage, assistantMessage]
-    updateMessages(newMessages)
-
-    // Send chat request
-    sendChat(newMessages)
-  }
-
-  const handleCopyMessage = (message: MessageType) => {
-    // Copy is handled in MessageActions component
-    // eslint-disable-next-line no-console
-    console.log('Message copied:', message.key)
-  }
-
-  const handleRegenerateMessage = (message: MessageType) => {
-    // Find the message index and regenerate from there
-    const messageIndex = messages.findIndex((m) => m.key === message.key)
-    if (messageIndex === -1) return
-
-    // Remove messages after this one and regenerate
-    const messagesUpToHere = messages.slice(0, messageIndex)
-    const loadingMessage = createLoadingAssistantMessage()
-    const newMessages = [...messagesUpToHere, loadingMessage]
-
-    updateMessages(newMessages)
-    sendChat(newMessages)
-  }
-
-  const handleEditMessage = useCallback((message: MessageType) => {
-    setEditingMessageKey(message.key)
-  }, [])
-
-  const handleEditOpenChange = useCallback((open: boolean) => {
-    if (!open) setEditingMessageKey(null)
-  }, [])
-
-  // Apply edit and optionally re-submit from the edited user message
-  const applyEdit = useCallback(
-    (newContent: string, submit: boolean) => {
-      if (!editingMessageKey) return
-      const index = messages.findIndex((m) => m.key === editingMessageKey)
-      if (index === -1) return
-
-      const updated = messages.map((m) =>
-        m.key === editingMessageKey
-          ? { ...m, versions: [{ ...m.versions[0], content: newContent }] }
-          : m
-      )
-
-      setEditingMessageKey(null)
-
-      if (!submit || updated[index].from !== 'user') {
-        updateMessages(updated)
-        return
-      }
-
-      const toSubmit = [
-        ...updated.slice(0, index + 1),
-        createLoadingAssistantMessage(),
-      ]
-      updateMessages(toSubmit)
-      sendChat(toSubmit)
-    },
-    [editingMessageKey, messages, updateMessages, sendChat]
-  )
-
-  const handleDeleteMessage = (message: MessageType) => {
-    const newMessages = messages.filter((m) => m.key !== message.key)
-    updateMessages(newMessages)
-  }
+  }, [activeTab])
 
   return (
-    <div className='relative flex size-full flex-col overflow-hidden'>
-      {/* Full-width scroll container: scrolling works even over side whitespace */}
-      <div className='flex flex-1 flex-col overflow-hidden'>
-        <PlaygroundChat
-          messages={messages}
-          onCopyMessage={handleCopyMessage}
-          onRegenerateMessage={handleRegenerateMessage}
-          onEditMessage={handleEditMessage}
-          onDeleteMessage={handleDeleteMessage}
-          isGenerating={isGenerating}
-          editingKey={editingMessageKey}
-          onCancelEdit={handleEditOpenChange}
-          onSaveEdit={(newContent) => applyEdit(newContent, false)}
-          onSaveEditAndSubmit={(newContent) => applyEdit(newContent, true)}
-        />
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => setActiveTab(value as PlaygroundTab)}
+      className='size-full gap-0'
+    >
+      <div className='flex shrink-0 items-center justify-center border-b px-4 py-2'>
+        <TabsList>
+          <TabsTrigger value='chat'>
+            <MessageSquareIcon size={16} />
+            <span>{t('Chat')}</span>
+          </TabsTrigger>
+          <TabsTrigger value='image'>
+            <ImageIcon size={16} />
+            <span>{t('Image')}</span>
+          </TabsTrigger>
+          <TabsTrigger value='video'>
+            <VideoIcon size={16} />
+            <span>{t('Video')}</span>
+          </TabsTrigger>
+          <TabsTrigger value='music'>
+            <Music2Icon size={16} />
+            <span>{t('Music')}</span>
+          </TabsTrigger>
+        </TabsList>
       </div>
 
-      {/* Input area: center content and constrain to the same container width */}
-      <div className='mx-auto w-full max-w-4xl'>
-        <PlaygroundInput
-          disabled={isGenerating}
-          groups={groups}
-          groupValue={config.group}
-          isGenerating={isGenerating}
-          isModelLoading={isLoadingModels}
-          modelValue={config.model}
-          models={models}
-          onGroupChange={(value) => updateConfig('group', value)}
-          onModelChange={(value) => updateConfig('model', value)}
-          onStop={stopGeneration}
-          onSubmit={handleSendMessage}
-        />
-      </div>
-    </div>
+      <TabsContent value='chat' className='min-h-0 flex-1 overflow-hidden'>
+        <ChatPlayground />
+      </TabsContent>
+      <TabsContent value='image' className='min-h-0 flex-1 overflow-hidden'>
+        <ImagePlayground />
+      </TabsContent>
+      <TabsContent value='video' className='min-h-0 flex-1 overflow-hidden'>
+        <VideoPlayground />
+      </TabsContent>
+      <TabsContent value='music' className='min-h-0 flex-1 overflow-hidden'>
+        <MusicPlayground />
+      </TabsContent>
+    </Tabs>
   )
 }

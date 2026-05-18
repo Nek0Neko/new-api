@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>new-api 系统配置全流程</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+    color: #1f2328;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+    background: #fafbfc;
+  }
+  h1 {
+    font-size: 28px;
+    border-bottom: 2px solid #0969da;
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 22px;
+    margin-top: 48px;
+    padding: 12px 16px;
+    background: linear-gradient(90deg, #0969da, #218bff);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2 .step-num {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    color: #0969da;
+    font-weight: bold;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  h3 {
+    font-size: 17px;
+    margin-top: 28px;
+    color: #0969da;
+    border-left: 4px solid #0969da;
+    padding-left: 10px;
+  }
+  h4 {
+    font-size: 15px;
+    margin-top: 20px;
+    color: #24292f;
+  }
+  .lead {
+    background: #ddf4ff;
+    border: 1px solid #54aeff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0 32px;
+    color: #0550ae;
+  }
+  .lead strong { color: #0a3069; }
+  .flow-bar {
+    display: flex;
+    gap: 8px;
+    margin: 28px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    flex: 1;
+    min-width: 160px;
+    background: white;
+    border: 1px solid #d0d7de;
+    border-left: 4px solid #0969da;
+    border-radius: 6px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .flow-step .num {
+    color: #0969da;
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .flow-step .title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 4px 0;
+  }
+  .flow-step .sub {
+    font-size: 12px;
+    color: #57606a;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid #eaeef2;
+    font-size: 14px;
+    vertical-align: top;
+  }
+  th {
+    background: #f6f8fa;
+    font-weight: 600;
+    color: #24292f;
+  }
+  tr:last-child td { border-bottom: none; }
+  code {
+    background: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 13px;
+    color: #cf222e;
+  }
+  pre {
+    background: #1f2328;
+    color: #f6f8fa;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+  .tip, .warn, .note {
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  .tip {
+    background: #dafbe1;
+    border-left: 4px solid #1a7f37;
+    color: #1a7f37;
+  }
+  .warn {
+    background: #fff8c5;
+    border-left: 4px solid #9a6700;
+    color: #7d4e00;
+  }
+  .note {
+    background: #ddf4ff;
+    border-left: 4px solid #0969da;
+    color: #0550ae;
+  }
+  .tip strong, .warn strong, .note strong { display: block; margin-bottom: 4px; }
+  ol, ul { padding-left: 24px; }
+  ol li, ul li { margin: 6px 0; }
+  .menu-path {
+    display: inline-block;
+    background: #eaeef2;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #24292f;
+  }
+  .menu-path::before { content: "📍 "; }
+  .formula {
+    background: #fff;
+    border: 1px dashed #d0d7de;
+    padding: 14px 18px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 15px;
+    margin: 16px 0;
+    color: #24292f;
+  }
+  .formula b { color: #0969da; }
+  .deps {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 20px 0;
+  }
+  .deps .dep-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .deps .dep-row .arr {
+    color: #0969da;
+    font-weight: bold;
+  }
+  .footer {
+    margin-top: 60px;
+    padding-top: 16px;
+    border-top: 1px solid #d0d7de;
+    color: #57606a;
+    font-size: 13px;
+    text-align: center;
+  }
+  details {
+    background: white;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 12px 0;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #0969da;
+  }
+</style>
+</head>
+<body>
+
+<h1>new-api 系统配置全流程指南</h1>
+<div class="lead">
+本指南面向管理员，按照<strong>「先建分组 → 设倍率 → 接上游 → 给用户用」</strong>的顺序，
+完整描述一个全新的 new-api 实例从零配置到可对外提供服务的标准流程。
+所有路径均以默认前端 <code>web/default</code> 为准。
+</div>
+
+<h3>整体流程概览</h3>
+<div class="flow-bar">
+  <div class="flow-step">
+    <div class="num">STEP 1</div>
+    <div class="title">规划 & 添加分组</div>
+    <div class="sub">渠道分组 + 用户层级分组</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">STEP 2</div>
+    <div class="title">设置倍率</div>
+    <div class="sub">模型 / 补全 / 缓存 / 分组倍率</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">STEP 3</div>
+    <div class="title">对接上游渠道</div>
+    <div class="sub">填密钥、绑模型、挂分组</div>
+  </div>
+  <div class="flow-step">
+    <div class="num">STEP 4</div>
+    <div class="title">放给用户使用</div>
+    <div class="sub">注册策略 + 令牌(Key) 分发</div>
+  </div>
+</div>
+
+<div class="note">
+<strong>核心概念先记住</strong>
+本系统里"分组"有两类，<strong>不要混淆</strong>：<br>
+① <b>渠道分组（Channel Group）</b>——挂在渠道和令牌上，是路由 + 计费维度，例如
+<code>default</code>、<code>vip</code>、<code>claude-pool</code>。<br>
+② <b>用户层级（User Tier）</b>——挂在用户身上，例如 <code>default</code>/<code>vip</code>/<code>svip</code>，主要影响
+<strong>充值折扣</strong>以及"该用户可以选用哪些渠道分组"。
+</div>
+
+<!-- ============== STEP 1 ============== -->
+<h2><span class="step-num">1</span> 规划并添加分组</h2>
+
+<h3>1.1 决定你需要哪几个渠道分组</h3>
+<p>渠道分组本质上是一个<strong>字符串标签</strong>，用来：</p>
+<ul>
+  <li>把一组渠道（上游 Key 池）打上同一个标签</li>
+  <li>让令牌带着这个标签去匹配路由</li>
+  <li>让该标签拥有独立的<strong>计费倍率</strong>（见 STEP 2 的"分组倍率"）</li>
+</ul>
+
+<p>常见的规划方式：</p>
+<table>
+  <tr><th>分组名</th><th>典型用途</th><th>分组倍率参考</th></tr>
+  <tr><td><code>default</code></td><td>默认池，普通用户用</td><td>1.0</td></tr>
+  <tr><td><code>vip</code></td><td>付费/稳定 Key 池，速率更高</td><td>0.8 (折扣) 或 1.2 (加价)</td></tr>
+  <tr><td><code>claude-pool</code></td><td>专门跑 Claude 的高质量池</td><td>1.5</td></tr>
+  <tr><td><code>auto</code></td><td>令牌专用：跨分组自动路由（系统保留）</td><td>—</td></tr>
+</table>
+
+<h3>1.2 在 UI 中配置分组</h3>
+<p>渠道分组没有独立的"创建按钮"——它是在<strong>设置分组倍率时同时创建的字符串</strong>：</p>
+<ol>
+  <li>进入 <span class="menu-path">系统设置 → 计费(Billing) → 分组价格(Group Pricing)</span></li>
+  <li>在「分组倍率」JSON 里新增条目，例如：
+    <pre><code>{
+  "default": 1,
+  "vip": 0.8,
+  "claude-pool": 1.5
+}</code></pre>
+  </li>
+  <li>在「用户可用分组」中把这些分组授权给对应用户层级，例如：
+    <pre><code>{
+  "default": ["default"],
+  "vip":     ["default", "vip"],
+  "svip":    ["default", "vip", "claude-pool"]
+}</code></pre>
+  </li>
+  <li>保存。此时 <code>vip</code>/<code>claude-pool</code> 等字符串就可以在渠道和令牌的"分组"字段中使用了。</li>
+</ol>
+
+<div class="tip">
+<strong>建议</strong>
+即便目前你只有一个池，也建议至少建好 <code>default</code> + <code>vip</code> 两个分组，
+方便后续做差异化定价或灰度。
+</div>
+
+<!-- ============== STEP 2 ============== -->
+<h2><span class="step-num">2</span> 设置计费倍率</h2>
+<p>本系统的最终消耗 = 模型基础价 × 多个倍率叠加。先理解公式，再去 UI 配置就不会乱。</p>
+
+<div class="formula">
+  最终消耗 = <b>模型倍率(model_ratio)</b> × <b>分组倍率(group_ratio)</b> ×
+  <br>(输入 token + 输出 token × <b>补全倍率(completion_ratio)</b>) ×
+  <br>缓存命中折扣(<b>cache_ratio</b>)
+</div>
+
+<h3>2.1 模型倍率（Model Ratio）</h3>
+<p>每个模型的<strong>基础定价</strong>。</p>
+<ul>
+  <li>路径：<span class="menu-path">系统设置 → 计费 → 模型价格(Model Pricing) → 模型倍率</span></li>
+  <li>单位：以 $1/1M Token 为基准的相对倍数（例：<code>gpt-4o = 1.25</code> 表示 1.25 倍基准价）</li>
+  <li>支持批量导入 / 导出 JSON，便于跨实例同步</li>
+</ul>
+
+<h3>2.2 补全倍率（Completion Ratio）</h3>
+<p>输出 token 相对输入 token 的<strong>价格倍数</strong>，因为大多数模型输出价比输入价贵。</p>
+<ul>
+  <li>路径：同上「模型价格」页签内</li>
+  <li>例：<code>gpt-4o = 4</code> 表示输出价 = 输入价 × 4</li>
+</ul>
+
+<h3>2.3 缓存倍率（Cache Ratio / Create Cache Ratio）</h3>
+<p>用于 Prompt Caching：</p>
+<ul>
+  <li><b>cache_ratio</b>：缓存<strong>命中</strong>时对命中部分 token 的折扣（&lt; 1）</li>
+  <li><b>create_cache_ratio</b>：写入缓存时的额外费率（部分模型 &gt; 1）</li>
+  <li>路径：<span class="menu-path">系统设置 → 计费 → 模型价格 → 缓存倍率</span></li>
+</ul>
+
+<h3>2.4 分组倍率（Group Ratio）</h3>
+<p>STEP 1 已经填过——这是把"渠道分组"映射到一个总倍率系数。</p>
+<ul>
+  <li>路径：<span class="menu-path">系统设置 → 计费 → 分组价格</span></li>
+  <li>所有走该分组的请求，最终消耗都会再乘上这个系数</li>
+</ul>
+
+<h3>2.5 其他倍率（按需）</h3>
+<table>
+  <tr><th>类型</th><th>位置</th><th>用途</th></tr>
+  <tr><td>Image Ratio</td><td>模型价格</td><td>图像生成按张计费</td></tr>
+  <tr><td>Audio Ratio</td><td>模型价格</td><td>语音 / TTS 按秒计费</td></tr>
+  <tr><td>Tool Price</td><td>模型价格</td><td>web_search / code_interpreter 等工具调用按次费</td></tr>
+</table>
+
+<div class="warn">
+<strong>避坑提醒</strong>
+模型倍率改完<strong>立即生效</strong>，但 Redis 缓存的旧值可能滞后几秒。
+线上调价建议在低峰期操作，并预先在测试令牌验证一次。
+</div>
+
+<!-- ============== STEP 3 ============== -->
+<h2><span class="step-num">3</span> 对接上游渠道</h2>
+
+<h3>3.1 入口</h3>
+<p>路径：<span class="menu-path">导航栏 → 渠道(Channels) → 添加渠道</span></p>
+
+<h3>3.2 必填字段一览</h3>
+<table>
+  <tr><th>字段</th><th>说明</th><th>示例</th></tr>
+  <tr><td>类型(Type)</td><td>选择上游类型，决定使用哪个 adapter</td><td>OpenAI / Claude / Gemini / Azure / Bedrock …</td></tr>
+  <tr><td>名称(Name)</td><td>管理员自己看的标签</td><td><code>openai-主号-001</code></td></tr>
+  <tr><td>分组(Group)</td><td><strong>关键</strong>。这个渠道属于哪个/哪些渠道分组，多选用逗号分隔</td><td><code>default,vip</code></td></tr>
+  <tr><td>模型(Models)</td><td>这个渠道支持哪些模型名，用逗号分隔</td><td><code>gpt-4o,gpt-4o-mini,gpt-4-turbo</code></td></tr>
+  <tr><td>密钥(Key)</td><td>上游 API Key；若是 Azure/Bedrock 等多段凭证按其格式填写</td><td><code>sk-xxxxxxxx</code></td></tr>
+  <tr><td>代理(Base URL)</td><td>自建/中转/Azure 端点时必填</td><td><code>https://my-proxy.com</code></td></tr>
+  <tr><td>优先级(Priority)</td><td>数字越大优先级越高，同优先级按权重</td><td><code>10</code></td></tr>
+  <tr><td>权重(Weight)</td><td>同优先级下的随机权重</td><td><code>100</code></td></tr>
+  <tr><td>模型重定向(ModelMapping)</td><td>把客户端请求的模型名映射到上游真实模型名（JSON）</td><td><code>{"gpt-4":"gpt-4-turbo"}</code></td></tr>
+</table>
+
+<h3>3.3 高级选项（按需）</h3>
+<details>
+<summary>多 Key 模式（一个渠道多把 Key 轮询）</summary>
+<ul>
+  <li>启用「多 Key」后，<code>Key</code> 字段支持每行一把</li>
+  <li>模式可选 <code>rotate</code>（轮询）/ <code>poll</code>（顺序）</li>
+  <li>失败自动跳到下一把，配合自动禁用更稳定</li>
+</ul>
+</details>
+<details>
+<summary>状态码映射 / 参数覆盖 / Header 覆盖</summary>
+<ul>
+  <li><b>StatusCodeMapping</b>：把上游异常码翻译成想要的码（例：429 → 503）</li>
+  <li><b>ParamOverride</b>：强制注入/覆盖请求体参数（例：限制 max_tokens）</li>
+  <li><b>HeaderOverride</b>：自定义请求头（例：Azure deployment 名）</li>
+</ul>
+</details>
+<details>
+<summary>自动禁用 / 探活</summary>
+<ul>
+  <li><b>AutoBan</b>：连续失败自动置为禁用</li>
+  <li><b>TestModel</b>：定期用这个模型做探活</li>
+  <li>路径：<span class="menu-path">系统设置 → 运维(Operations) → 监控</span></li>
+</ul>
+</details>
+
+<h3>3.4 测试 & 启用</h3>
+<ol>
+  <li>保存渠道 → 列表行末点「测试」，绿色表示握手通过</li>
+  <li>点「余额」拉一次上游余额（如果上游支持）</li>
+  <li>状态置为「启用」——此时渠道才会被路由器选中</li>
+</ol>
+
+<div class="tip">
+<strong>路由规则速记</strong>
+当令牌请求到来时，系统按如下顺序筛选渠道：<br>
+<b>① 匹配令牌的分组 → ② 匹配请求的模型 → ③ 取最高 Priority → ④ 按 Weight 概率随机 → ⑤ 失败按 ChannelAffinity 重试</b>
+</div>
+
+<!-- ============== STEP 4 ============== -->
+<h2><span class="step-num">4</span> 放给用户使用</h2>
+
+<h3>4.1 配置全局注册策略</h3>
+<p>路径：<span class="menu-path">系统设置 → 认证(Auth)</span> 与 <span class="menu-path">系统设置 → 计费 → 配额设置</span></p>
+<ul>
+  <li>打开/关闭注册：邮箱注册、GitHub/Discord/OIDC、Passkey、Turnstile 验证</li>
+  <li>设定 <b>新用户初始配额</b>、<b>邀请奖励</b>、<b>预扣模式</b>等</li>
+</ul>
+
+<h3>4.2 用户层级与分组授权</h3>
+<p>STEP 1 已经在「用户可用分组」里配过，效果是：</p>
+<ul>
+  <li><code>default</code> 等级的用户只能用 <code>default</code> 渠道分组</li>
+  <li><code>vip</code> 等级的用户能在创建令牌时选 <code>default</code> 或 <code>vip</code></li>
+</ul>
+<p>管理员可在 <span class="menu-path">用户(Users)</span> 列表里手动把某用户升到 <code>vip</code>/<code>svip</code>。</p>
+
+<h3>4.3 用户创建令牌（API Key）</h3>
+<p>用户自助路径：<span class="menu-path">令牌(Keys) → 添加令牌</span></p>
+<table>
+  <tr><th>字段</th><th>说明</th></tr>
+  <tr><td>名称</td><td>区分用途，例：<code>my-app-prod</code></td></tr>
+  <tr><td>分组(Group)</td><td>从该用户「可用分组」中选；选 <code>auto</code> 可跨分组自动路由</td></tr>
+  <tr><td>额度(RemainQuota)</td><td>该令牌可用的配额上限；可勾选「无限额度」（受用户总余额约束）</td></tr>
+  <tr><td>过期时间(ExpiredTime)</td><td>具体时间或选「永不过期」(<code>-1</code>)</td></tr>
+  <tr><td>模型白名单(ModelLimits)</td><td>可选，仅允许该令牌调用的模型列表</td></tr>
+  <tr><td>IP 白名单(AllowIps)</td><td>可选，多个用换行或逗号分隔</td></tr>
+  <tr><td>跨分组重试(CrossGroupRetry)</td><td><strong>仅</strong>当 Group 选 <code>auto</code> 时生效，失败回落到其他可用分组</td></tr>
+</table>
+
+<div class="warn">
+<strong>注意</strong>
+令牌 Key 的明文<strong>只在创建时显示一次</strong>，之后列表里都是脱敏的，要求用户立即妥善保存。
+</div>
+
+<h3>4.4 用户接入示例</h3>
+<p>用户拿到令牌后，按 OpenAI 兼容方式调用即可（其它协议见对应文档）：</p>
+<pre><code>curl https://your-domain.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-xxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role":"user","content":"你好"}]
+  }'</code></pre>
+
+<!-- ============== 依赖关系 ============== -->
+<h2><span class="step-num">✓</span> 配置依赖关系速查</h2>
+<div class="deps">
+  <div class="dep-row"><b>① 分组</b><span class="arr">→</span>被 <b>②倍率</b>、<b>③渠道</b>、<b>④令牌</b> 引用</div>
+  <div class="dep-row"><b>② 倍率</b><span class="arr">→</span>计费时实时读取，可独立于渠道修改</div>
+  <div class="dep-row"><b>③ 渠道</b><span class="arr">→</span>必须先存在，令牌才能路由出去</div>
+  <div class="dep-row"><b>④ 用户/令牌</b><span class="arr">→</span>令牌可用分组 ⊆ 用户层级可用分组 ⊆ 系统已声明分组</div>
+</div>
+
+<div class="note">
+<strong>典型上线 Checklist</strong>
+<ul style="margin:6px 0">
+  <li>☐ 分组倍率 JSON 已配置，且 <code>default</code> 不缺</li>
+  <li>☐ 模型倍率与补全倍率覆盖所有上线模型</li>
+  <li>☐ 至少一个渠道处于「启用」且分组包含 <code>default</code></li>
+  <li>☐ 渠道测试 + 余额拉取均成功</li>
+  <li>☐ 新用户初始配额 &gt; 0（否则注册后无法调用）</li>
+  <li>☐ 用 default 用户的令牌跑通一次完整请求并在日志里验证扣费金额</li>
+</ul>
+</div>
+
+<div class="footer">
+new-api · 系统配置流程指南 · 生成日期 2026-05-17
+</div>
+
+</body>
+</html>
