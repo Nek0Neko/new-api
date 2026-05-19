@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Music2Icon,
@@ -35,6 +35,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
+import { ItemActions } from '../shared/item-actions'
+import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
 import { useMusicPlayground } from './use-music-playground'
@@ -43,9 +45,15 @@ import type { MusicMode, MusicTaskItem } from './types'
 function MusicItemCard({
   item,
   onDelete,
+  onEdit,
+  onRegenerate,
+  disableRegenerate,
 }: {
   item: MusicTaskItem
   onDelete: (id: string) => void
+  onEdit: (item: MusicTaskItem) => void
+  onRegenerate: (item: MusicTaskItem) => void
+  disableRegenerate: boolean
 }) {
   const { t } = useTranslation()
   const isActive =
@@ -57,31 +65,24 @@ function MusicItemCard({
     item.mode === 'description'
       ? item.description
       : item.title || item.prompt.split('\n')[0]
+  const fullPromptText =
+    item.mode === 'description' ? item.description : item.prompt
 
   return (
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground line-clamp-3 text-sm wrap-break-word'>
-            {header}
-          </p>
+          <PromptText text={header} />
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
-            <span>{item.mode === 'description' ? t('Description') : t('Custom')}</span>
+            <span>
+              {item.mode === 'description' ? t('Description') : t('Custom')}
+            </span>
             {item.model && <span>{item.model}</span>}
             {item.tags && <span>{item.tags}</span>}
             {item.makeInstrumental && <span>{t('Instrumental')}</span>}
             <span>{new Date(item.createdAt).toLocaleString()}</span>
           </div>
         </div>
-        <Button
-          size='icon'
-          variant='ghost'
-          className='text-muted-foreground hover:text-destructive size-7'
-          onClick={() => onDelete(item.id)}
-          aria-label={t('Delete')}
-        >
-          <Trash2Icon className='size-4' />
-        </Button>
       </div>
 
       {isActive && (
@@ -169,6 +170,16 @@ function MusicItemCard({
           ))}
         </div>
       )}
+
+      <div className='mt-3 flex items-center justify-end'>
+        <ItemActions
+          copyText={fullPromptText}
+          onEdit={() => onEdit(item)}
+          onRegenerate={() => onRegenerate(item)}
+          disableRegenerate={disableRegenerate || isActive}
+          onDelete={() => onDelete(item.id)}
+        />
+      </div>
     </div>
   )
 }
@@ -177,6 +188,8 @@ export function MusicPlayground() {
   const { t } = useTranslation()
   const [description, setDescription] = useState('')
   const [prompt, setPrompt] = useState('')
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null)
+  const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
 
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
@@ -214,10 +227,62 @@ export function MusicPlayground() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return
-    await submit({ description, prompt })
-    if (config.mode === 'description') setDescription('')
+    const isDescriptionMode = config.mode === 'description'
+    const submittedDescription = description
+    const submittedPrompt = prompt
+    if (isDescriptionMode) setDescription('')
     else setPrompt('')
+    await submit({
+      description: submittedDescription,
+      prompt: submittedPrompt,
+    })
   }
+
+  const handleEdit = useCallback(
+    (item: MusicTaskItem) => {
+      updateConfig('mode', item.mode)
+      updateConfig('title', item.title)
+      updateConfig('tags', item.tags)
+      updateConfig('makeInstrumental', item.makeInstrumental)
+      if (item.model) updateConfig('model', item.model)
+      if (item.mode === 'description') {
+        setDescription(item.description)
+        setPrompt('')
+      } else {
+        setPrompt(item.prompt)
+        setDescription('')
+      }
+      requestAnimationFrame(() => {
+        const el =
+          item.mode === 'description'
+            ? descriptionInputRef.current
+            : promptInputRef.current
+        if (!el) return
+        el.focus()
+        const end = el.value.length
+        el.setSelectionRange(end, end)
+      })
+    },
+    [updateConfig]
+  )
+
+  const handleRegenerate = useCallback(
+    (item: MusicTaskItem) => {
+      if (isSubmitting || !hasKey) return
+      void submit({
+        description: item.description,
+        prompt: item.prompt,
+        overrideConfig: {
+          mode: item.mode,
+          model: item.model || config.model,
+          title: item.title,
+          tags: item.tags,
+          makeInstrumental: item.makeInstrumental,
+        },
+      })
+    },
+    [isSubmitting, hasKey, submit, config.model]
+  )
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
@@ -260,7 +325,14 @@ export function MusicPlayground() {
           )}
 
           {items.map((item) => (
-            <MusicItemCard key={item.id} item={item} onDelete={removeItem} />
+            <MusicItemCard
+              key={item.id}
+              item={item}
+              onDelete={removeItem}
+              onEdit={handleEdit}
+              onRegenerate={handleRegenerate}
+              disableRegenerate={isSubmitting || !hasKey}
+            />
           ))}
         </div>
       </div>
@@ -282,6 +354,7 @@ export function MusicPlayground() {
 
           {config.mode === 'description' ? (
             <Textarea
+              ref={descriptionInputRef}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t(
@@ -299,6 +372,7 @@ export function MusicPlayground() {
           ) : (
             <div className='space-y-2'>
               <Textarea
+                ref={promptInputRef}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={t(

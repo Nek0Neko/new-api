@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ImageIcon,
@@ -25,11 +25,8 @@ import {
   Trash2Icon,
   DownloadIcon,
   AlertCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -42,6 +39,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
+import { ItemActions } from '../shared/item-actions'
+import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
 import type { ImageGenerationItem } from './types'
@@ -70,57 +69,24 @@ function resolveImageSrc(
 function ImageGenItemCard({
   item,
   onDelete,
+  onEdit,
+  onRegenerate,
+  disableRegenerate,
 }: {
   item: ImageGenerationItem
   onDelete: (id: string) => void
+  onEdit: (item: ImageGenerationItem) => void
+  onRegenerate: (item: ImageGenerationItem) => void
+  disableRegenerate: boolean
 }) {
   const { t } = useTranslation()
   const date = new Date(item.createdAt)
-  const promptRef = useRef<HTMLParagraphElement>(null)
-  const [isPromptExpanded, setIsPromptExpanded] = useState(false)
-  const [isPromptOverflowing, setIsPromptOverflowing] = useState(false)
-
-  useEffect(() => {
-    if (isPromptExpanded) return
-    const el = promptRef.current
-    if (!el) return
-    setIsPromptOverflowing(el.scrollHeight > el.clientHeight + 1)
-  }, [item.prompt, isPromptExpanded])
 
   return (
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p
-            ref={promptRef}
-            className={cn(
-              'text-foreground text-sm wrap-break-word whitespace-pre-wrap',
-              !isPromptExpanded && 'line-clamp-3'
-            )}
-            title={item.prompt}
-          >
-            {item.prompt}
-          </p>
-          {(isPromptOverflowing || isPromptExpanded) && (
-            <button
-              type='button'
-              onClick={() => setIsPromptExpanded((v) => !v)}
-              className='text-muted-foreground hover:text-foreground mt-1 inline-flex items-center gap-0.5 text-xs transition-colors'
-              aria-expanded={isPromptExpanded}
-            >
-              {isPromptExpanded ? (
-                <>
-                  <ChevronUpIcon className='size-3' />
-                  {t('Collapse')}
-                </>
-              ) : (
-                <>
-                  <ChevronDownIcon className='size-3' />
-                  {t('Show full prompt')}
-                </>
-              )}
-            </button>
-          )}
+          <PromptText text={item.prompt} />
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
             <span>{item.model}</span>
             <span>{item.size}</span>
@@ -128,15 +94,6 @@ function ImageGenItemCard({
             <span>{date.toLocaleString()}</span>
           </div>
         </div>
-        <Button
-          size='icon'
-          variant='ghost'
-          className='text-muted-foreground hover:text-destructive size-7'
-          onClick={() => onDelete(item.id)}
-          aria-label={t('Delete')}
-        >
-          <Trash2Icon className='size-4' />
-        </Button>
       </div>
 
       {item.status === 'loading' && (
@@ -185,6 +142,16 @@ function ImageGenItemCard({
           })}
         </div>
       )}
+
+      <div className='mt-3 flex items-center justify-end'>
+        <ItemActions
+          copyText={item.prompt}
+          onEdit={() => onEdit(item)}
+          onRegenerate={() => onRegenerate(item)}
+          disableRegenerate={disableRegenerate || item.status === 'loading'}
+          onDelete={() => onDelete(item.id)}
+        />
+      </div>
     </div>
   )
 }
@@ -192,6 +159,7 @@ function ImageGenItemCard({
 export function ImagePlayground() {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
+  const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
 
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
@@ -225,6 +193,25 @@ export function ImagePlayground() {
     setPrompt('')
     await submit(submittedPrompt)
   }
+
+  const handleEdit = useCallback((item: ImageGenerationItem) => {
+    setPrompt(item.prompt)
+    requestAnimationFrame(() => {
+      const el = promptInputRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
+    })
+  }, [])
+
+  const handleRegenerate = useCallback(
+    (item: ImageGenerationItem) => {
+      if (isGenerating || !hasKey) return
+      void submit(item.prompt)
+    },
+    [isGenerating, hasKey, submit]
+  )
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
@@ -267,7 +254,14 @@ export function ImagePlayground() {
           )}
 
           {items.map((item) => (
-            <ImageGenItemCard key={item.id} item={item} onDelete={removeItem} />
+            <ImageGenItemCard
+              key={item.id}
+              item={item}
+              onDelete={removeItem}
+              onEdit={handleEdit}
+              onRegenerate={handleRegenerate}
+              disableRegenerate={isGenerating || !hasKey}
+            />
           ))}
         </div>
       </div>
@@ -275,6 +269,7 @@ export function ImagePlayground() {
       <div className='bg-background/80 border-t backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
           <Textarea
+            ref={promptInputRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('Describe what you want to see…')}

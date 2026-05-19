@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   VideoIcon,
@@ -41,6 +41,8 @@ import {
 } from '@/components/ui/select'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
+import { ItemActions } from '../shared/item-actions'
+import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
 import { useVideoPlayground } from './use-video-playground'
@@ -59,9 +61,15 @@ const RESOLUTION_OPTIONS = [
 function VideoItemCard({
   item,
   onDelete,
+  onEdit,
+  onRegenerate,
+  disableRegenerate,
 }: {
   item: VideoTaskItem
   onDelete: (id: string) => void
+  onEdit: (item: VideoTaskItem) => void
+  onRegenerate: (item: VideoTaskItem) => void
+  disableRegenerate: boolean
 }) {
   const { t } = useTranslation()
   const isActive =
@@ -73,15 +81,15 @@ function VideoItemCard({
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground line-clamp-3 text-sm wrap-break-word'>
-            {item.prompt}
-          </p>
+          <PromptText text={item.prompt} />
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
             <span>{item.model}</span>
             <span>
               {item.width}×{item.height}
             </span>
-            <span>{item.duration}s @ {item.fps}fps</span>
+            <span>
+              {item.duration}s @ {item.fps}fps
+            </span>
             <span>{new Date(item.createdAt).toLocaleString()}</span>
           </div>
           {item.taskId && (
@@ -90,15 +98,6 @@ function VideoItemCard({
             </p>
           )}
         </div>
-        <Button
-          size='icon'
-          variant='ghost'
-          className='text-muted-foreground hover:text-destructive size-7'
-          onClick={() => onDelete(item.id)}
-          aria-label={t('Delete')}
-        >
-          <Trash2Icon className='size-4' />
-        </Button>
       </div>
 
       {isActive && (
@@ -145,6 +144,16 @@ function VideoItemCard({
           </div>
         </div>
       )}
+
+      <div className='mt-3 flex items-center justify-end'>
+        <ItemActions
+          copyText={item.prompt}
+          onEdit={() => onEdit(item)}
+          onRegenerate={() => onRegenerate(item)}
+          disableRegenerate={disableRegenerate || isActive}
+          onDelete={() => onDelete(item.id)}
+        />
+      </div>
     </div>
   )
 }
@@ -153,6 +162,7 @@ export function VideoPlayground() {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
 
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
@@ -187,10 +197,32 @@ export function VideoPlayground() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return
-    await submit(prompt, imageUrl)
+    const submittedPrompt = prompt
+    const submittedImage = imageUrl
     setPrompt('')
     setImageUrl('')
+    await submit(submittedPrompt, submittedImage)
   }
+
+  const handleEdit = useCallback((item: VideoTaskItem) => {
+    setPrompt(item.prompt)
+    setImageUrl(item.image ?? '')
+    requestAnimationFrame(() => {
+      const el = promptInputRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
+    })
+  }, [])
+
+  const handleRegenerate = useCallback(
+    (item: VideoTaskItem) => {
+      if (isSubmitting || !hasKey) return
+      void submit(item.prompt, item.image ?? '')
+    },
+    [isSubmitting, hasKey, submit]
+  )
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
@@ -233,7 +265,14 @@ export function VideoPlayground() {
           )}
 
           {items.map((item) => (
-            <VideoItemCard key={item.id} item={item} onDelete={removeItem} />
+            <VideoItemCard
+              key={item.id}
+              item={item}
+              onDelete={removeItem}
+              onEdit={handleEdit}
+              onRegenerate={handleRegenerate}
+              disableRegenerate={isSubmitting || !hasKey}
+            />
           ))}
         </div>
       </div>
@@ -241,6 +280,7 @@ export function VideoPlayground() {
       <div className='border-t bg-background/80 backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
           <Textarea
+            ref={promptInputRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('Describe the scene, motion, style…')}

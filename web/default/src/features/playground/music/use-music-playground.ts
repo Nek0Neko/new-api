@@ -89,6 +89,12 @@ function normalizeStatus(status: string): MusicTaskItem['status'] {
 interface SubmitArgs {
   description: string
   prompt: string
+  /**
+   * Optional one-shot overrides for the active config. Used by "Regenerate"
+   * on a history item to reproduce its exact mode/title/tags without first
+   * mutating the UI's current config (which would race React state updates).
+   */
+  overrideConfig?: Partial<MusicConfig>
 }
 
 export function useMusicPlayground(apiKey: string | null) {
@@ -240,24 +246,25 @@ export function useMusicPlayground(apiKey: string | null) {
   }, [])
 
   const submit = useCallback(
-    async ({ description, prompt }: SubmitArgs) => {
+    async ({ description, prompt, overrideConfig }: SubmitArgs) => {
+      const activeConfig: MusicConfig = { ...config, ...overrideConfig }
       const trimmedDesc = description.trim()
       const trimmedPrompt = prompt.trim()
       const key = apiKeyRef.current
       if (!key) return
-      if (config.mode === 'description' && !trimmedDesc) return
-      if (config.mode === 'custom' && !trimmedPrompt) return
+      if (activeConfig.mode === 'description' && !trimmedDesc) return
+      if (activeConfig.mode === 'custom' && !trimmedPrompt) return
 
       const id = generateId()
       const draft: MusicTaskItem = {
         id,
-        mode: config.mode,
-        model: config.model,
+        mode: activeConfig.mode,
+        model: activeConfig.model,
         description: trimmedDesc,
         prompt: trimmedPrompt,
-        title: config.title,
-        tags: config.tags,
-        makeInstrumental: config.makeInstrumental,
+        title: activeConfig.title,
+        tags: activeConfig.tags,
+        makeInstrumental: activeConfig.makeInstrumental,
         createdAt: Date.now(),
         status: 'submitting',
         clips: [],
@@ -265,16 +272,16 @@ export function useMusicPlayground(apiKey: string | null) {
       persistItems((prev) => [draft, ...prev])
 
       const payload: MusicSubmitRequest = {
-        model: config.model || undefined,
-        make_instrumental: config.makeInstrumental,
-        mv: config.mv,
+        model: activeConfig.model || undefined,
+        make_instrumental: activeConfig.makeInstrumental,
+        mv: activeConfig.mv,
       }
-      if (config.mode === 'description') {
+      if (activeConfig.mode === 'description') {
         payload.gpt_description_prompt = trimmedDesc
       } else {
         payload.prompt = trimmedPrompt
-        if (config.title.trim()) payload.title = config.title.trim()
-        if (config.tags.trim()) payload.tags = config.tags.trim()
+        if (activeConfig.title.trim()) payload.title = activeConfig.title.trim()
+        if (activeConfig.tags.trim()) payload.tags = activeConfig.tags.trim()
       }
 
       try {
