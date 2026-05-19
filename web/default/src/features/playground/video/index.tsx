@@ -73,7 +73,7 @@ function VideoItemCard({
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground line-clamp-3 text-sm break-words'>
+          <p className='text-foreground line-clamp-3 text-sm wrap-break-word'>
             {item.prompt}
           </p>
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
@@ -117,7 +117,7 @@ function VideoItemCard({
       {item.status === 'failed' && (
         <div className='border-destructive/50 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-sm'>
           <AlertCircleIcon className='size-4 shrink-0' />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             {item.errorMessage ?? t('Video generation failed')}
           </span>
         </div>
@@ -207,7 +207,7 @@ export function VideoPlayground() {
           )}
 
           {items.length === 0 && hasKey && (
-            <div className='text-muted-foreground flex h-[300px] flex-col items-center justify-center gap-2 text-center'>
+            <div className='text-muted-foreground flex h-75 flex-col items-center justify-center gap-2 text-center'>
               <VideoIcon className='size-10' />
               <p className='text-sm'>
                 {t('Describe the video you want to generate below.')}
@@ -245,7 +245,7 @@ export function VideoPlayground() {
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('Describe the scene, motion, style…')}
             disabled={isSubmitting || !hasKey}
-            className='min-h-[80px] resize-none'
+            className='min-h-20 resize-none'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
@@ -270,7 +270,7 @@ export function VideoPlayground() {
             onChange={(e) => updateConfig('negativePrompt', e.target.value)}
             placeholder={t('Optional: negative prompt')}
             disabled={isSubmitting || !hasKey}
-            className='min-h-[40px] resize-none text-xs'
+            className='min-h-10 resize-none text-xs'
           />
 
           <div className='flex flex-wrap items-end justify-between gap-3'>
@@ -292,7 +292,7 @@ export function VideoPlayground() {
                   }}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger className='h-8 w-[140px]'>
+                  <SelectTrigger className='h-8 w-35'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -317,7 +317,7 @@ export function VideoPlayground() {
                   onValueChange={(v) => updateConfig('duration', Number(v))}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger className='h-8 w-[90px]'>
+                  <SelectTrigger className='h-8 w-22.5'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -339,7 +339,7 @@ export function VideoPlayground() {
                   onValueChange={(v) => updateConfig('fps', Number(v))}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger className='h-8 w-[80px]'>
+                  <SelectTrigger className='h-8 w-20'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

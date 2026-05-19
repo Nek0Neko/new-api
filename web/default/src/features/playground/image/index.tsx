@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -37,12 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
-import { useImagePlayground } from './use-image-playground'
 import type { ImageGenerationItem } from './types'
+import { useImagePlayground } from './use-image-playground'
 
 const SIZE_OPTIONS = [
   '256x256',
@@ -56,7 +56,9 @@ const QUALITY_OPTIONS = ['standard', 'hd']
 
 const N_OPTIONS = [1, 2, 3, 4]
 
-function resolveImageSrc(image: ImageGenerationItem['images'][number]): string | null {
+function resolveImageSrc(
+  image: ImageGenerationItem['images'][number]
+): string | null {
   if (image.url) return image.url
   if (image.b64_json) return `data:image/png;base64,${image.b64_json}`
   return null
@@ -76,7 +78,7 @@ function ImageGenItemCard({
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground line-clamp-3 text-sm break-words'>
+          <p className='text-foreground line-clamp-3 text-sm wrap-break-word'>
             {item.prompt}
           </p>
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
@@ -106,7 +108,7 @@ function ImageGenItemCard({
       {item.status === 'error' && (
         <div className='border-destructive/50 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-sm'>
           <AlertCircleIcon className='size-4 shrink-0' />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             {item.errorMessage ?? t('Image generation failed')}
           </span>
         </div>
@@ -133,7 +135,7 @@ function ImageGenItemCard({
                   download={`image-${item.id}-${idx}.png`}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='bg-background/80 text-foreground absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
+                  className='bg-background/80 text-foreground absolute top-2 right-2 inline-flex size-8 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
                   aria-label={t('Download')}
                 >
                   <DownloadIcon className='size-4' />
@@ -179,8 +181,9 @@ export function ImagePlayground() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return
-    await submit(prompt)
+    const submittedPrompt = prompt
     setPrompt('')
+    await submit(submittedPrompt)
   }
 
   return (
@@ -198,7 +201,7 @@ export function ImagePlayground() {
           )}
 
           {items.length === 0 && hasKey && (
-            <div className='text-muted-foreground flex h-[300px] flex-col items-center justify-center gap-2 text-center'>
+            <div className='text-muted-foreground flex h-75 flex-col items-center justify-center gap-2 text-center'>
               <ImageIcon className='size-10' />
               <p className='text-sm'>
                 {t('Describe the image you want to generate below.')}
@@ -229,14 +232,14 @@ export function ImagePlayground() {
         </div>
       </div>
 
-      <div className='border-t bg-background/80 backdrop-blur'>
+      <div className='bg-background/80 border-t backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
           <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('Describe what you want to see…')}
             disabled={isGenerating || !hasKey}
-            className='min-h-[80px] resize-none'
+            className='min-h-20 resize-none'
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
@@ -253,10 +256,12 @@ export function ImagePlayground() {
                 </Label>
                 <Select
                   value={config.size}
-                  onValueChange={(v) => updateConfig('size', v)}
+                  onValueChange={(v) => {
+                    if (v) updateConfig('size', v)
+                  }}
                   disabled={isGenerating}
                 >
-                  <SelectTrigger className='h-8 w-[130px]'>
+                  <SelectTrigger className='h-8 w-32.5'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -275,10 +280,12 @@ export function ImagePlayground() {
                 </Label>
                 <Select
                   value={config.quality}
-                  onValueChange={(v) => updateConfig('quality', v)}
+                  onValueChange={(v) => {
+                    if (v) updateConfig('quality', v)
+                  }}
                   disabled={isGenerating}
                 >
-                  <SelectTrigger className='h-8 w-[110px]'>
+                  <SelectTrigger className='h-8 w-27.5'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -300,7 +307,7 @@ export function ImagePlayground() {
                   onValueChange={(v) => updateConfig('n', Number(v))}
                   disabled={isGenerating}
                 >
-                  <SelectTrigger className='h-8 w-[80px]'>
+                  <SelectTrigger className='h-8 w-20'>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

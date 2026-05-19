@@ -62,7 +62,7 @@ function MusicItemCard({
     <div className='border-border bg-card rounded-xl border p-4 shadow-sm'>
       <div className='mb-3 flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>
-          <p className='text-foreground line-clamp-3 text-sm break-words'>
+          <p className='text-foreground line-clamp-3 text-sm wrap-break-word'>
             {header}
           </p>
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
@@ -100,7 +100,7 @@ function MusicItemCard({
       {item.status === 'failed' && (
         <div className='border-destructive/50 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-sm'>
           <AlertCircleIcon className='size-4 shrink-0' />
-          <span className='break-words'>
+          <span className='wrap-break-word'>
             {item.errorMessage ?? t('Music generation failed')}
           </span>
         </div>
@@ -159,7 +159,7 @@ function MusicItemCard({
                     <summary className='cursor-pointer select-none'>
                       {t('Lyrics')}
                     </summary>
-                    <pre className='mt-1 whitespace-pre-wrap break-words font-sans'>
+                    <pre className='mt-1 whitespace-pre-wrap wrap-break-word font-sans'>
                       {clip.lyrics}
                     </pre>
                   </details>
@@ -234,7 +234,7 @@ export function MusicPlayground() {
           )}
 
           {items.length === 0 && hasKey && (
-            <div className='text-muted-foreground flex h-[300px] flex-col items-center justify-center gap-2 text-center'>
+            <div className='text-muted-foreground flex h-75 flex-col items-center justify-center gap-2 text-center'>
               <Music2Icon className='size-10' />
               <p className='text-sm'>
                 {t('Describe the song you want to create below.')}
@@ -288,7 +288,7 @@ export function MusicPlayground() {
                 'Describe the song mood, genre, story… (Suno picks the rest)'
               )}
               disabled={isSubmitting || !hasKey}
-              className='min-h-[80px] resize-none'
+              className='min-h-20 resize-none'
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                   e.preventDefault()
@@ -305,7 +305,7 @@ export function MusicPlayground() {
                   'Lyrics (use [Verse], [Chorus], [Bridge] markers)'
                 )}
                 disabled={isSubmitting || !hasKey}
-                className='min-h-[120px] resize-none'
+                className='min-h-30 resize-none'
               />
               <div className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
                 <Input
@@ -347,7 +347,7 @@ export function MusicPlayground() {
                   value={config.mv}
                   onChange={(e) => updateConfig('mv', e.target.value)}
                   disabled={isSubmitting || !hasKey}
-                  className='h-8 w-[130px] text-xs'
+                  className='h-8 w-32.5 text-xs'
                 />
               </div>
             </div>

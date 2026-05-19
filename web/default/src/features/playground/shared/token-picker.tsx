@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { KeyRoundIcon, Loader2Icon, PlusIcon } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { KeyRoundIcon, Loader2Icon, PlusIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -64,9 +64,7 @@ export function TokenPicker({ selected, className }: TokenPickerProps) {
   const value = selected.id != null ? String(selected.id) : ''
 
   return (
-    <div
-      className={'flex flex-wrap items-center gap-2 ' + (className ?? '')}
-    >
+    <div className={'flex flex-wrap items-center gap-2 ' + (className ?? '')}>
       <div className='text-muted-foreground flex items-center gap-1.5 text-xs'>
         <KeyRoundIcon className='size-3.5' />
         {t('API Key')}
@@ -86,14 +84,19 @@ export function TokenPicker({ selected, className }: TokenPickerProps) {
         </Button>
       ) : (
         <Select value={value} onValueChange={handleChange}>
-          <SelectTrigger className='h-7 w-[220px] text-xs'>
+          <SelectTrigger className='h-8 w-[220px] text-xs'>
             <SelectValue placeholder={t('Select API key…')}>
               {selected.id != null
-                ? selected.name ?? `Token #${selected.id}`
+                ? (selected.name ?? `Token #${selected.id}`)
                 : null}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent
+            side='bottom'
+            align='start'
+            alignItemWithTrigger={false}
+            className='max-h-[min(360px,var(--available-height))]'
+          >
             {tokens.map((tok) => (
               <SelectItem key={tok.id} value={String(tok.id)}>
                 <div className='flex flex-col'>
