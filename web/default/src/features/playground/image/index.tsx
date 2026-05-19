@@ -36,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
@@ -57,6 +58,8 @@ const SIZE_OPTIONS = [
 const QUALITY_OPTIONS = ['standard', 'hd']
 
 const N_OPTIONS = [1, 2, 3, 4]
+
+const PARTIAL_IMAGES_OPTIONS = [0, 1, 2, 3]
 
 function resolveImageSrc(
   image: ImageGenerationItem['images'][number]
@@ -99,6 +102,27 @@ function ImageGenItemCard({
       {item.status === 'loading' && (
         <div className='border-border bg-muted/30 flex h-40 items-center justify-center rounded-lg border border-dashed'>
           <Loader2Icon className='text-muted-foreground size-6 animate-spin' />
+        </div>
+      )}
+
+      {item.status === 'streaming' && (
+        <div className='border-border bg-muted/30 relative overflow-hidden rounded-lg border border-dashed'>
+          {item.partialImage ? (
+            <img
+              alt={item.prompt}
+              src={`data:image/png;base64,${item.partialImage}`}
+              className='block h-full w-full object-cover opacity-90'
+              loading='lazy'
+            />
+          ) : (
+            <div className='flex h-40 items-center justify-center'>
+              <Loader2Icon className='text-muted-foreground size-6 animate-spin' />
+            </div>
+          )}
+          <div className='bg-background/80 text-foreground absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs backdrop-blur'>
+            <Loader2Icon className='size-3 animate-spin' />
+            {t('Streaming…')}
+          </div>
         </div>
       )}
 
@@ -148,7 +172,11 @@ function ImageGenItemCard({
           copyText={item.prompt}
           onEdit={() => onEdit(item)}
           onRegenerate={() => onRegenerate(item)}
-          disableRegenerate={disableRegenerate || item.status === 'loading'}
+          disableRegenerate={
+            disableRegenerate ||
+            item.status === 'loading' ||
+            item.status === 'streaming'
+          }
           onDelete={() => onDelete(item.id)}
         />
       </div>
@@ -340,7 +368,7 @@ export function ImagePlayground() {
                 <Select
                   value={String(config.n)}
                   onValueChange={(v) => updateConfig('n', Number(v))}
-                  disabled={isGenerating}
+                  disabled={isGenerating || config.stream}
                 >
                   <SelectTrigger className='h-8 w-20'>
                     <SelectValue />
@@ -354,6 +382,49 @@ export function ImagePlayground() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className='flex flex-col gap-1'>
+                <Label
+                  className='text-muted-foreground text-xs'
+                  htmlFor='image-stream-toggle'
+                >
+                  {t('Stream')}
+                </Label>
+                <div className='flex h-8 items-center'>
+                  <Switch
+                    id='image-stream-toggle'
+                    checked={config.stream}
+                    onCheckedChange={(v) => updateConfig('stream', v)}
+                    disabled={isGenerating}
+                  />
+                </div>
+              </div>
+
+              {config.stream && (
+                <div className='flex flex-col gap-1'>
+                  <Label className='text-muted-foreground text-xs'>
+                    {t('Partial Images')}
+                  </Label>
+                  <Select
+                    value={String(config.partialImages)}
+                    onValueChange={(v) =>
+                      updateConfig('partialImages', Number(v))
+                    }
+                    disabled={isGenerating}
+                  >
+                    <SelectTrigger className='h-8 w-20'>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PARTIAL_IMAGES_OPTIONS.map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className='flex items-center gap-2'>

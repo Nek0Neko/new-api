@@ -26,6 +26,8 @@ export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
   size: '1024x1024',
   quality: 'standard',
   n: 1,
+  stream: false,
+  partialImages: 2,
 }
 
 const MAX_PERSISTED_ITEMS = 30

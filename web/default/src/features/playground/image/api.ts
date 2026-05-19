@@ -19,7 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import { isAxiosError } from 'axios'
 import { api } from '@/lib/api'
 import { bearerConfig } from '../shared/request-config'
-import type { ImageGenerationRequest, ImageGenerationResponse } from './types'
+import type {
+  ImageDataItem,
+  ImageGenerationRequest,
+  ImageGenerationResponse,
+} from './types'
 
 export const IMAGE_GEN_ENDPOINT = '/v1/images/generations'
 
@@ -65,4 +69,152 @@ export async function generateImage(
     }
   }
   throw lastError
+}
+
+export interface ImageStreamCallbacks {
+  onPartial?: (b64: string, index: number) => void
+  onCompleted?: (image: ImageDataItem) => void
+  signal?: AbortSignal
+}
+
+interface SSEUsage {
+  input_tokens?: number
+  output_tokens?: number
+  total_tokens?: number
+  prompt_tokens?: number
+  completion_tokens?: number
+}
+
+interface SSEEvent {
+  type?: string
+  b64_json?: string
+  partial_image_index?: number
+  revised_prompt?: string
+  usage?: SSEUsage
+  error?: { message?: string } | string
+  message?: string
+}
+
+async function readSSEError(response: Response): Promise<string> {
+  try {
+    const text = await response.text()
+    try {
+      const parsed = JSON.parse(text) as {
+        error?: { message?: string }
+        message?: string
+      }
+      return (
+        parsed.error?.message ??
+        parsed.message ??
+        text ??
+        `HTTP ${response.status}`
+      )
+    } catch {
+      return text || `HTTP ${response.status}`
+    }
+  } catch {
+    return `HTTP ${response.status}`
+  }
+}
+
+/**
+ * Stream image generation via SSE. Emits partial images via onPartial while
+ * the upstream is still working, and resolves with the final ImageDataItem
+ * once the `image_generation.completed` event arrives.
+ */
+export async function generateImageStream(
+  payload: ImageGenerationRequest,
+  apiKey: string,
+  callbacks: ImageStreamCallbacks = {}
+): Promise<ImageDataItem> {
+  const body: ImageGenerationRequest = {
+    ...payload,
+    stream: true,
+    // Streaming responses cannot return URLs; force b64_json so the client
+    // can render partial frames inline.
+    response_format: 'b64_json',
+  }
+
+  const response = await fetch(IMAGE_GEN_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${apiKey}`,
+      'Cache-Control': 'no-store',
+    },
+    body: JSON.stringify(body),
+    credentials: 'include',
+    signal: callbacks.signal,
+  })
+
+  if (!response.ok || !response.body) {
+    const message = await readSSEError(response)
+    throw new Error(message)
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  let buffer = ''
+  let finalImage: ImageDataItem | null = null
+
+  const handleEvent = (raw: string) => {
+    const trimmed = raw.trim()
+    if (!trimmed) return
+    if (trimmed === '[DONE]') return
+    let event: SSEEvent
+    try {
+      event = JSON.parse(trimmed) as SSEEvent
+    } catch {
+      return
+    }
+    if (event.error) {
+      const message =
+        typeof event.error === 'string'
+          ? event.error
+          : (event.error.message ?? 'Image stream error')
+      throw new Error(message)
+    }
+    const type = event.type ?? ''
+    if (type.endsWith('partial_image') && event.b64_json) {
+      const idx = event.partial_image_index ?? 0
+      callbacks.onPartial?.(event.b64_json, idx)
+      return
+    }
+    if (type.endsWith('completed') && event.b64_json) {
+      finalImage = {
+        b64_json: event.b64_json,
+        revised_prompt: event.revised_prompt,
+      }
+      callbacks.onCompleted?.(finalImage)
+    }
+  }
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let newlineIdx = buffer.indexOf('\n')
+    while (newlineIdx !== -1) {
+      const line = buffer.slice(0, newlineIdx)
+      buffer = buffer.slice(newlineIdx + 1)
+      const stripped = line.replace(/\r$/, '')
+      if (stripped.startsWith('data:')) {
+        handleEvent(stripped.slice(5).trimStart())
+      }
+      newlineIdx = buffer.indexOf('\n')
+    }
+  }
+
+  // Drain anything left in the buffer (e.g. last line without trailing \n).
+  const tail = buffer.replace(/\r$/, '')
+  if (tail.startsWith('data:')) {
+    handleEvent(tail.slice(5).trimStart())
+  }
+
+  if (!finalImage) {
+    throw new Error('Stream ended without a completed image event')
+  }
+  return finalImage
 }

@@ -23,6 +23,8 @@ export interface ImageGenerationRequest {
   size?: string
   quality?: string
   response_format?: 'url' | 'b64_json'
+  stream?: boolean
+  partial_images?: number
 }
 
 export interface ImageDataItem {
@@ -41,9 +43,11 @@ export interface ImageConfig {
   size: string
   quality: string
   n: number
+  stream: boolean
+  partialImages: number
 }
 
-export type ImageGenerationStatus = 'loading' | 'success' | 'error'
+export type ImageGenerationStatus = 'loading' | 'streaming' | 'success' | 'error'
 
 export interface ImageGenerationItem {
   id: string
@@ -54,5 +58,10 @@ export interface ImageGenerationItem {
   createdAt: number
   status: ImageGenerationStatus
   images: ImageDataItem[]
+  /**
+   * Latest partial image (base64) received while streaming. Cleared when the
+   * final completed image is rendered.
+   */
+  partialImage?: string
   errorMessage?: string
 }

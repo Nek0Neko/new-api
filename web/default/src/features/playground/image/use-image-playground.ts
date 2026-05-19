@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
-import { generateImage } from './api'
+import { generateImage, generateImageStream } from './api'
 import {
   loadImageConfig,
   loadImageItems,
@@ -103,6 +103,7 @@ export function useImagePlayground(apiKey: string | null) {
       if (!trimmed || isGenerating || !config.model || !key) return
 
       const id = generateId()
+      const useStream = !!config.stream
       const placeholder: ImageGenerationItem = {
         id,
         prompt: trimmed,
@@ -110,7 +111,7 @@ export function useImagePlayground(apiKey: string | null) {
         size: config.size,
         quality: config.quality,
         createdAt: Date.now(),
-        status: 'loading',
+        status: useStream ? 'streaming' : 'loading',
         images: [],
       }
 
@@ -123,28 +124,63 @@ export function useImagePlayground(apiKey: string | null) {
         n: config.n,
         size: config.size,
         quality: config.quality,
-        response_format: 'url',
+        response_format: useStream ? 'b64_json' : 'url',
+      }
+      if (useStream) {
+        payload.stream = true
+        if (config.partialImages > 0) {
+          payload.partial_images = config.partialImages
+        }
       }
 
       try {
-        const response = await generateImage(payload, key)
-        updateItems((prev) =>
-          prev.map((it) =>
-            it.id === id
-              ? {
-                  ...it,
-                  status: 'success',
-                  images: response.data ?? [],
-                }
-              : it
+        if (useStream) {
+          const finalImage = await generateImageStream(payload, key, {
+            onPartial: (b64) => {
+              updateItems((prev) =>
+                prev.map((it) =>
+                  it.id === id ? { ...it, partialImage: b64 } : it
+                )
+              )
+            },
+          })
+          updateItems((prev) =>
+            prev.map((it) =>
+              it.id === id
+                ? {
+                    ...it,
+                    status: 'success',
+                    images: [finalImage],
+                    partialImage: undefined,
+                  }
+                : it
+            )
           )
-        )
+        } else {
+          const response = await generateImage(payload, key)
+          updateItems((prev) =>
+            prev.map((it) =>
+              it.id === id
+                ? {
+                    ...it,
+                    status: 'success',
+                    images: response.data ?? [],
+                  }
+                : it
+            )
+          )
+        }
       } catch (error) {
         const message = extractErrorMessage(error)
         updateItems((prev) =>
           prev.map((it) =>
             it.id === id
-              ? { ...it, status: 'error', errorMessage: message }
+              ? {
+                  ...it,
+                  status: 'error',
+                  errorMessage: message,
+                  partialImage: undefined,
+                }
               : it
           )
         )
