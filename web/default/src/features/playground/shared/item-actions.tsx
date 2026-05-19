@@ -16,16 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  CopyIcon,
-  PencilIcon,
-  RotateCcwIcon,
-  Trash2Icon,
-} from 'lucide-react'
+import { CopyIcon, PencilIcon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 interface ItemActionsProps {
   /** Text to put on the clipboard when the copy button is clicked. */
@@ -63,10 +58,7 @@ export function ItemActions({
 
   const handleCopy = async () => {
     try {
-      if (
-        typeof navigator !== 'undefined' &&
-        navigator.clipboard?.writeText
-      ) {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(copyText)
       } else {
         // Fallback for very old browsers / non-secure contexts.

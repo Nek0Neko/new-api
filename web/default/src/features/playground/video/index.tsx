@@ -29,7 +29,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -39,14 +38,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
 import { ItemActions } from '../shared/item-actions'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
-import { useVideoPlayground } from './use-video-playground'
 import type { VideoTaskItem } from './types'
+import { useVideoPlayground } from './use-video-playground'
 
 const DURATION_OPTIONS = [3, 5, 6, 8, 10]
 const FPS_OPTIONS = [16, 24, 30]
@@ -107,8 +107,8 @@ function VideoItemCard({
             {item.status === 'submitting'
               ? t('Submitting…')
               : item.status === 'queued'
-              ? t('Queued…')
-              : t('Generating video…')}
+                ? t('Queued…')
+                : t('Generating video…')}
           </span>
         </div>
       )}
@@ -192,8 +192,7 @@ export function VideoPlayground() {
     () => `${config.width}x${config.height}`,
     [config.width, config.height]
   )
-  const canSubmit =
-    hasKey && !!prompt.trim() && !!config.model && !isSubmitting
+  const canSubmit = hasKey && !!prompt.trim() && !!config.model && !isSubmitting
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -277,7 +276,7 @@ export function VideoPlayground() {
         </div>
       </div>
 
-      <div className='border-t bg-background/80 backdrop-blur'>
+      <div className='bg-background/80 border-t backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
           <Textarea
             ref={promptInputRef}
@@ -299,7 +298,9 @@ export function VideoPlayground() {
             <Input
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              placeholder={t('Optional: first-frame image URL (image-to-video)')}
+              placeholder={t(
+                'Optional: first-frame image URL (image-to-video)'
+              )}
               disabled={isSubmitting || !hasKey}
               className='h-8 text-sm'
             />

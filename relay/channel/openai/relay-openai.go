@@ -592,6 +592,61 @@ func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 	return &usageResp.Usage, nil
 }
 
+// OpenaiImageStreamHandler 处理 /v1/images/generations (以及 edits) 的 SSE 流式响应。
+// 上游事件按行原样转发给客户端，并尝试从最终的 completed 事件中提取 usage。
+func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
+	if resp == nil || resp.Body == nil {
+		return nil, types.NewOpenAIError(fmt.Errorf("invalid response"), types.ErrorCodeBadResponse, http.StatusInternalServerError)
+	}
+
+	usage := &dto.Usage{}
+	var lastData string
+
+	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
+		if err := helper.StringData(c, data); err != nil {
+			logger.LogError(c, "error sending image stream data: "+err.Error())
+			sr.Error(err)
+			return
+		}
+		lastData = data
+	})
+
+	if lastData != "" {
+		var payload struct {
+			Type  string `json:"type"`
+			Usage *struct {
+				InputTokens        int `json:"input_tokens"`
+				OutputTokens       int `json:"output_tokens"`
+				TotalTokens        int `json:"total_tokens"`
+				PromptTokens       int `json:"prompt_tokens"`
+				CompletionTokens   int `json:"completion_tokens"`
+				InputTokensDetails *struct {
+					ImageTokens int `json:"image_tokens"`
+					TextTokens  int `json:"text_tokens"`
+					CachedTokens int `json:"cached_tokens"`
+				} `json:"input_tokens_details"`
+			} `json:"usage"`
+		}
+		if err := common.UnmarshalJsonStr(lastData, &payload); err == nil && payload.Usage != nil {
+			usage.PromptTokens = payload.Usage.PromptTokens + payload.Usage.InputTokens
+			usage.CompletionTokens = payload.Usage.CompletionTokens + payload.Usage.OutputTokens
+			usage.TotalTokens = payload.Usage.TotalTokens
+			if usage.TotalTokens == 0 {
+				usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
+			}
+			if payload.Usage.InputTokensDetails != nil {
+				usage.PromptTokensDetails.ImageTokens = payload.Usage.InputTokensDetails.ImageTokens
+				usage.PromptTokensDetails.TextTokens = payload.Usage.InputTokensDetails.TextTokens
+				usage.PromptTokensDetails.CachedTokens = payload.Usage.InputTokensDetails.CachedTokens
+			}
+		}
+	}
+
+	helper.Done(c)
+
+	return usage, nil
+}
+
 func applyUsagePostProcessing(info *relaycommon.RelayInfo, usage *dto.Usage, responseBody []byte) {
 	if info == nil || usage == nil {
 		return

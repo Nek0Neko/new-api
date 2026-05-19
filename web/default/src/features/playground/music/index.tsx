@@ -28,19 +28,19 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
 import { ItemActions } from '../shared/item-actions'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
-import { useMusicPlayground } from './use-music-playground'
 import type { MusicMode, MusicTaskItem } from './types'
+import { useMusicPlayground } from './use-music-playground'
 
 function MusicItemCard({
   item,
@@ -92,8 +92,8 @@ function MusicItemCard({
             {item.status === 'submitting'
               ? t('Submitting…')
               : item.status === 'queued'
-              ? t('Queued…')
-              : t('Composing music…')}
+                ? t('Queued…')
+                : t('Composing music…')}
           </span>
         </div>
       )}
@@ -160,7 +160,7 @@ function MusicItemCard({
                     <summary className='cursor-pointer select-none'>
                       {t('Lyrics')}
                     </summary>
-                    <pre className='mt-1 whitespace-pre-wrap wrap-break-word font-sans'>
+                    <pre className='mt-1 font-sans wrap-break-word whitespace-pre-wrap'>
                       {clip.lyrics}
                     </pre>
                   </details>
@@ -221,9 +221,7 @@ export function MusicPlayground() {
   const canSubmit =
     hasKey &&
     !isSubmitting &&
-    (config.mode === 'description'
-      ? !!description.trim()
-      : !!prompt.trim())
+    (config.mode === 'description' ? !!description.trim() : !!prompt.trim())
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -337,7 +335,7 @@ export function MusicPlayground() {
         </div>
       </div>
 
-      <div className='border-t bg-background/80 backdrop-blur'>
+      <div className='bg-background/80 border-t backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
           <Tabs
             value={config.mode}

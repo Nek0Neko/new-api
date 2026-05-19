@@ -25,11 +25,7 @@ import {
   saveMusicConfig,
   saveMusicItems,
 } from './storage'
-import type {
-  MusicConfig,
-  MusicSubmitRequest,
-  MusicTaskItem,
-} from './types'
+import type { MusicConfig, MusicSubmitRequest, MusicTaskItem } from './types'
 
 const POLL_INTERVAL_MS = 5000
 const MAX_POLL_ATTEMPTS = 240 // ~20 minutes
@@ -195,7 +191,7 @@ export function useMusicPlayground(apiKey: string | null) {
                   clips: response.clips.length > 0 ? response.clips : it.clips,
                   errorMessage:
                     status === 'failed'
-                      ? response.failReason ?? 'Task failed'
+                      ? (response.failReason ?? 'Task failed')
                       : it.errorMessage,
                 }
               : it
