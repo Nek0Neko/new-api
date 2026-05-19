@@ -47,7 +47,11 @@ export interface ImageConfig {
   partialImages: number
 }
 
-export type ImageGenerationStatus = 'loading' | 'streaming' | 'success' | 'error'
+export type ImageGenerationStatus =
+  | 'loading'
+  | 'streaming'
+  | 'success'
+  | 'error'
 
 export interface ImageGenerationItem {
   id: string

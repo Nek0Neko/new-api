@@ -198,6 +198,7 @@ export function ImagePlayground() {
   const {
     config,
     items,
+    isHydrated,
     isGenerating,
     updateConfig,
     submit,
@@ -213,7 +214,8 @@ export function ImagePlayground() {
 
   const models = modelsData ?? []
   const hasKey = !!selectedToken.key
-  const canSubmit = hasKey && !!prompt.trim() && !!config.model && !isGenerating
+  const canSubmit =
+    hasKey && !!prompt.trim() && !!config.model && !isGenerating && isHydrated
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -235,10 +237,10 @@ export function ImagePlayground() {
 
   const handleRegenerate = useCallback(
     (item: ImageGenerationItem) => {
-      if (isGenerating || !hasKey) return
+      if (isGenerating || !hasKey || !isHydrated) return
       void submit(item.prompt)
     },
-    [isGenerating, hasKey, submit]
+    [isGenerating, hasKey, isHydrated, submit]
   )
 
   return (

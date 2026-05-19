@@ -16,10 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
 import { generateImage, generateImageStream } from './api'
 import {
+  clearImageItems,
   loadImageConfig,
   loadImageItems,
   saveImageConfig,
@@ -53,15 +54,30 @@ function extractErrorMessage(error: unknown): string {
 
 export function useImagePlayground(apiKey: string | null) {
   const [config, setConfig] = useState<ImageConfig>(() => loadImageConfig())
-  const [items, setItems] = useState<ImageGenerationItem[]>(() =>
-    loadImageItems()
-  )
+  const [items, setItems] = useState<ImageGenerationItem[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
   // Mirror the latest apiKey in a ref so callbacks always see the current
   // value without recreating closures.
   const apiKeyRef = useRef<string | null>(apiKey)
   apiKeyRef.current = apiKey
+
+  // Hydrate items from IndexedDB on mount. Guard against late completion
+  // overwriting items the user has already added (race with submit()).
+  useEffect(() => {
+    let cancelled = false
+    void loadImageItems().then((loaded) => {
+      if (cancelled) return
+      setItems((current) =>
+        current.length === 0 ? loaded : [...current, ...loaded]
+      )
+      setIsHydrated(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const updateConfig = useCallback(
     <K extends keyof ImageConfig>(key: K, value: ImageConfig[K]) => {
@@ -74,11 +90,13 @@ export function useImagePlayground(apiKey: string | null) {
     []
   )
 
+  // Fire-and-forget the IndexedDB write. localforage serializes writes per
+  // key internally, so concurrent saves cannot interleave.
   const updateItems = useCallback(
     (updater: (prev: ImageGenerationItem[]) => ImageGenerationItem[]) => {
       setItems((prev) => {
         const next = updater(prev)
-        saveImageItems(next)
+        void saveImageItems(next)
         return next
       })
     },
@@ -86,8 +104,9 @@ export function useImagePlayground(apiKey: string | null) {
   )
 
   const clearHistory = useCallback(() => {
-    updateItems(() => [])
-  }, [updateItems])
+    setItems([])
+    void clearImageItems()
+  }, [])
 
   const removeItem = useCallback(
     (id: string) => {
@@ -194,6 +213,7 @@ export function useImagePlayground(apiKey: string | null) {
   return {
     config,
     items,
+    isHydrated,
     isGenerating,
     updateConfig,
     submit,
