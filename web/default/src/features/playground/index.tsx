@@ -88,16 +88,32 @@ export function Playground() {
         </TabsList>
       </div>
 
-      <TabsContent value='chat' className='min-h-0 flex-1 overflow-hidden'>
+      <TabsContent
+        value='chat'
+        keepMounted
+        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+      >
         <ChatPlayground />
       </TabsContent>
-      <TabsContent value='image' className='min-h-0 flex-1 overflow-hidden'>
+      <TabsContent
+        value='image'
+        keepMounted
+        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+      >
         <ImagePlayground />
       </TabsContent>
-      <TabsContent value='video' className='min-h-0 flex-1 overflow-hidden'>
+      <TabsContent
+        value='video'
+        keepMounted
+        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+      >
         <VideoPlayground />
       </TabsContent>
-      <TabsContent value='music' className='min-h-0 flex-1 overflow-hidden'>
+      <TabsContent
+        value='music'
+        keepMounted
+        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+      >
         <MusicPlayground />
       </TabsContent>
     </Tabs>

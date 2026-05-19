@@ -39,6 +39,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -53,6 +60,7 @@ type GroupRatioVisualEditorProps = {
   topupGroupRatio: string
   userUsableGroups: string
   autoGroups: string
+  newUserDefaultGroup: string
   onChange: (field: string, value: string) => void
 }
 
@@ -245,6 +253,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   topupGroupRatio,
   userUsableGroups,
   autoGroups,
+  newUserDefaultGroup,
   onChange,
 }: GroupRatioVisualEditorProps) {
   const { t } = useTranslation()
@@ -259,6 +268,37 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
       context: 'auto groups',
     })
   }, [autoGroups])
+
+  // Build the option list for the "new user default group" picker from the
+  // configured usable groups + the saved value (in case it isn't in the map).
+  const defaultGroupOptions = useMemo(() => {
+    const usableRaw = safeJsonParse<Record<string, unknown>>(userUsableGroups, {
+      fallback: {},
+      silent: true,
+    })
+    const usableMap = normalizeUsableGroupsMap(usableRaw)
+    const seen = new Set<string>()
+    const out: { name: string; description: string }[] = []
+    for (const name of Object.keys(usableMap)) {
+      if (!name || seen.has(name)) continue
+      seen.add(name)
+      const meta = usableMap[name]
+      out.push({
+        name,
+        description: String(meta?.description ?? ''),
+      })
+    }
+    // Ensure the currently saved value is always selectable, even if it was
+    // removed from UserUsableGroups.
+    const currentValue = (newUserDefaultGroup ?? '').trim() || 'default'
+    if (!seen.has(currentValue)) {
+      out.unshift({ name: currentValue, description: '' })
+    }
+    return out
+  }, [userUsableGroups, newUserDefaultGroup])
+
+  const selectedDefaultGroup =
+    (newUserDefaultGroup ?? '').trim() || 'default'
 
   // Auto groups handlers
   const handleAutoGroupAdd = () => {
@@ -296,6 +336,44 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         userUsableGroups={userUsableGroups}
         onChange={onChange}
       />
+
+      {/* New user default group */}
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <CardTitle>{t('New user default group')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Group assigned to newly registered users. This single value drives both the consumption ratio (GroupRatio) and the recharge ratio (TopupGroupRatio) for the user.'
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='max-w-sm space-y-2'>
+            <Label htmlFor='new-user-default-group'>
+              {t('Default group')}
+            </Label>
+            <Select
+              value={selectedDefaultGroup}
+              onValueChange={(value) =>
+                onChange('NewUserDefaultGroup', value ?? '')
+              }
+            >
+              <SelectTrigger id='new-user-default-group'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {defaultGroupOptions.map((option) => (
+                  <SelectItem key={option.name} value={option.name}>
+                    {option.description
+                      ? `${option.name} — ${option.description}`
+                      : option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Auto Groups */}
       <Card className={sectionCardClassName}>

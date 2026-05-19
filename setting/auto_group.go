@@ -10,6 +10,19 @@ var autoGroups = []string{
 
 var DefaultUseAutoGroup = false
 
+// NewUserDefaultGroup is the group assigned to new users at registration time.
+// It is the lookup key for both consumption (GroupRatio) and recharge
+// (TopupGroupRatio) pricing — they share the user's Group field.
+// Empty falls back to the GORM column default "default".
+var NewUserDefaultGroup = "default"
+
+func GetNewUserDefaultGroup() string {
+	if NewUserDefaultGroup == "" {
+		return "default"
+	}
+	return NewUserDefaultGroup
+}
+
 func ContainsAutoGroup(group string) bool {
 	for _, autoGroup := range autoGroups {
 		if autoGroup == group {

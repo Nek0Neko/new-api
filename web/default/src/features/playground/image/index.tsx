@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -74,12 +75,14 @@ function ImageGenItemCard({
   onDelete,
   onEdit,
   onRegenerate,
+  onPreview,
   disableRegenerate,
 }: {
   item: ImageGenerationItem
   onDelete: (id: string) => void
   onEdit: (item: ImageGenerationItem) => void
   onRegenerate: (item: ImageGenerationItem) => void
+  onPreview: (src: string, alt: string) => void
   disableRegenerate: boolean
 }) {
   const { t } = useTranslation()
@@ -140,22 +143,31 @@ function ImageGenItemCard({
           {item.images.map((image, idx) => {
             const src = resolveImageSrc(image)
             if (!src) return null
+            const alt = image.revised_prompt ?? item.prompt
             return (
               <div
                 key={`${item.id}-${idx}`}
                 className='group bg-muted relative overflow-hidden rounded-lg'
               >
-                <img
-                  alt={image.revised_prompt ?? item.prompt}
-                  src={src}
-                  className='block h-full w-full object-cover'
-                  loading='lazy'
-                />
+                <button
+                  type='button'
+                  onClick={() => onPreview(src, alt)}
+                  className='block h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                  aria-label={t('Preview')}
+                >
+                  <img
+                    alt={alt}
+                    src={src}
+                    className='block h-full w-full object-cover'
+                    loading='lazy'
+                  />
+                </button>
                 <a
                   href={src}
                   download={`image-${item.id}-${idx}.png`}
                   target='_blank'
                   rel='noopener noreferrer'
+                  onClick={(e) => e.stopPropagation()}
                   className='bg-background/80 text-foreground absolute top-2 right-2 inline-flex size-8 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
                   aria-label={t('Download')}
                 >
@@ -189,6 +201,13 @@ export function ImagePlayground() {
   const [prompt, setPrompt] = useState('')
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
+  const [preview, setPreview] = useState<{ src: string; alt: string } | null>(
+    null
+  )
+
+  const handlePreview = useCallback((src: string, alt: string) => {
+    setPreview({ src, alt })
+  }, [])
 
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
     queryKey: ['playground-models'],
@@ -290,6 +309,7 @@ export function ImagePlayground() {
               onDelete={removeItem}
               onEdit={handleEdit}
               onRegenerate={handleRegenerate}
+              onPreview={handlePreview}
               disableRegenerate={isGenerating || !hasKey}
             />
           ))}
@@ -449,6 +469,26 @@ export function ImagePlayground() {
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={!!preview}
+        onOpenChange={(open) => {
+          if (!open) setPreview(null)
+        }}
+      >
+        <DialogContent
+          className='bg-transparent ring-0 p-0 sm:max-w-none w-auto max-w-[95vw] max-h-[95vh] grid-cols-1'
+          showCloseButton={false}
+        >
+          {preview && (
+            <img
+              alt={preview.alt}
+              src={preview.src}
+              className='block max-h-[95vh] max-w-[95vw] rounded-lg object-contain shadow-2xl'
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

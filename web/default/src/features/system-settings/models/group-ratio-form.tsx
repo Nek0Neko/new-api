@@ -54,6 +54,7 @@ type GroupFormValues = {
   UserUsableGroups: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
+  NewUserDefaultGroup: string
   GroupSpecialUsableGroup: string
 }
 
@@ -118,6 +119,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               topupGroupRatio={form.watch('TopupGroupRatio')}
               userUsableGroups={form.watch('UserUsableGroups')}
               autoGroups={form.watch('AutoGroups')}
+              newUserDefaultGroup={form.watch('NewUserDefaultGroup')}
               onChange={(field, value) =>
                 handleFieldChange(field as keyof GroupFormValues, value)
               }

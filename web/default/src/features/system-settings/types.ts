@@ -171,6 +171,7 @@ export type ModelSettings = {
   UserUsableGroups: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
+  NewUserDefaultGroup: string
   'group_ratio_setting.group_special_usable_group': string
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
@@ -213,6 +214,7 @@ export type BillingSettings = {
   UserUsableGroups: string
   AutoGroups: string
   DefaultUseAutoGroup: boolean
+  NewUserDefaultGroup: string
   'group_ratio_setting.group_special_usable_group': string
   PayAddress: string
   EpayId: string
