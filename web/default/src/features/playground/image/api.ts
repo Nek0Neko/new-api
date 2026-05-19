@@ -16,19 +16,53 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { isAxiosError } from 'axios'
 import { api } from '@/lib/api'
 import { bearerConfig } from '../shared/request-config'
-import type {
-  ImageGenerationRequest,
-  ImageGenerationResponse,
-} from './types'
+import type { ImageGenerationRequest, ImageGenerationResponse } from './types'
 
 export const IMAGE_GEN_ENDPOINT = '/v1/images/generations'
+
+// Image generation regularly hits 504/502 from upstream gateways even when the
+// underlying model is reachable. The backend's retry loop hard-skips 504/524
+// (see setting/operation_setting/status_code_ranges.go), so we add a small
+// client-side retry here to smooth over transient gateway failures.
+const TRANSIENT_STATUS_CODES = new Set([408, 425, 502, 503, 504])
+const MAX_RETRIES = 2
+const RETRY_BACKOFF_MS = 1500
+
+function isTransientGatewayError(error: unknown): boolean {
+  if (!isAxiosError(error)) return false
+  const status = error.response?.status
+  if (status != null) return TRANSIENT_STATUS_CODES.has(status)
+  // No response at all (network error, aborted, timeout) — retry once.
+  return error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK'
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 export async function generateImage(
   payload: ImageGenerationRequest,
   apiKey: string
 ): Promise<ImageGenerationResponse> {
-  const res = await api.post(IMAGE_GEN_ENDPOINT, payload, bearerConfig(apiKey))
-  return res.data
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      const res = await api.post(
+        IMAGE_GEN_ENDPOINT,
+        payload,
+        bearerConfig(apiKey)
+      )
+      return res.data
+    } catch (error) {
+      lastError = error
+      if (attempt >= MAX_RETRIES || !isTransientGatewayError(error)) {
+        throw error
+      }
+      await sleep(RETRY_BACKOFF_MS * (attempt + 1))
+    }
+  }
+  throw lastError
 }
