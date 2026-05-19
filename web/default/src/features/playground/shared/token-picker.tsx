@@ -54,7 +54,8 @@ export function TokenPicker({ selected, className }: TokenPickerProps) {
     return items.filter((tok) => tok.status === ENABLED_STATUS)
   }, [data])
 
-  const handleChange = async (value: string) => {
+  const handleChange = async (value: string | null) => {
+    if (value == null) return
     const id = Number(value)
     if (!Number.isFinite(id)) return
     const match = tokens.find((tok) => tok.id === id)
@@ -76,15 +77,18 @@ export function TokenPicker({ selected, className }: TokenPickerProps) {
           {t('Loading…')}
         </div>
       ) : tokens.length === 0 ? (
-        <Button asChild size='sm' variant='outline' className='h-7 gap-1.5'>
-          <Link to='/token'>
-            <PlusIcon className='size-3.5' />
-            {t('Create API key')}
-          </Link>
+        <Button
+          size='sm'
+          variant='outline'
+          className='gap-1.5'
+          render={<Link to='/keys' />}
+        >
+          <PlusIcon className='size-3.5' />
+          {t('Create API key')}
         </Button>
       ) : (
         <Select value={value} onValueChange={handleChange}>
-          <SelectTrigger className='h-8 w-[220px] text-xs'>
+          <SelectTrigger className='h-8 w-55 text-xs'>
             <SelectValue placeholder={t('Select API key…')}>
               {selected.id != null
                 ? (selected.name ?? `Token #${selected.id}`)

@@ -157,6 +157,11 @@ export async function generateImageStream(
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
   let finalImage: ImageDataItem | null = null
+  // OpenAI emits `revised_prompt` on different events depending on the
+  // model (sometimes the early metadata event, sometimes alongside a
+  // partial frame, sometimes on completed). Track the latest value seen
+  // across the stream so it is never lost.
+  let latestRevisedPrompt: string | undefined
 
   const handleEvent = (raw: string) => {
     const trimmed = raw.trim()
@@ -175,6 +180,9 @@ export async function generateImageStream(
           : (event.error.message ?? 'Image stream error')
       throw new Error(message)
     }
+    if (event.revised_prompt) {
+      latestRevisedPrompt = event.revised_prompt
+    }
     const type = event.type ?? ''
     if (type.endsWith('partial_image') && event.b64_json) {
       const idx = event.partial_image_index ?? 0
@@ -184,7 +192,7 @@ export async function generateImageStream(
     if (type.endsWith('completed') && event.b64_json) {
       finalImage = {
         b64_json: event.b64_json,
-        revised_prompt: event.revised_prompt,
+        revised_prompt: event.revised_prompt ?? latestRevisedPrompt,
       }
       callbacks.onCompleted?.(finalImage)
     }
