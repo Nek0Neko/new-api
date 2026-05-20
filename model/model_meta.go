@@ -2,6 +2,7 @@ package model
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 
@@ -34,19 +35,110 @@ type Model struct {
 	UpdatedTime  int64          `json:"updated_time" gorm:"bigint"`
 	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index;uniqueIndex:uk_model_name_delete_at,priority:2"`
 
+	// EnableGroupsRaw is the admin-configured allow-list of user groups, stored
+	// as a comma-separated string. When non-empty, only listed groups are
+	// allowed to use this model (intersected with channel availability). When
+	// empty, the legacy channel-derived behavior is preserved.
+	EnableGroupsRaw string `json:"-" gorm:"column:enable_groups_raw;type:varchar(255)"`
+
 	BoundChannels []BoundChannel `json:"bound_channels,omitempty" gorm:"-"`
-	EnableGroups  []string       `json:"enable_groups,omitempty" gorm:"-"`
-	QuotaTypes    []int          `json:"quota_types,omitempty" gorm:"-"`
-	NameRule      int            `json:"name_rule" gorm:"default:0"`
+	// EnableGroups exposes the effective allow-list: the admin-configured
+	// override when set, else the channel-derived runtime set. Kept for
+	// backwards-compatible table rendering and pricing display.
+	EnableGroups []string `json:"enable_groups,omitempty" gorm:"-"`
+	// EnableGroupsConfig exposes only the admin-configured override (empty
+	// when no override is set). The mutate form binds to this field so an
+	// unconfigured model does not get its channel-derived groups locked in
+	// when an admin opens and re-saves the form without changes.
+	EnableGroupsConfig []string `json:"enable_groups_config" gorm:"-"`
+	QuotaTypes         []int    `json:"quota_types,omitempty" gorm:"-"`
+	NameRule           int      `json:"name_rule" gorm:"default:0"`
 
 	MatchedModels []string `json:"matched_models,omitempty" gorm:"-"`
 	MatchedCount  int      `json:"matched_count,omitempty" gorm:"-"`
+}
+
+// EnableGroupsConfigured returns the admin-configured allow-list parsed from
+// the persisted EnableGroupsRaw field. Returns an empty slice when no groups
+// have been configured.
+func (mi *Model) EnableGroupsConfigured() []string {
+	return parseEnableGroupsRaw(mi.EnableGroupsRaw)
+}
+
+// SyncEnableGroupsRaw flattens the runtime EnableGroupsConfig slice into the
+// persisted EnableGroupsRaw column. Call this before Insert/Update when the
+// admin has supplied a fresh allow-list via JSON binding. The effective
+// EnableGroups slice (which may include channel-derived entries) is ignored.
+func (mi *Model) SyncEnableGroupsRaw() {
+	mi.EnableGroupsRaw = formatEnableGroupsRaw(mi.EnableGroupsConfig)
+}
+
+func parseEnableGroupsRaw(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		out = append(out, p)
+	}
+	return out
+}
+
+// intersectGroups returns the intersection of two group slices, preserving
+// the order of the first slice. Returns nil when either input is empty.
+func intersectGroups(a, b []string) []string {
+	if len(a) == 0 || len(b) == 0 {
+		return nil
+	}
+	allow := make(map[string]struct{}, len(b))
+	for _, g := range b {
+		allow[g] = struct{}{}
+	}
+	out := make([]string, 0, len(a))
+	for _, g := range a {
+		if _, ok := allow[g]; ok {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+func formatEnableGroupsRaw(groups []string) string {
+	if len(groups) == 0 {
+		return ""
+	}
+	cleaned := make([]string, 0, len(groups))
+	seen := make(map[string]struct{}, len(groups))
+	for _, g := range groups {
+		g = strings.TrimSpace(g)
+		if g == "" {
+			continue
+		}
+		if _, ok := seen[g]; ok {
+			continue
+		}
+		seen[g] = struct{}{}
+		cleaned = append(cleaned, g)
+	}
+	return strings.Join(cleaned, ",")
 }
 
 func (mi *Model) Insert() error {
 	now := common.GetTimestamp()
 	mi.CreatedTime = now
 	mi.UpdatedTime = now
+	mi.SyncEnableGroupsRaw()
 
 	// 保存原始值（因为 Create 后可能被 GORM 的 default 标签覆盖为 1）
 	originalStatus := mi.Status
@@ -75,9 +167,10 @@ func IsModelNameDuplicated(id int, name string) (bool, error) {
 
 func (mi *Model) Update() error {
 	mi.UpdatedTime = common.GetTimestamp()
+	mi.SyncEnableGroupsRaw()
 	// 使用 Select 强制更新所有字段，包括零值
 	return DB.Model(&Model{}).Where("id = ?", mi.Id).
-		Select("model_name", "description", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "updated_time").
+		Select("model_name", "description", "icon", "tags", "vendor_id", "endpoints", "status", "sync_official", "name_rule", "enable_groups_raw", "updated_time").
 		Updates(mi).Error
 }
 

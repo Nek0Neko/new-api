@@ -63,6 +63,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { JsonEditor } from '@/components/json-editor'
+import { MultiSelect } from '@/components/multi-select'
 import { TagInput } from '@/components/tag-input'
 import {
   useSystemOptions,
@@ -72,7 +73,13 @@ import { useUpdateOption } from '@/features/system-settings/hooks/use-update-opt
 import { normalizeJsonString } from '@/features/system-settings/models/utils'
 import type { ModelSettings } from '@/features/system-settings/types'
 import { safeJsonParse } from '@/features/system-settings/utils/json-parser'
-import { createModel, updateModel, getModel, getVendors } from '../../api'
+import {
+  createModel,
+  updateModel,
+  getModel,
+  getVendors,
+  getGroups,
+} from '../../api'
 import { getNameRuleOptions, ENDPOINT_TEMPLATES } from '../../constants'
 import { modelsQueryKeys, vendorsQueryKeys, parseModelTags } from '../../lib'
 import type { Model } from '../../types'
@@ -89,6 +96,7 @@ const extendedModelFormSchema = z.object({
   name_rule: z.number(),
   status: z.boolean(),
   sync_official: z.boolean(),
+  enable_groups_config: z.array(z.string()),
   price: z.string().optional(),
   ratio: z.string().optional(),
   cacheRatio: z.string().optional(),
@@ -133,6 +141,16 @@ export function ModelMutateDrawer({
   })
 
   const vendors = vendorsData?.data?.items || []
+
+  // Fetch all configured channel groups for the Enable Groups multi-select.
+  // Reuse the shared ['groups'] cache key so other features that already fetch
+  // groups (channels, users) share a single network request.
+  const { data: groupsData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: getGroups,
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // Fetch model detail if editing
   const { data: modelData } = useQuery({
@@ -210,6 +228,7 @@ export function ModelMutateDrawer({
       name_rule: 0,
       status: true,
       sync_official: true,
+      enable_groups_config: [],
       price: '',
       ratio: '',
       cacheRatio: '',
@@ -219,6 +238,17 @@ export function ModelMutateDrawer({
       audioCompletionRatio: '',
     },
   })
+
+  const currentEnableGroups = form.watch('enable_groups_config')
+
+  const groupOptions = useMemo(() => {
+    const available = groupsData?.data || []
+    const merged = new Set<string>([
+      ...available,
+      ...(currentEnableGroups || []),
+    ])
+    return Array.from(merged).map((g) => ({ value: g, label: g }))
+  }, [groupsData, currentEnableGroups])
 
   const validateNumber = (value: string) => {
     if (value === '') return true
@@ -269,6 +299,9 @@ export function ModelMutateDrawer({
         name_rule: model.name_rule || 0,
         status: model.status === 1,
         sync_official: model.sync_official === 1,
+        enable_groups_config: Array.isArray(model.enable_groups_config)
+          ? [...model.enable_groups_config]
+          : [],
         price: '',
         ratio: '',
         cacheRatio: '',
@@ -373,6 +406,7 @@ export function ModelMutateDrawer({
         name_rule: 0,
         status: true,
         sync_official: true,
+        enable_groups_config: [],
         price: '',
         ratio: '',
         cacheRatio: '',
@@ -769,6 +803,30 @@ export function ModelMutateDrawer({
                     </FormControl>
                     <FormDescription>
                       {t('Press Enter or comma to add tags')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='enable_groups_config'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Enable Groups')}</FormLabel>
+                    <FormControl>
+                      <MultiSelect
+                        options={groupOptions}
+                        selected={field.value || []}
+                        onChange={field.onChange}
+                        placeholder={t('Select groups...')}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Restrict which user groups can use this model. Leave empty to allow all groups available via channels.'
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

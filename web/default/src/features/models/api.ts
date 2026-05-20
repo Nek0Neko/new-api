@@ -110,6 +110,19 @@ export async function deleteModel(
   return res.data
 }
 
+/**
+ * Get all configured channel groups (admin scope). Used to populate the
+ * "Enable Groups" multi-select in the model mutate drawer.
+ */
+export async function getGroups(): Promise<{
+  success: boolean
+  message?: string
+  data?: string[]
+}> {
+  const res = await api.get('/api/group/')
+  return res.data
+}
+
 // ============================================================================
 // Vendor Management
 // ============================================================================

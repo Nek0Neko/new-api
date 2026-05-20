@@ -287,18 +287,37 @@ func updatePricing() {
 
 	pricingMap = make([]Pricing, 0)
 	for model, groups := range modelGroupsMap {
+		channelGroups := groups.Items()
+		enableGroup := channelGroups
+
+		// 补充模型元数据（描述、标签、供应商、状态）
+		var meta *Model
+		if m, ok := metaMap[model]; ok {
+			// 若模型被禁用(status!=1)，则直接跳过，不返回给前端
+			if m.Status != 1 {
+				continue
+			}
+			meta = m
+		}
+
+		// 若管理员显式配置了允许分组，与渠道实际提供的分组求交集
+		if meta != nil {
+			if configured := parseEnableGroupsRaw(meta.EnableGroupsRaw); len(configured) > 0 {
+				enableGroup = intersectGroups(channelGroups, configured)
+				// 配置非空但与渠道无交集 -> 当前没有渠道可服务该模型，直接跳过
+				if len(enableGroup) == 0 {
+					continue
+				}
+			}
+		}
+
 		pricing := Pricing{
 			ModelName:              model,
-			EnableGroup:            groups.Items(),
+			EnableGroup:            enableGroup,
 			SupportedEndpointTypes: modelSupportEndpointTypes[model],
 		}
 
-		// 补充模型元数据（描述、标签、供应商、状态）
-		if meta, ok := metaMap[model]; ok {
-			// 若模型被禁用(status!=1)，则直接跳过，不返回给前端
-			if meta.Status != 1 {
-				continue
-			}
+		if meta != nil {
 			pricing.Description = meta.Description
 			pricing.Icon = meta.Icon
 			pricing.Tags = meta.Tags

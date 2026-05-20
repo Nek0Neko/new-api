@@ -49,6 +49,14 @@ export interface Model {
   // Runtime fields
   bound_channels?: BoundChannel[]
   enable_groups?: string[]
+  /**
+   * Admin-configured group allow-list. Empty/undefined means no override is
+   * stored — the effective access is derived from channel availability via
+   * `enable_groups`. The mutate form binds to this field so that opening and
+   * re-saving an unchanged model does not lock the channel-derived list in
+   * as an explicit allow-list.
+   */
+  enable_groups_config?: string[]
   quota_types?: number[]
   matched_models?: string[]
   matched_count?: number

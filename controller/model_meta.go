@@ -197,7 +197,13 @@ func enrichModels(models []*model.Model) {
 				}
 			}
 			mm.BoundChannels = chs
-			mm.EnableGroups = model.GetModelEnableGroups(mm.ModelName)
+			configured := mm.EnableGroupsConfigured()
+			mm.EnableGroupsConfig = configured
+			if len(configured) > 0 {
+				mm.EnableGroups = configured
+			} else {
+				mm.EnableGroups = model.GetModelEnableGroups(mm.ModelName)
+			}
 			mm.QuotaTypes = model.GetModelQuotaTypes(mm.ModelName)
 		}
 	}
@@ -287,8 +293,12 @@ func enrichModels(models []*model.Model) {
 			}
 		}
 
-		// 分组并集
-		if gs, ok := groupSetByIdx[idx]; ok {
+		// 分组：若管理员显式配置了允许分组则优先使用配置值，否则取规则匹配的并集
+		configured := mm.EnableGroupsConfigured()
+		mm.EnableGroupsConfig = configured
+		if len(configured) > 0 {
+			mm.EnableGroups = configured
+		} else if gs, ok := groupSetByIdx[idx]; ok {
 			groups := make([]string, 0, len(gs))
 			for g := range gs {
 				groups = append(groups, g)
