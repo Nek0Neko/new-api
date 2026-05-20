@@ -16,14 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// ============================================================================
-// Affiliate Functions
-// ============================================================================
 
-/**
- * Generate affiliate registration link
- */
-export function generateAffiliateLink(affCode: string): string {
-  if (typeof window === 'undefined') return ''
-  return `${window.location.origin}/sign-up?aff=${affCode}`
+export const INTERFACE_LANGUAGE_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'zh', label: '中文' },
+] as const
+
+export type InterfaceLanguageCode =
+  (typeof INTERFACE_LANGUAGE_OPTIONS)[number]['code']
+
+export function normalizeInterfaceLanguage(value?: string | null): string {
+  if (!value) return 'en'
+
+  const normalized = value.trim().replace(/_/g, '-').toLowerCase()
+  if (normalized.startsWith('zh')) return 'zh'
+
+  return INTERFACE_LANGUAGE_OPTIONS.some((lang) => lang.code === normalized)
+    ? normalized
+    : 'en'
 }
