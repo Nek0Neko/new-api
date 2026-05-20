@@ -122,13 +122,26 @@ export function Pricing() {
     [models, selectedModelName]
   )
 
+  // Only show models whose enable_groups include the currently selected
+  // preview group. Special / discounted groups frequently enable a subset of
+  // the full catalog, so the list must reflect what the user can actually
+  // call under that group — not just the price ratio.
+  const visibleModels = useMemo(() => {
+    if (!previewGroup) return filteredModels
+    return filteredModels.filter(
+      (model) =>
+        Array.isArray(model.enable_groups) &&
+        model.enable_groups.includes(previewGroup)
+    )
+  }, [filteredModels, previewGroup])
+
   const handleClearAll = useCallback(() => {
     clearFilters()
     clearSearch()
   }, [clearFilters, clearSearch])
 
   const renderPricingContent = () => {
-    if (filteredModels.length === 0) {
+    if (visibleModels.length === 0) {
       return (
         <EmptyState
           searchQuery={searchInput}
@@ -141,7 +154,7 @@ export function Pricing() {
     if (viewMode === VIEW_MODES.CARD) {
       return (
         <ModelCardGrid
-          models={filteredModels}
+          models={visibleModels}
           onModelClick={handleModelClick}
           priceRate={priceRate}
           usdExchangeRate={usdExchangeRate}
@@ -155,7 +168,7 @@ export function Pricing() {
 
     return (
       <PricingTable
-        models={filteredModels}
+        models={visibleModels}
         priceRate={priceRate}
         usdExchangeRate={usdExchangeRate}
         tokenUnit={tokenUnit}
@@ -274,7 +287,7 @@ export function Pricing() {
           <p className='text-muted-foreground flex items-center gap-2 text-xs sm:text-sm'>
             <span>
               <span className='text-foreground font-semibold tabular-nums'>
-                {filteredModels.length.toLocaleString()}
+                {visibleModels.length.toLocaleString()}
               </span>{' '}
               {t('results')}
             </span>
