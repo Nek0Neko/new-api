@@ -19,7 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useRef } from 'react'
 import { SSE } from 'sse.js'
 import { getCommonHeaders } from '@/lib/api'
-import { API_ENDPOINTS, ERROR_MESSAGES } from '../constants'
+import {
+  API_ENDPOINTS,
+  BEARER_CHAT_COMPLETIONS,
+  ERROR_MESSAGES,
+} from '../constants'
 import type { ChatCompletionRequest, ChatCompletionChunk } from '../types'
 
 /**
@@ -34,10 +38,21 @@ export function useStreamRequest() {
       payload: ChatCompletionRequest,
       onUpdate: (type: 'reasoning' | 'content', chunk: string) => void,
       onComplete: () => void,
-      onError: (error: string, errorCode?: string) => void
+      onError: (error: string, errorCode?: string) => void,
+      apiKey?: string | null
     ) => {
-      const source = new SSE(API_ENDPOINTS.CHAT_COMPLETIONS, {
-        headers: getCommonHeaders(),
+      const endpoint = apiKey
+        ? BEARER_CHAT_COMPLETIONS
+        : API_ENDPOINTS.CHAT_COMPLETIONS
+      const headers: Record<string, string> = apiKey
+        ? {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          }
+        : getCommonHeaders()
+
+      const source = new SSE(endpoint, {
+        headers,
         method: 'POST',
         payload: JSON.stringify(payload),
       })

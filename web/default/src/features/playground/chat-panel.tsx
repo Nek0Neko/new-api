@@ -23,6 +23,8 @@ import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
+import { TokenPicker } from './shared/token-picker'
+import { useSelectedToken } from './shared/use-selected-token'
 import type { Message as MessageType } from './types'
 
 export function ChatPlayground() {
@@ -38,10 +40,13 @@ export function ChatPlayground() {
     updateConfig,
   } = usePlaygroundState()
 
+  const selectedToken = useSelectedToken()
+
   const { sendChat, stopGeneration, isGenerating } = useChatHandler({
     config,
     parameterEnabled,
     onMessageUpdate: updateMessages,
+    apiKey: selectedToken.key,
   })
 
   const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
@@ -154,6 +159,10 @@ export function ChatPlayground() {
 
   return (
     <div className='relative flex size-full flex-col overflow-hidden'>
+      <div className='flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2'>
+        <TokenPicker selected={selectedToken} />
+      </div>
+
       <div className='flex flex-1 flex-col overflow-hidden'>
         <PlaygroundChat
           messages={messages}

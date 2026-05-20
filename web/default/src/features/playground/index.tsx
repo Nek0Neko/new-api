@@ -91,28 +91,28 @@ export function Playground() {
       <TabsContent
         value='chat'
         keepMounted
-        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+        className='min-h-0 flex-1 overflow-hidden [[hidden]]:hidden'
       >
         <ChatPlayground />
       </TabsContent>
       <TabsContent
         value='image'
         keepMounted
-        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+        className='min-h-0 flex-1 overflow-hidden [[hidden]]:hidden'
       >
         <ImagePlayground />
       </TabsContent>
       <TabsContent
         value='video'
         keepMounted
-        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+        className='min-h-0 flex-1 overflow-hidden [[hidden]]:hidden'
       >
         <VideoPlayground />
       </TabsContent>
       <TabsContent
         value='music'
         keepMounted
-        className='min-h-0 flex-1 overflow-hidden [&[hidden]]:hidden'
+        className='min-h-0 flex-1 overflow-hidden [[hidden]]:hidden'
       >
         <MusicPlayground />
       </TabsContent>

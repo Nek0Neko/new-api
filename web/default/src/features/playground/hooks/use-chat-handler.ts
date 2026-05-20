@@ -34,6 +34,12 @@ interface UseChatHandlerOptions {
   config: PlaygroundConfig
   parameterEnabled: ParameterEnabled
   onMessageUpdate: (updater: (prev: Message[]) => Message[]) => void
+  /**
+   * When provided, requests are sent to the public chat endpoint with Bearer
+   * auth — quota is debited against this specific token. When omitted, the
+   * session-authenticated playground endpoint is used instead.
+   */
+  apiKey?: string | null
 }
 
 /**
@@ -43,6 +49,7 @@ export function useChatHandler({
   config,
   parameterEnabled,
   onMessageUpdate,
+  apiKey,
 }: UseChatHandlerOptions) {
   const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
 
@@ -112,7 +119,8 @@ export function useChatHandler({
         payload,
         handleStreamUpdate,
         handleStreamComplete,
-        handleStreamError
+        handleStreamError,
+        apiKey
       )
     },
     [
@@ -122,6 +130,7 @@ export function useChatHandler({
       handleStreamUpdate,
       handleStreamComplete,
       handleStreamError,
+      apiKey,
     ]
   )
 
@@ -135,7 +144,7 @@ export function useChatHandler({
       )
 
       try {
-        const response = await sendChatCompletion(payload)
+        const response = await sendChatCompletion(payload, apiKey)
         const choice = response.choices?.[0]
         if (!choice) return
 
@@ -171,7 +180,7 @@ export function useChatHandler({
         )
       }
     },
-    [config, parameterEnabled, onMessageUpdate, handleStreamError]
+    [config, parameterEnabled, onMessageUpdate, handleStreamError, apiKey]
   )
 
   // Send chat request (stream or non-stream based on config)

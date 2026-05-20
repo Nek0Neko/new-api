@@ -17,7 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
-import { API_ENDPOINTS } from './constants'
+import { API_ENDPOINTS, BEARER_CHAT_COMPLETIONS } from './constants'
+import { bearerConfig } from './shared/request-config'
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
@@ -26,11 +27,20 @@ import type {
 } from './types'
 
 /**
- * Send chat completion request (non-streaming)
+ * Send chat completion request (non-streaming).
+ *
+ * If `apiKey` is provided, the request goes to the public `/v1/chat/completions`
+ * endpoint with Bearer auth — quota is debited against that specific token.
+ * Otherwise it falls back to the session-authenticated playground endpoint.
  */
 export async function sendChatCompletion(
-  payload: ChatCompletionRequest
+  payload: ChatCompletionRequest,
+  apiKey?: string | null
 ): Promise<ChatCompletionResponse> {
+  if (apiKey) {
+    const res = await api.post(BEARER_CHAT_COMPLETIONS, payload, bearerConfig(apiKey))
+    return res.data
+  }
   const res = await api.post(API_ENDPOINTS.CHAT_COMPLETIONS, payload, {
     skipErrorHandler: true,
   } as Record<string, unknown>)

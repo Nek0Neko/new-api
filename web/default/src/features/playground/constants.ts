@@ -39,6 +39,11 @@ export const API_ENDPOINTS = {
   USER_GROUPS: '/api/user/self/groups',
 } as const
 
+// Bearer-auth chat completions path used when an API key is explicitly selected
+// in the playground — quota gets debited against that token instead of the
+// user's session.
+export const BEARER_CHAT_COMPLETIONS = '/v1/chat/completions'
+
 // Default group — uses 'default' as the safe fallback; auto-group is
 // only selected when the backend confirms it is available for the user.
 export const DEFAULT_GROUP = 'default' as const

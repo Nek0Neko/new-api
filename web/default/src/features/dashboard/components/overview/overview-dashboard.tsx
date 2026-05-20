@@ -179,7 +179,7 @@ function SetupGuideBackdrop(props: { compact?: boolean }) {
         className={cn(
           'pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,oklch(0.97_0.04_250/.92)_0%,oklch(0.95_0.08_315/.82)_38%,oklch(0.96_0.12_92/.78)_74%,oklch(0.94_0.1_132/.62)_100%)] dark:opacity-25',
           props.compact
-            ? '[mask-image:linear-gradient(90deg,black_0%,black_48%,transparent_74%)] opacity-55'
+            ? 'mask-[linear-gradient(90deg,black_0%,black_48%,transparent_74%)] opacity-55'
             : 'opacity-85'
         )}
         aria-hidden='true'
@@ -193,7 +193,7 @@ function SetupGuideBackdrop(props: { compact?: boolean }) {
       >
         <pre
           className={cn(
-            'absolute right-3 [mask-image:linear-gradient(90deg,transparent_0%,black_30%,black_82%,transparent_100%)] text-right tracking-[0.38em] whitespace-pre',
+            'absolute right-3 mask-[linear-gradient(90deg,transparent_0%,black_30%,black_82%,transparent_100%)] text-right tracking-[0.38em] whitespace-pre',
             props.compact
               ? '-top-6 text-[9px] leading-4'
               : 'top-1 text-[11px] leading-5'

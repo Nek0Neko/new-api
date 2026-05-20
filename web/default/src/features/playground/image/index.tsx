@@ -139,7 +139,7 @@ function ImageGenItemCard({
       )}
 
       {item.status === 'success' && item.images.length > 0 && (
-        <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+        <div className='flex flex-wrap gap-3'>
           {item.images.map((image, idx) => {
             const src = resolveImageSrc(image)
             if (!src) return null
@@ -147,12 +147,12 @@ function ImageGenItemCard({
             return (
               <div
                 key={`${item.id}-${idx}`}
-                className='group bg-muted relative overflow-hidden rounded-lg'
+                className='group bg-muted relative size-28 overflow-hidden rounded-lg sm:size-32'
               >
                 <button
                   type='button'
                   onClick={() => onPreview(src, alt)}
-                  className='block h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                  className='focus-visible:ring-ring block h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
                   aria-label={t('Preview')}
                 >
                   <img
@@ -168,10 +168,10 @@ function ImageGenItemCard({
                   target='_blank'
                   rel='noopener noreferrer'
                   onClick={(e) => e.stopPropagation()}
-                  className='bg-background/80 text-foreground absolute top-2 right-2 inline-flex size-8 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
+                  className='bg-background/80 text-foreground absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
                   aria-label={t('Download')}
                 >
-                  <DownloadIcon className='size-4' />
+                  <DownloadIcon className='size-3.5' />
                 </a>
               </div>
             )
@@ -477,7 +477,7 @@ export function ImagePlayground() {
         }}
       >
         <DialogContent
-          className='bg-transparent ring-0 p-0 sm:max-w-none w-auto max-w-[95vw] max-h-[95vh] grid-cols-1'
+          className='max-h-[95vh] w-auto max-w-[95vw] grid-cols-1 bg-transparent p-0 ring-0 sm:max-w-none'
           showCloseButton={false}
         >
           {preview && (
