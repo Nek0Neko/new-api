@@ -135,6 +135,30 @@ func GetBoundChannelsByModelsMap(modelNames []string) (map[string][]BoundChannel
 	return result, nil
 }
 
+// GetModelTagsByNames returns the comma-separated tag string for each named
+// model. Models without a row in the models table are simply absent from the
+// returned map (the caller should treat them as untagged).
+func GetModelTagsByNames(names []string) (map[string]string, error) {
+	result := make(map[string]string, len(names))
+	if len(names) == 0 {
+		return result, nil
+	}
+	var rows []struct {
+		ModelName string
+		Tags      string
+	}
+	if err := DB.Model(&Model{}).
+		Select("model_name, tags").
+		Where("model_name IN ?", names).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		result[r.ModelName] = r.Tags
+	}
+	return result, nil
+}
+
 func SearchModels(keyword string, vendor string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
 	db := DB.Model(&Model{})

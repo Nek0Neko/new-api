@@ -16,13 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
+import { filterModelsByTag } from './shared/filter-models'
 import { TokenPicker } from './shared/token-picker'
 import { useSelectedToken } from './shared/use-selected-token'
 import type { Message as MessageType } from './types'
@@ -58,6 +59,11 @@ export function ChatPlayground() {
     queryFn: getUserModels,
   })
 
+  const chatModels = useMemo(
+    () => filterModelsByTag(modelsData ?? [], 'chat'),
+    [modelsData]
+  )
+
   const { data: groupsData } = useQuery({
     queryKey: ['playground-groups'],
     queryFn: getUserGroups,
@@ -66,13 +72,13 @@ export function ChatPlayground() {
   useEffect(() => {
     if (!modelsData) return
 
-    setModels(modelsData)
+    setModels(chatModels)
 
-    const isCurrentModelValid = modelsData.some((m) => m.value === config.model)
-    if (modelsData.length > 0 && !isCurrentModelValid) {
-      updateConfig('model', modelsData[0].value)
+    const isCurrentModelValid = chatModels.some((m) => m.value === config.model)
+    if (chatModels.length > 0 && !isCurrentModelValid) {
+      updateConfig('model', chatModels[0].value)
     }
-  }, [modelsData, config.model, setModels, updateConfig])
+  }, [modelsData, chatModels, config.model, setModels, updateConfig])
 
   useEffect(() => {
     if (!groupsData) return

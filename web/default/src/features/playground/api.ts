@@ -48,20 +48,31 @@ export async function sendChatCompletion(
 }
 
 /**
- * Get user available models
+ * Get user available models — uses the tagged endpoint so that each playground
+ * tab can filter the dropdown to models whose tags match the tab name. Falls
+ * back to bare model names when a row in the models table is missing or the
+ * tagged endpoint is unreachable.
  */
 export async function getUserModels(): Promise<ModelOption[]> {
-  const res = await api.get(API_ENDPOINTS.USER_MODELS)
+  const res = await api.get(API_ENDPOINTS.USER_MODELS_TAGGED)
   const { data } = res
 
   if (!data.success || !Array.isArray(data.data)) {
     return []
   }
 
-  return data.data.map((model: string) => ({
-    label: model,
-    value: model,
-  }))
+  return data.data.map(
+    (entry: { model: string; tags?: string }): ModelOption => ({
+      label: entry.model,
+      value: entry.model,
+      tags: entry.tags
+        ? entry.tags
+            .split(',')
+            .map((t) => t.trim().toLowerCase())
+            .filter(Boolean)
+        : [],
+    })
+  )
 }
 
 /**

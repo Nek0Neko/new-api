@@ -547,6 +547,56 @@ func GetUserModels(c *gin.Context) {
 	return
 }
 
+// modelWithTags is the wire shape returned by GetUserModelsTagged. Tags are
+// stored as a comma-separated string in the models table; the playground UI
+// splits this client-side to filter models per tab (chat/image/video/music).
+type modelWithTags struct {
+	Model string `json:"model"`
+	Tags  string `json:"tags"`
+}
+
+// GetUserModelsTagged returns the same set of models as GetUserModels but
+// enriched with each model's tag string. The playground uses this to filter
+// the model dropdown so that the image tab only shows image-tagged models,
+// etc. Models without a row in the models table appear with empty tags.
+func GetUserModelsTagged(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		id = c.GetInt("id")
+	}
+	user, err := model.GetUserCache(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	groups := service.GetUserUsableGroups(user.Group)
+	var modelNames []string
+	for group := range groups {
+		for _, g := range model.GetGroupEnabledModels(group) {
+			if !common.StringsContains(modelNames, g) {
+				modelNames = append(modelNames, g)
+			}
+		}
+	}
+	tagsByName, err := model.GetModelTagsByNames(modelNames)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	result := make([]modelWithTags, 0, len(modelNames))
+	for _, name := range modelNames {
+		result = append(result, modelWithTags{
+			Model: name,
+			Tags:  tagsByName[name],
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    result,
+	})
+}
+
 func UpdateUser(c *gin.Context) {
 	var updatedUser model.User
 	err := json.NewDecoder(c.Request.Body).Decode(&updatedUser)

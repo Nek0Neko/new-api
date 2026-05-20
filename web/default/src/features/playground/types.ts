@@ -132,6 +132,12 @@ export interface ParameterEnabled {
 export interface ModelOption {
   label: string
   value: string
+  /**
+   * Tags parsed from the backend `tags` column on the models table. The
+   * playground tabs (chat/image/video/music) filter the dropdown to models
+   * whose tags contain the tab's name.
+   */
+  tags?: string[]
 }
 
 export interface GroupOption {

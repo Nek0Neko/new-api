@@ -41,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
+import { filterModelsByTag } from '../shared/filter-models'
 import { ItemActions } from '../shared/item-actions'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
@@ -170,6 +171,11 @@ export function VideoPlayground() {
     queryFn: getUserModels,
   })
 
+  const models = useMemo(
+    () => filterModelsByTag(modelsData ?? [], 'video'),
+    [modelsData]
+  )
+
   const {
     config,
     items,
@@ -181,12 +187,10 @@ export function VideoPlayground() {
   } = useVideoPlayground(selectedToken.key)
 
   useEffect(() => {
-    if (!modelsData || modelsData.length === 0) return
-    const valid = modelsData.some((m) => m.value === config.model)
-    if (!valid) updateConfig('model', modelsData[0].value)
-  }, [modelsData, config.model, updateConfig])
-
-  const models = modelsData ?? []
+    if (models.length === 0) return
+    const valid = models.some((m) => m.value === config.model)
+    if (!valid) updateConfig('model', models[0].value)
+  }, [models, config.model, updateConfig])
   const hasKey = !!selectedToken.key
   const resolutionValue = useMemo(
     () => `${config.width}x${config.height}`,

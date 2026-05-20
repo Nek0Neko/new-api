@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Music2Icon,
@@ -35,6 +35,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
+import { filterModelsByTag } from '../shared/filter-models'
 import { ItemActions } from '../shared/item-actions'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
@@ -197,6 +198,11 @@ export function MusicPlayground() {
     queryFn: getUserModels,
   })
 
+  const models = useMemo(
+    () => filterModelsByTag(modelsData ?? [], 'music'),
+    [modelsData]
+  )
+
   const {
     config,
     items,
@@ -208,15 +214,11 @@ export function MusicPlayground() {
   } = useMusicPlayground(selectedToken.key)
 
   useEffect(() => {
-    if (!modelsData || modelsData.length === 0) return
-    const sunoLike = modelsData.find((m) =>
-      m.value.toLowerCase().includes('suno')
-    )
-    const valid = modelsData.some((m) => m.value === config.model)
-    if (!valid) updateConfig('model', sunoLike?.value ?? modelsData[0].value)
-  }, [modelsData, config.model, updateConfig])
-
-  const models = modelsData ?? []
+    if (models.length === 0) return
+    const sunoLike = models.find((m) => m.value.toLowerCase().includes('suno'))
+    const valid = models.some((m) => m.value === config.model)
+    if (!valid) updateConfig('model', sunoLike?.value ?? models[0].value)
+  }, [models, config.model, updateConfig])
   const hasKey = !!selectedToken.key
   const canSubmit =
     hasKey &&
