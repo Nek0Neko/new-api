@@ -183,6 +183,31 @@ func OaiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 	if !containStreamUsage {
 		usage = service.ResponseText2Usage(c, responseTextBuilder.String(), info.UpstreamModelName, info.GetEstimatePromptTokens())
 		usage.CompletionTokens += toolCount * 7
+	} else if usage.PromptTokens == 0 {
+		// Some upstream proxies (e.g. Claude → OpenAI SSE bridges) put `usage` on
+		// the final chunk with only completion_tokens populated. handleLastResponse
+		// captures that, sets containStreamUsage=true, and we end up logging
+		// prompt_tokens=0. Mirror OpenaiHandler's non-stream fallback: first try to
+		// recover prompt_tokens from earlier chunks, then fall back to the local
+		// estimate so input is still billed.
+		for _, item := range streamItems {
+			var sr dto.ChatCompletionsStreamResponse
+			if err := common.UnmarshalJsonStr(item, &sr); err != nil {
+				continue
+			}
+			if sr.Usage != nil && sr.Usage.PromptTokens > 0 {
+				usage.PromptTokens = sr.Usage.PromptTokens
+				if sr.Usage.PromptTokensDetails.CachedTokens > 0 {
+					usage.PromptTokensDetails.CachedTokens = sr.Usage.PromptTokensDetails.CachedTokens
+				}
+				break
+			}
+		}
+		if usage.PromptTokens == 0 {
+			usage.PromptTokens = info.GetEstimatePromptTokens()
+			common.SetContextKey(c, constant.ContextKeyLocalCountTokens, true)
+		}
+		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
 	}
 
 	applyUsagePostProcessing(info, usage, common.StringToByteSlice(lastStreamData))
