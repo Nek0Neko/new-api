@@ -46,6 +46,7 @@ const getGroupDefaults = (settings: BillingSettings) => ({
   AutoGroups: settings.AutoGroups,
   DefaultUseAutoGroup: settings.DefaultUseAutoGroup,
   NewUserDefaultGroup: settings.NewUserDefaultGroup,
+  DefaultChannelGroup: settings.DefaultChannelGroup,
   GroupSpecialUsableGroup:
     settings['group_ratio_setting.group_special_usable_group'],
 })

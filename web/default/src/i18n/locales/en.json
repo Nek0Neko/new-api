@@ -2572,6 +2572,8 @@
     "New Password": "New Password",
     "New password must be different from current password": "New password must be different from current password",
     "New user default group": "New user default group",
+    "Default channel group": "Default channel group",
+    "Channel-group pre-selected when an admin creates a new channel. Independent of user tiers — drives the request-time GroupRatio billing markup.": "Channel-group pre-selected when an admin creates a new channel. Independent of user tiers — drives the request-time GroupRatio billing markup.",
     "New User Quota": "New User Quota",
     "New version available: {{version}}": "New version available: {{version}}",
     "NewAPI": "NewAPI",

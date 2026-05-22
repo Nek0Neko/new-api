@@ -86,6 +86,11 @@ export type ChannelFormValues = z.infer<typeof channelFormSchema>
 // Default Form Values
 // ============================================================================
 
+// FALLBACK_CHANNEL_GROUP is only used when the server has not yet returned the
+// configured default. Real default comes from /api/group → default_channel_group
+// and should be applied via createChannelFormDefaults below once groups load.
+export const FALLBACK_CHANNEL_GROUP = 'default'
+
 export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   name: '',
   type: 1,
@@ -93,7 +98,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   key: '',
   openai_organization: '',
   models: '',
-  group: ['default'],
+  group: [FALLBACK_CHANNEL_GROUP],
   model_mapping: '',
   priority: 0,
   weight: 0,
@@ -135,6 +140,21 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   upstream_model_update_check_enabled: false,
   upstream_model_update_auto_sync_enabled: false,
   upstream_model_update_ignored_models: '',
+}
+
+/**
+ * Returns the form defaults with the channel-group field replaced by
+ * `defaultGroup` when provided. Falls back to CHANNEL_FORM_DEFAULT_VALUES so the
+ * drawer can render before /api/group resolves.
+ */
+export function createChannelFormDefaults(
+  defaultGroup?: string | null
+): ChannelFormValues {
+  const group =
+    defaultGroup && defaultGroup.trim() !== ''
+      ? [defaultGroup]
+      : CHANNEL_FORM_DEFAULT_VALUES.group
+  return { ...CHANNEL_FORM_DEFAULT_VALUES, group }
 }
 
 // ============================================================================
@@ -226,7 +246,7 @@ export function transformChannelToFormDefaults(
     key: '', // Never populate key from backend for security
     openai_organization: channel.openai_organization || '',
     models: channel.models || '',
-    group: parseGroups(channel.group || 'default'),
+    group: parseGroups(channel.group || FALLBACK_CHANNEL_GROUP),
     model_mapping: channel.model_mapping || '',
     priority: channel.priority || 0,
     weight: channel.weight || 0,

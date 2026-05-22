@@ -176,6 +176,7 @@ const groupSchema = z.object({
   }),
   DefaultUseAutoGroup: z.boolean(),
   NewUserDefaultGroup: z.string(),
+  DefaultChannelGroup: z.string(),
   GroupSpecialUsableGroup: z.string().superRefine((value, ctx) => {
     const result = validateJsonString(value)
     if (!result.valid) {
@@ -252,6 +253,7 @@ export function RatioSettingsCard({
     AutoGroups: normalizeJsonString(groupDefaults.AutoGroups),
     DefaultUseAutoGroup: groupDefaults.DefaultUseAutoGroup,
     NewUserDefaultGroup: groupDefaults.NewUserDefaultGroup,
+    DefaultChannelGroup: groupDefaults.DefaultChannelGroup,
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
@@ -334,6 +336,7 @@ export function RatioSettingsCard({
       AutoGroups: normalizeJsonString(groupDefaults.AutoGroups),
       DefaultUseAutoGroup: groupDefaults.DefaultUseAutoGroup,
       NewUserDefaultGroup: groupDefaults.NewUserDefaultGroup,
+      DefaultChannelGroup: groupDefaults.DefaultChannelGroup,
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
@@ -395,6 +398,7 @@ export function RatioSettingsCard({
         AutoGroups: normalizeJsonString(values.AutoGroups),
         DefaultUseAutoGroup: values.DefaultUseAutoGroup,
         NewUserDefaultGroup: values.NewUserDefaultGroup,
+        DefaultChannelGroup: values.DefaultChannelGroup,
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),

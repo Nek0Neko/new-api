@@ -20,6 +20,12 @@ func GetGroups(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    groupNames,
+		// default_channel_group is the channel-group pre-selected when admins
+		// create a new channel; new_user_default_group is the user-tier
+		// assigned to newly registered users (drives TopupGroupRatio).
+		// Both are independent so the UI can render the two pickers separately.
+		"default_channel_group":  setting.GetDefaultChannelGroup(),
+		"new_user_default_group": setting.GetNewUserDefaultGroup(),
 	})
 }
 

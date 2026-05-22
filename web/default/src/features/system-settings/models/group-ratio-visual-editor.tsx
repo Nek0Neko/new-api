@@ -61,6 +61,7 @@ type GroupRatioVisualEditorProps = {
   userUsableGroups: string
   autoGroups: string
   newUserDefaultGroup: string
+  defaultChannelGroup: string
   onChange: (field: string, value: string) => void
 }
 
@@ -254,6 +255,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   userUsableGroups,
   autoGroups,
   newUserDefaultGroup,
+  defaultChannelGroup,
   onChange,
 }: GroupRatioVisualEditorProps) {
   const { t } = useTranslation()
@@ -299,6 +301,32 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
 
   const selectedDefaultGroup =
     (newUserDefaultGroup ?? '').trim() || 'default'
+
+  // Build the option list for the "default channel group" picker from the
+  // configured GroupRatio (consumption groups). Channel groups are a different
+  // axis from user tiers — they tag channels/tokens and drive billing markup.
+  const channelGroupOptions = useMemo(() => {
+    const ratioMap = safeJsonParse<Record<string, unknown>>(groupRatio, {
+      fallback: {},
+      silent: true,
+    })
+    const seen = new Set<string>()
+    const out: { name: string }[] = []
+    for (const name of Object.keys(ratioMap)) {
+      if (!name || seen.has(name)) continue
+      seen.add(name)
+      out.push({ name })
+    }
+    const currentValue =
+      (defaultChannelGroup ?? '').trim() || 'default'
+    if (!seen.has(currentValue)) {
+      out.unshift({ name: currentValue })
+    }
+    return out
+  }, [groupRatio, defaultChannelGroup])
+
+  const selectedDefaultChannelGroup =
+    (defaultChannelGroup ?? '').trim() || 'default'
 
   // Auto groups handlers
   const handleAutoGroupAdd = () => {
@@ -367,6 +395,42 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
                     {option.description
                       ? `${option.name} — ${option.description}`
                       : option.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Default channel group (consumption side) */}
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <CardTitle>{t('Default channel group')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Channel-group pre-selected when an admin creates a new channel. Independent of user tiers — drives the request-time GroupRatio billing markup.'
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='max-w-sm space-y-2'>
+            <Label htmlFor='default-channel-group'>
+              {t('Default group')}
+            </Label>
+            <Select
+              value={selectedDefaultChannelGroup}
+              onValueChange={(value) =>
+                onChange('DefaultChannelGroup', value ?? '')
+              }
+            >
+              <SelectTrigger id='default-channel-group'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {channelGroupOptions.map((option) => (
+                  <SelectItem key={option.name} value={option.name}>
+                    {option.name}
                   </SelectItem>
                 ))}
               </SelectContent>

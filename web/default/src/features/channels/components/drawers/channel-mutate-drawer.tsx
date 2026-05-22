@@ -130,6 +130,7 @@ import {
   CHANNEL_FORM_DEFAULT_VALUES,
   channelFormSchema,
   channelsQueryKeys,
+  createChannelFormDefaults,
   transformChannelToFormDefaults,
   transformFormDataToCreatePayload,
   transformFormDataToUpdatePayload,
@@ -614,13 +615,18 @@ export function ChannelMutateDrawer({
       initialStatusCodeMappingRef.current =
         channelData.data.status_code_mapping || ''
     } else if (!isEditing) {
-      form.reset(CHANNEL_FORM_DEFAULT_VALUES)
+      // Use the server-configured default channel group when available so the
+      // pre-selected group matches admin's actual /api/group config instead of
+      // a hardcoded "default". See controller/group.go.
+      form.reset(
+        createChannelFormDefaults(groupsData?.default_channel_group)
+      )
       setAdvancedSettingsOpen(false)
       initialModelsRef.current = []
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
     }
-  }, [isEditing, channelData, form])
+  }, [isEditing, channelData, form, groupsData?.default_channel_group])
 
   // Handle type change - set default values for specific types
   useEffect(() => {
@@ -1066,11 +1072,13 @@ export function ChannelMutateDrawer({
     (v: boolean) => {
       onOpenChange(v)
       if (!v) {
-        form.reset(CHANNEL_FORM_DEFAULT_VALUES)
+        form.reset(
+          createChannelFormDefaults(groupsData?.default_channel_group)
+        )
         setAdvancedSettingsOpen(false)
       }
     },
-    [onOpenChange, form]
+    [onOpenChange, form, groupsData?.default_channel_group]
   )
 
   const handleAdvancedSettingsOpenChange = useCallback((nextOpen: boolean) => {

@@ -2572,6 +2572,8 @@
     "New Password": "新密码",
     "New password must be different from current password": "新密码必须与当前密码不同",
     "New user default group": "新用户默认分组",
+    "Default channel group": "新建渠道默认分组",
+    "Channel-group pre-selected when an admin creates a new channel. Independent of user tiers — drives the request-time GroupRatio billing markup.": "管理员创建新渠道时默认选中的渠道分组。该分组独立于用户层级，决定请求时计费倍率（GroupRatio）。",
     "New User Quota": "新用户配额",
     "New version available: {{version}}": "有新版本可用：{{version}}",
     "NewAPI": "NewAPI",

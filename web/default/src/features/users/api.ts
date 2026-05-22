@@ -130,9 +130,20 @@ export async function resetUserTwoFA(id: number): Promise<ApiResponse> {
 }
 
 /**
- * Get all available groups
+ * GroupsResponse keeps the legacy `data: string[]` shape (channel-group names)
+ * but exposes the backend defaults so callers can use the configured fallback
+ * instead of hardcoding "default". See backend controller/group.go for the
+ * source of truth.
  */
-export async function getGroups(): Promise<ApiResponse<string[]>> {
+export interface GroupsResponse extends ApiResponse<string[]> {
+  default_channel_group?: string
+  new_user_default_group?: string
+}
+
+/**
+ * Get all available channel groups along with the system defaults.
+ */
+export async function getGroups(): Promise<GroupsResponse> {
   const res = await api.get('/api/group/')
   return res.data
 }

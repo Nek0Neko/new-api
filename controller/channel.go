@@ -17,6 +17,8 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel/gemini"
 	"github.com/QuantumNous/new-api/relay/channel/ollama"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -472,6 +474,37 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 				return fmt.Errorf("模型名称过长: %s", m)
 			}
 		}
+	}
+
+	// 渠道分组校验:
+	//   - 空字符串落入系统配置的默认渠道分组 (与 user-tier 解耦)
+	//   - 非空时每个 group 必须存在于 GroupRatio 中, 否则建立的渠道无法被分配到
+	if channel != nil {
+		raw := strings.Trim(channel.Group, ",")
+		if strings.TrimSpace(raw) == "" {
+			channel.Group = setting.GetDefaultChannelGroup()
+		}
+		groups := channel.GetGroups()
+		if len(groups) == 0 {
+			channel.Group = setting.GetDefaultChannelGroup()
+			groups = channel.GetGroups()
+		}
+		cleaned := make([]string, 0, len(groups))
+		seen := make(map[string]bool, len(groups))
+		for _, g := range groups {
+			if g == "" || seen[g] {
+				continue
+			}
+			seen[g] = true
+			if !ratio_setting.ContainsGroupRatio(g) {
+				return fmt.Errorf("渠道分组 %q 不存在, 请先在系统设置 > 分组倍率中创建", g)
+			}
+			cleaned = append(cleaned, g)
+		}
+		if len(cleaned) == 0 {
+			return fmt.Errorf("渠道分组不能为空")
+		}
+		channel.Group = strings.Join(cleaned, ",")
 	}
 
 	// VertexAI 特殊校验

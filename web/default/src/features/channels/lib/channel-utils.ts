@@ -220,17 +220,21 @@ export function parseModelsList(models: string): string[] {
 
 /**
  * Parse comma-separated groups list.
- * Sorts with 'default' group first, then locale-sorted alphabetically.
+ * Sorts with the configured default channel-group first (falls back to
+ * 'default' for legacy callers), then locale-sorted alphabetically.
  */
-export function parseGroupsList(groups: string): string[] {
+export function parseGroupsList(
+  groups: string,
+  defaultGroup: string = 'default'
+): string[] {
   if (!groups) return []
   const list = groups
     .split(',')
     .map((g) => g.trim())
     .filter((g) => g.length > 0)
   return list.sort((a, b) => {
-    if (a === 'default') return -1
-    if (b === 'default') return 1
+    if (a === defaultGroup) return -1
+    if (b === defaultGroup) return 1
     return a.localeCompare(b)
   })
 }
