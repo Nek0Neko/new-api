@@ -141,6 +141,13 @@ func Redeem(key string, userId int) (quota int, err error) {
 		if err != nil {
 			return err
 		}
+		// Redemption codes top up the wallet without going through a payment
+		// gateway, so they must also feed the lifetime accumulator that drives
+		// VIP-tier auto-upgrade. Convert quota → USD cents to stay consistent
+		// with the Stripe / Creem paths.
+		if err := MaybeUpgradeUserGroup(tx, userId, quotaToCents(redemption.Quota)); err != nil {
+			return err
+		}
 		redemption.RedeemedTime = common.GetTimestamp()
 		redemption.Status = common.RedemptionCodeStatusUsed
 		redemption.UsedUserId = userId

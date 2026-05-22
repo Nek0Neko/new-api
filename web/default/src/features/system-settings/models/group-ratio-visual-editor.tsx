@@ -299,8 +299,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
     return out
   }, [userUsableGroups, newUserDefaultGroup])
 
-  const selectedDefaultGroup =
-    (newUserDefaultGroup ?? '').trim() || 'default'
+  const selectedDefaultGroup = (newUserDefaultGroup ?? '').trim() || 'default'
 
   // Build the option list for the "default channel group" picker from the
   // configured GroupRatio (consumption groups). Channel groups are a different
@@ -317,8 +316,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
       seen.add(name)
       out.push({ name })
     }
-    const currentValue =
-      (defaultChannelGroup ?? '').trim() || 'default'
+    const currentValue = (defaultChannelGroup ?? '').trim() || 'default'
     if (!seen.has(currentValue)) {
       out.unshift({ name: currentValue })
     }
@@ -377,9 +375,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         </CardHeader>
         <CardContent>
           <div className='max-w-sm space-y-2'>
-            <Label htmlFor='new-user-default-group'>
-              {t('Default group')}
-            </Label>
+            <Label htmlFor='new-user-default-group'>{t('Default group')}</Label>
             <Select
               value={selectedDefaultGroup}
               onValueChange={(value) =>
@@ -415,9 +411,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         </CardHeader>
         <CardContent>
           <div className='max-w-sm space-y-2'>
-            <Label htmlFor='default-channel-group'>
-              {t('Default group')}
-            </Label>
+            <Label htmlFor='default-channel-group'>{t('Default group')}</Label>
             <Select
               value={selectedDefaultChannelGroup}
               onValueChange={(value) =>
@@ -593,9 +587,7 @@ function GroupPricingTables({
         .map((row) => (row._id === id ? { ...row, hasRatio: false } : row))
         // Drop a row entirely if it no longer participates in either side
         // AND has no user-facing metadata.
-        .filter(
-          (row) => row.hasRatio || row.hasTopupRatio || row.selectable
-        )
+        .filter((row) => row.hasRatio || row.hasTopupRatio || row.selectable)
       emitRows(next)
     },
     [emitRows, rows]
@@ -614,9 +606,7 @@ function GroupPricingTables({
               }
             : row
         )
-        .filter(
-          (row) => row.hasRatio || row.hasTopupRatio || row.selectable
-        )
+        .filter((row) => row.hasRatio || row.hasTopupRatio || row.selectable)
       emitRows(next)
     },
     [emitRows, rows]
@@ -866,7 +856,11 @@ function GroupPricingTables({
                 )}
               </CardDescription>
             </div>
-            <Button onClick={addRechargeRow} size='sm' className='sm:self-start'>
+            <Button
+              onClick={addRechargeRow}
+              size='sm'
+              className='sm:self-start'
+            >
               <Plus className='mr-2 h-4 w-4' />
               {t('Add group')}
             </Button>
@@ -881,18 +875,14 @@ function GroupPricingTables({
                     <TableHead className='min-w-32'>
                       {t('Group name')}
                     </TableHead>
-                    <TableHead className='w-28'>
-                      {t('Top-up ratio')}
-                    </TableHead>
+                    <TableHead className='w-28'>{t('Top-up ratio')}</TableHead>
                     <TableHead className='w-24 text-center'>
                       {t('Admin only')}
                     </TableHead>
                     <TableHead className='w-24 text-center'>
                       {t('Auto upgrade')}
                     </TableHead>
-                    <TableHead className='w-32'>
-                      {t('Threshold (¥)')}
-                    </TableHead>
+                    <TableHead className='w-32'>{t('Threshold ($)')}</TableHead>
                     <TableHead className='min-w-40'>
                       {t('Description')}
                     </TableHead>

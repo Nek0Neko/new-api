@@ -6,6 +6,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting"
 
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -83,6 +84,21 @@ func moneyToCents(money float64) int64 {
 		return 0
 	}
 	return int64(money * 100)
+}
+
+// quotaToCents converts a redemption-code Quota (token units, where
+// QuotaPerUnit tokens == 1 USD) into USD cents for MaybeUpgradeUserGroup.
+// Mirrors moneyToCents so redemption-code top-ups feed the same lifetime
+// accumulator that paid gateways do (Stripe / Creem also book USD cents).
+// Negative or zero quota — and a misconfigured QuotaPerUnit — return 0.
+func quotaToCents(quota int) int64 {
+	if quota <= 0 || common.QuotaPerUnit <= 0 {
+		return 0
+	}
+	return decimal.NewFromInt(int64(quota)).
+		Mul(decimal.NewFromInt(100)).
+		Div(decimal.NewFromFloat(common.QuotaPerUnit)).
+		IntPart()
 }
 
 // pickUpgradeGroup returns the highest-threshold auto_upgrade group whose

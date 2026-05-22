@@ -545,7 +545,7 @@ function VipTierHint({ topupInfo }: { topupInfo: TopupInfo | null }) {
               </span>
             </span>
             <span className='text-muted-foreground'>
-              {t('Top up ¥{{remaining}} more to upgrade', {
+              {t('Top up ${{remaining}} more to upgrade', {
                 remaining: (tier.remaining_cent / 100).toFixed(2),
               })}
             </span>
@@ -559,8 +559,8 @@ function VipTierHint({ topupInfo }: { topupInfo: TopupInfo | null }) {
             className='h-1.5'
           />
           <div className='text-muted-foreground flex justify-between text-[10px] sm:text-xs'>
-            <span>¥{(totalCent / 100).toFixed(2)}</span>
-            <span>¥{(tier.threshold_cent / 100).toFixed(2)}</span>
+            <span>${(totalCent / 100).toFixed(2)}</span>
+            <span>${(tier.threshold_cent / 100).toFixed(2)}</span>
           </div>
         </div>
       ) : (

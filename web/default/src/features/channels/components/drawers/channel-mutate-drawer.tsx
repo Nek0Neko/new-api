@@ -618,9 +618,7 @@ export function ChannelMutateDrawer({
       // Use the server-configured default channel group when available so the
       // pre-selected group matches admin's actual /api/group config instead of
       // a hardcoded "default". See controller/group.go.
-      form.reset(
-        createChannelFormDefaults(groupsData?.default_channel_group)
-      )
+      form.reset(createChannelFormDefaults(groupsData?.default_channel_group))
       setAdvancedSettingsOpen(false)
       initialModelsRef.current = []
       initialModelMappingRef.current = ''
@@ -1072,9 +1070,7 @@ export function ChannelMutateDrawer({
     (v: boolean) => {
       onOpenChange(v)
       if (!v) {
-        form.reset(
-          createChannelFormDefaults(groupsData?.default_channel_group)
-        )
+        form.reset(createChannelFormDefaults(groupsData?.default_channel_group))
         setAdvancedSettingsOpen(false)
       }
     },
@@ -3389,7 +3385,9 @@ export function ChannelMutateDrawer({
         redirectSourceModels={redirectModelKeyList}
         customFetcher={!isEditing ? createModeFetcher : undefined}
         existingModelsOverride={
-          !isEditing ? parseModelsString(form.getValues('models') || '') : undefined
+          !isEditing
+            ? parseModelsString(form.getValues('models') || '')
+            : undefined
         }
       />
 
