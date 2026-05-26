@@ -806,23 +806,23 @@ function GroupPricingTables({
                           </div>
                         </TableCell>
                         <TableCell>
-                          {row.selectable ? (
-                            <Input
-                              value={row.description}
-                              placeholder={t('Group description')}
-                              onChange={(event) =>
-                                updateRow(
-                                  row._id,
-                                  'description',
-                                  event.target.value
+                          <Input
+                            value={row.description}
+                            placeholder={t('Group description')}
+                            onChange={(event) => {
+                              emitRows(
+                                rows.map((r) =>
+                                  r._id === row._id
+                                    ? {
+                                        ...r,
+                                        selectable: true,
+                                        description: event.target.value,
+                                      }
+                                    : r
                                 )
-                              }
-                            />
-                          ) : (
-                            <span className='text-muted-foreground px-3 text-sm'>
-                              -
-                            </span>
-                          )}
+                              )
+                            }}
+                          />
                         </TableCell>
                         <TableCell className='text-right'>
                           <Button
