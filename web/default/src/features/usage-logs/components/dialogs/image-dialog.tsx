@@ -66,7 +66,7 @@ export function ImageDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-3xl'>
+      <DialogContent className='sm:max-w-4xl lg:max-w-6xl'>
         <DialogHeader>
           <DialogTitle>{t('Image Preview')}</DialogTitle>
           <DialogDescription>
@@ -76,9 +76,9 @@ export function ImageDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className='max-h-[600px]'>
+        <ScrollArea className='max-h-[80vh]'>
           <div className='py-4'>
-            <div className='bg-muted/50 relative flex min-h-[300px] items-center justify-center rounded-lg border'>
+            <div className='bg-muted/50 relative flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-lg border'>
               {/* Skeleton - show when loading or error */}
               {(isLoading || hasError) && (
                 <Skeleton className='absolute inset-0 h-full w-full rounded-lg' />
@@ -88,7 +88,7 @@ export function ImageDialog({
               <img
                 src={imageUrl}
                 alt={t('Generated image')}
-                className={`max-h-[550px] w-full rounded-lg object-contain ${
+                className={`block h-auto max-h-[70vh] w-auto max-w-full rounded-lg object-contain ${
                   isLoading || hasError ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={handleImageLoad}
