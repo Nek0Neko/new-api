@@ -33,6 +33,7 @@ export const userFormSchema = z.object({
   quota_dollars: z.number().min(0).optional(),
   group: z.string().optional(),
   remark: z.string().optional(),
+  consumption_groups: z.array(z.string()).optional(),
 })
 
 export type UserFormValues = z.infer<typeof userFormSchema>
@@ -49,6 +50,7 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
   quota_dollars: 0,
   group: DEFAULT_GROUP,
   remark: '',
+  consumption_groups: [],
 }
 
 // ============================================================================
@@ -75,6 +77,11 @@ export function transformFormDataToPayload(
     // For update: quota is adjusted atomically via /api/user/manage, not sent here
     payload.group = data.group
     payload.remark = data.remark || undefined
+    // Always send the array (even when empty) on update so the admin can
+    // explicitly clear an allowlist — the backend distinguishes "absent"
+    // (preserve existing) from "empty array" (clear). See PR1 in
+    // controller/user.go consumptionGroupsFieldPresent.
+    payload.consumption_groups = data.consumption_groups ?? []
     payload.id = userId
   }
 
@@ -93,5 +100,6 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     quota_dollars: quotaUnitsToDollars(user.quota),
     group: user.group || DEFAULT_GROUP,
     remark: user.remark || '',
+    consumption_groups: user.consumption_groups ?? [],
   }
 }

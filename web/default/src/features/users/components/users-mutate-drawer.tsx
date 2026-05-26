@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MultiSelect } from '@/components/multi-select'
 import {
   Select,
   SelectContent,
@@ -316,7 +317,7 @@ export function UsersMutateDrawer({
                     name='group'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('Group')}</FormLabel>
+                        <FormLabel>{t('Recharge group')}</FormLabel>
                         <Select
                           items={[
                             ...groups.map((group) => ({
@@ -342,6 +343,40 @@ export function UsersMutateDrawer({
                             </SelectGroup>
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          {t(
+                            'Drives the user-tier recharge multiplier (TopupGroupRatio). One value per user.'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='consumption_groups'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t('Allowed consumption groups')}
+                        </FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={groups.map((group) => ({
+                              value: group,
+                              label: group,
+                            }))}
+                            selected={field.value ?? []}
+                            onChange={field.onChange}
+                            placeholder={t('Select consumption groups...')}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Channel groups this user can pick when creating API keys. Leave empty to use tier defaults.'
+                          )}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

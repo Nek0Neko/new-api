@@ -3,6 +3,7 @@ package service
 import (
 	"strings"
 
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
@@ -47,6 +48,75 @@ func GetUserUsableGroups(userTier string) map[string]string {
 func GroupInUserUsableGroups(userGroup, groupName string) bool {
 	_, ok := GetUserUsableGroups(userGroup)[groupName]
 	return ok
+}
+
+// GetUserUsableGroupsForUser returns the channel groups a specific user may
+// currently use. Resolution rules:
+//
+//  1. If user.ConsumptionGroups holds an explicit allowlist (non-empty JSON
+//     array), only those groups are returned, further intersected with the
+//     current ratio_setting.GroupRatio so groups deleted by an admin since
+//     the allowlist was saved are silently dropped.
+//  2. Otherwise, fall back to tier-based resolution via GetUserUsableGroups
+//     so legacy users (and users the admin has not explicitly scoped)
+//     continue to inherit GroupSpecialUsableGroup rules.
+//
+// Description values are best-effort:
+//   - For groups present in the tier-based map, the tier description wins.
+//   - For groups in the explicit allowlist but absent from the tier map, the
+//     group name is used as the description placeholder (the admin opted in
+//     to that group by name, so we don't synthesize a fake label).
+func GetUserUsableGroupsForUser(user *model.User) map[string]string {
+	if user == nil {
+		return map[string]string{}
+	}
+	return resolveUsableGroups(user.Group, user.GetConsumptionGroupsList())
+}
+
+// GetUserUsableGroupsForUserCache mirrors GetUserUsableGroupsForUser but
+// operates on the cached UserBase surface so request-time middleware can
+// avoid a DB round-trip.
+func GetUserUsableGroupsForUserCache(cache *model.UserBase) map[string]string {
+	if cache == nil {
+		return map[string]string{}
+	}
+	return resolveUsableGroups(cache.Group, cache.GetConsumptionGroupsList())
+}
+
+// GroupInUserUsableGroupsForUserCache is the cache-friendly equivalent of
+// GroupInUserUsableGroups for middleware hot paths.
+func GroupInUserUsableGroupsForUserCache(cache *model.UserBase, groupName string) bool {
+	if cache == nil {
+		return false
+	}
+	_, ok := resolveUsableGroups(cache.Group, cache.GetConsumptionGroupsList())[groupName]
+	return ok
+}
+
+// resolveUsableGroups is the shared core for the per-user resolvers above.
+// Splitting it out avoids duplicating the allowlist-vs-fallback decision in
+// two call sites and keeps both helpers byte-for-byte consistent.
+func resolveUsableGroups(tier string, explicitAllowlist []string) map[string]string {
+	tierMap := GetUserUsableGroups(tier)
+	if len(explicitAllowlist) == 0 {
+		return tierMap
+	}
+
+	channelGroups := ratio_setting.GetGroupRatioCopy()
+	out := make(map[string]string, len(explicitAllowlist))
+	for _, name := range explicitAllowlist {
+		if _, valid := channelGroups[name]; !valid {
+			// Group was deleted from GroupRatio after the allowlist was
+			// saved; silently drop it so callers see a coherent picture.
+			continue
+		}
+		if desc, ok := tierMap[name]; ok {
+			out[name] = desc
+		} else {
+			out[name] = name
+		}
+	}
+	return out
 }
 
 // GetUserAutoGroup 根据用户分组获取自动分组设置

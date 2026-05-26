@@ -57,6 +57,9 @@ export const userSchema = z.object({
   last_login_at: z.number().optional(),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
+  // Explicit channel-group allowlist. When omitted/empty, the user inherits
+  // the tier-based defaults derived from `group`.
+  consumption_groups: z.array(z.string()).optional(),
 })
 export type User = z.infer<typeof userSchema>
 
@@ -104,6 +107,10 @@ export interface UserFormData {
   quota?: number // Only used when updating user
   group?: string // Only used when updating user
   remark?: string // Only used when updating user
+  // Explicit consumption-group allowlist. Sending an empty array clears the
+  // allowlist (reverts the user to the tier-default behavior); omitting the
+  // field preserves the stored value.
+  consumption_groups?: string[]
 }
 
 export type ManageUserAction =

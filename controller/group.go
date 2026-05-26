@@ -31,19 +31,25 @@ func GetGroups(c *gin.Context) {
 
 func GetUserGroups(c *gin.Context) {
 	usableGroups := make(map[string]map[string]interface{})
-	userGroup := ""
 	userId := c.GetInt("id")
-	userGroup, _ = model.GetUserGroup(userId, false)
-	userUsableGroups := service.GetUserUsableGroups(userGroup)
+	// Load the full user so per-user ConsumptionGroups allowlist is honored.
+	// Falls through to tier-based resolution when ConsumptionGroups is empty.
+	user, err := model.GetUserById(userId, false)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+	userUsableGroups := service.GetUserUsableGroupsForUser(user)
 	for groupName := range ratio_setting.GetGroupRatioCopy() {
-		// service.GetUserUsableGroups already strips admin-only groups for
-		// non-members, so absence here naturally enforces visibility.
 		desc, ok := userUsableGroups[groupName]
 		if !ok {
 			continue
 		}
 		usableGroups[groupName] = map[string]interface{}{
-			"ratio": service.GetUserGroupRatio(userGroup, groupName),
+			"ratio": service.GetUserGroupRatio(user.Group, groupName),
 			"desc":  desc,
 		}
 	}

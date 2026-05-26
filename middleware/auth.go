@@ -382,8 +382,11 @@ func TokenAuth() func(c *gin.Context) {
 		userGroup := userCache.Group
 		tokenGroup := token.Group
 		if tokenGroup != "" {
-			// check common.UserUsableGroups[userGroup]
-			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+			// Use the per-user resolver so an admin-assigned explicit
+			// consumption_groups allowlist is honored. The resolver falls
+			// back to tier-based logic when the user has no allowlist,
+			// matching legacy behavior.
+			if !service.GroupInUserUsableGroupsForUserCache(userCache, tokenGroup) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 				return
 			}

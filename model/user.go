@@ -42,6 +42,28 @@ type User struct {
 	UsedQuota        int            `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
 	RequestCount     int            `json:"request_count" gorm:"type:int;default:0;"`               // request number
 	Group            string         `json:"group" gorm:"type:varchar(64);default:'default'"`
+	// ConsumptionGroups is the canonical on-disk storage for the explicit
+	// channel-group allowlist (JSON array string). Hidden from the JSON
+	// wire format; the wire-format counterpart is ConsumptionGroupsList.
+	//
+	// Semantics:
+	//   - Empty string (""), "[]" or "null" → fall back to the tier-based
+	//     resolver (service.GetUserUsableGroups(Group)) so legacy users
+	//     continue to work unchanged after the column is added.
+	//   - Non-empty JSON array → explicit allowlist. Only groups in this list
+	//     are considered usable, further intersected with the current
+	//     ratio_setting.GroupRatio to filter out deprecated groups.
+	//
+	// The column type is text (not jsonb) to remain compatible with SQLite,
+	// MySQL >= 5.7.8, and PostgreSQL >= 9.6 simultaneously. All marshal /
+	// unmarshal goes through common.Marshal/Unmarshal per CLAUDE.md Rule 1.
+	ConsumptionGroups string `json:"-" gorm:"type:text;default:''"`
+	// ConsumptionGroupsList is the wire-format counterpart to
+	// ConsumptionGroups. It is not persisted by GORM (gorm:"-") and is
+	// populated on read via the AfterFind hook. On write paths, controllers
+	// translate the list into the on-disk JSON string via
+	// SetConsumptionGroupsList before saving.
+	ConsumptionGroupsList []string `json:"consumption_groups,omitempty" gorm:"-"`
 	AffCode          string         `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount         int            `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
 	AffQuota         int            `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
@@ -62,15 +84,101 @@ type User struct {
 
 func (user *User) ToBaseUser() *UserBase {
 	cache := &UserBase{
-		Id:       user.Id,
-		Group:    user.Group,
-		Quota:    user.Quota,
-		Status:   user.Status,
-		Username: user.Username,
-		Setting:  user.Setting,
-		Email:    user.Email,
+		Id:                user.Id,
+		Group:             user.Group,
+		ConsumptionGroups: user.ConsumptionGroups,
+		Quota:             user.Quota,
+		Status:            user.Status,
+		Username:          user.Username,
+		Setting:           user.Setting,
+		Email:             user.Email,
 	}
 	return cache
+}
+
+// GetConsumptionGroupsList returns the decoded allowlist. Prefer this over
+// reading ConsumptionGroupsList directly when the User was constructed
+// outside of GORM (e.g. cache rehydration, tests), since AfterFind has not
+// fired in those paths.
+func (user *User) GetConsumptionGroupsList() []string {
+	if len(user.ConsumptionGroupsList) > 0 {
+		return user.ConsumptionGroupsList
+	}
+	return decodeConsumptionGroups(user.ConsumptionGroups)
+}
+
+// SetConsumptionGroupsList writes the canonical JSON-array form into the
+// on-disk column AND keeps the wire-format field in sync so subsequent JSON
+// responses reflect the change without an intermediate DB round-trip.
+// Passing nil or an empty slice clears the allowlist (which triggers the
+// tier fallback on read).
+func (user *User) SetConsumptionGroupsList(groups []string) {
+	cleaned := sanitizeGroupList(groups)
+	user.ConsumptionGroups = encodeConsumptionGroups(cleaned)
+	user.ConsumptionGroupsList = cleaned
+}
+
+// AfterFind hydrates the wire-format ConsumptionGroupsList from the JSON
+// string stored on disk so JSON responses see the same shape the frontend
+// sent on write.
+func (user *User) AfterFind(tx *gorm.DB) error {
+	user.ConsumptionGroupsList = decodeConsumptionGroups(user.ConsumptionGroups)
+	return nil
+}
+
+// decodeConsumptionGroups parses the stored JSON string into a sanitized
+// slice. It is tolerant of legacy CSV-formatted values to avoid breaking
+// hand-edited rows.
+func decodeConsumptionGroups(raw string) []string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" || trimmed == "[]" || trimmed == "null" {
+		return nil
+	}
+	var list []string
+	if err := common.UnmarshalJsonStr(trimmed, &list); err != nil {
+		// Tolerate legacy CSV: "a,b , c"
+		list = strings.Split(trimmed, ",")
+	}
+	return sanitizeGroupList(list)
+}
+
+// encodeConsumptionGroups serializes a slice into the storage format,
+// returning "" when the input has no usable entries so the read path
+// detects "no explicit allowlist".
+func encodeConsumptionGroups(groups []string) string {
+	cleaned := sanitizeGroupList(groups)
+	if len(cleaned) == 0 {
+		return ""
+	}
+	b, err := common.Marshal(cleaned)
+	if err != nil {
+		common.SysLog("failed to marshal consumption groups: " + err.Error())
+		return ""
+	}
+	return string(b)
+}
+
+func sanitizeGroupList(groups []string) []string {
+	if len(groups) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(groups))
+	out := make([]string, 0, len(groups))
+	for _, g := range groups {
+		name := strings.TrimSpace(g)
+		if name == "" {
+			continue
+		}
+		if _, dup := seen[name]; dup {
+			continue
+		}
+		seen[name] = struct{}{}
+		out = append(out, name)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func (user *User) GetAccessToken() string {
@@ -536,10 +644,11 @@ func (user *User) Edit(updatePassword bool) error {
 
 	newUser := *user
 	updates := map[string]interface{}{
-		"username":     newUser.Username,
-		"display_name": newUser.DisplayName,
-		"group":        newUser.Group,
-		"remark":       newUser.Remark,
+		"username":           newUser.Username,
+		"display_name":       newUser.DisplayName,
+		"group":              newUser.Group,
+		"remark":             newUser.Remark,
+		"consumption_groups": newUser.ConsumptionGroups,
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password

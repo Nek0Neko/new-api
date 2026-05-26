@@ -15,13 +15,23 @@ import (
 
 // UserBase struct remains the same as it represents the cached data structure
 type UserBase struct {
-	Id       int    `json:"id"`
-	Group    string `json:"group"`
-	Email    string `json:"email"`
-	Quota    int    `json:"quota"`
-	Status   int    `json:"status"`
-	Username string `json:"username"`
-	Setting  string `json:"setting"`
+	Id    int    `json:"id"`
+	Group string `json:"group"`
+	// ConsumptionGroups is the raw JSON-array string copied verbatim from
+	// User.ConsumptionGroups. Decoded by GetConsumptionGroupsList. See the
+	// User.ConsumptionGroups doc-comment for fallback semantics.
+	ConsumptionGroups string `json:"consumption_groups"`
+	Email             string `json:"email"`
+	Quota             int    `json:"quota"`
+	Status            int    `json:"status"`
+	Username          string `json:"username"`
+	Setting           string `json:"setting"`
+}
+
+// GetConsumptionGroupsList mirrors User.GetConsumptionGroupsList for the
+// cache surface, so middleware can resolve usable groups without a DB hit.
+func (user *UserBase) GetConsumptionGroupsList() []string {
+	return decodeConsumptionGroups(user.ConsumptionGroups)
 }
 
 func (user *UserBase) WriteContext(c *gin.Context) {
@@ -106,13 +116,14 @@ func GetUserCache(userId int) (userCache *UserBase, err error) {
 
 	// Create cache object from user data
 	userCache = &UserBase{
-		Id:       user.Id,
-		Group:    user.Group,
-		Quota:    user.Quota,
-		Status:   user.Status,
-		Username: user.Username,
-		Setting:  user.Setting,
-		Email:    user.Email,
+		Id:                user.Id,
+		Group:             user.Group,
+		ConsumptionGroups: user.ConsumptionGroups,
+		Quota:             user.Quota,
+		Status:            user.Status,
+		Username:          user.Username,
+		Setting:           user.Setting,
+		Email:             user.Email,
 	}
 
 	return userCache, nil

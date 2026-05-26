@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -18,12 +19,43 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/QuantumNous/new-api/constant"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+// consumptionGroupsFieldPresent reports whether the JSON payload explicitly
+// includes the "consumption_groups" key. This is the only way to
+// distinguish "admin omitted the field, preserve existing value" from
+// "admin sent [], clear the allowlist".
+func consumptionGroupsFieldPresent(body []byte) bool {
+	var probe struct {
+		Raw json.RawMessage `json:"consumption_groups"`
+	}
+	if err := json.Unmarshal(body, &probe); err != nil {
+		return false
+	}
+	return len(probe.Raw) > 0
+}
+
+// validateConsumptionGroups verifies every entry exists in the live
+// GroupRatio map. Returns an empty string on success, or a Chinese error
+// message intended for direct surfacing to the admin UI.
+func validateConsumptionGroups(groups []string) string {
+	for _, g := range groups {
+		name := strings.TrimSpace(g)
+		if name == "" {
+			continue
+		}
+		if !ratio_setting.ContainsGroupRatio(name) {
+			return fmt.Sprintf("分组 %s 不存在或已被弃用", name)
+		}
+	}
+	return ""
+}
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -602,9 +634,14 @@ func GetUserModelsTagged(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
 	var updatedUser model.User
-	err := json.NewDecoder(c.Request.Body).Decode(&updatedUser)
-	if err != nil || updatedUser.Id == 0 {
+	if err := json.Unmarshal(bodyBytes, &updatedUser); err != nil || updatedUser.Id == 0 {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
@@ -629,6 +666,20 @@ func UpdateUser(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserCannotCreateHigherLevel)
 		return
 	}
+
+	// Honor the explicit allowlist only when the admin actually sent the
+	// field. Otherwise carry forward the existing on-disk value so Edit()'s
+	// map-based Updates does not unintentionally wipe the column.
+	if consumptionGroupsFieldPresent(bodyBytes) {
+		if msg := validateConsumptionGroups(updatedUser.ConsumptionGroupsList); msg != "" {
+			common.ApiErrorMsg(c, msg)
+			return
+		}
+		updatedUser.SetConsumptionGroupsList(updatedUser.ConsumptionGroupsList)
+	} else {
+		updatedUser.ConsumptionGroups = originUser.ConsumptionGroups
+	}
+
 	if updatedUser.Password == "$I_LOVE_U" {
 		updatedUser.Password = "" // rollback to what it should be
 	}
@@ -864,10 +915,19 @@ func DeleteSelf(c *gin.Context) {
 }
 
 func CreateUser(c *gin.Context) {
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
 	var user model.User
-	err := json.NewDecoder(c.Request.Body).Decode(&user)
+	if err := json.Unmarshal(bodyBytes, &user); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
 	user.Username = strings.TrimSpace(user.Username)
-	if err != nil || user.Username == "" || user.Password == "" {
+	if user.Username == "" || user.Password == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
@@ -889,6 +949,16 @@ func CreateUser(c *gin.Context) {
 		Password:    user.Password,
 		DisplayName: user.DisplayName,
 		Role:        user.Role, // 保持管理员设置的角色
+		Group:       strings.TrimSpace(user.Group),
+	}
+	// Allow admins to seed an allowlist at user creation time. Absence of the
+	// field keeps the new user on the default tier-fallback behavior.
+	if consumptionGroupsFieldPresent(bodyBytes) {
+		if msg := validateConsumptionGroups(user.ConsumptionGroupsList); msg != "" {
+			common.ApiErrorMsg(c, msg)
+			return
+		}
+		cleanUser.SetConsumptionGroupsList(user.ConsumptionGroupsList)
 	}
 	if err := cleanUser.Insert(0); err != nil {
 		common.ApiError(c, err)
