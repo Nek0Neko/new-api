@@ -161,8 +161,7 @@ function ImageGenItemCard({
           )
           return (
             <div className='flex flex-wrap gap-3'>
-              {item.images.map((_image, idx) => {
-                const entry = resolved[idx]
+              {resolved.map((entry, idx) => {
                 if (!entry) return null
                 const src = entry.src
                 const alt = entry.alt
