@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState } from 'react'
+import { MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,6 +32,7 @@ import {
 import {
   Conversation,
   ConversationContent,
+  ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import { Loader } from '@/components/ai-elements/loader'
@@ -99,6 +101,18 @@ export function PlaygroundChat({
     () => editText !== originalText,
     [editText, originalText]
   )
+  if (messages.length === 0) {
+    return (
+      <Conversation>
+        <ConversationContent className='flex h-full flex-col p-0'>
+          <ConversationEmptyState
+            icon={<MessageSquare className='size-12' aria-hidden='true' />}
+          />
+        </ConversationContent>
+      </Conversation>
+    )
+  }
+
   return (
     <Conversation>
       {/* Remove outer padding; apply padding to inner centered container to align with input */}
