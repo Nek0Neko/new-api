@@ -24,6 +24,7 @@ import { PlaygroundInput } from './components/playground-input'
 import { usePlaygroundState, useChatHandler } from './hooks'
 import { createUserMessage, createLoadingAssistantMessage } from './lib'
 import { filterModelsByTag } from './shared/filter-models'
+import { PlaygroundLoading } from './shared/loading'
 import { TokenPicker } from './shared/token-picker'
 import { useSelectedToken } from './shared/use-selected-token'
 import type { Message as MessageType } from './types'
@@ -33,6 +34,7 @@ export function ChatPlayground() {
     config,
     parameterEnabled,
     messages,
+    isHydrated,
     models,
     groups,
     updateMessages,
@@ -95,6 +97,9 @@ export function ChatPlayground() {
   }, [groupsData, setGroups, config.group, updateConfig])
 
   const handleSendMessage = (text: string) => {
+    // Block sends until history has hydrated, otherwise we'd append to an
+    // empty list and persist over the saved conversation.
+    if (!isHydrated) return
     const userMessage = createUserMessage(text)
     const assistantMessage = createLoadingAssistantMessage()
 
@@ -170,23 +175,27 @@ export function ChatPlayground() {
       </div>
 
       <div className='flex flex-1 flex-col overflow-hidden'>
-        <PlaygroundChat
-          messages={messages}
-          onCopyMessage={handleCopyMessage}
-          onRegenerateMessage={handleRegenerateMessage}
-          onEditMessage={handleEditMessage}
-          onDeleteMessage={handleDeleteMessage}
-          isGenerating={isGenerating}
-          editingKey={editingMessageKey}
-          onCancelEdit={handleEditOpenChange}
-          onSaveEdit={(newContent) => applyEdit(newContent, false)}
-          onSaveEditAndSubmit={(newContent) => applyEdit(newContent, true)}
-        />
+        {isHydrated ? (
+          <PlaygroundChat
+            messages={messages}
+            onCopyMessage={handleCopyMessage}
+            onRegenerateMessage={handleRegenerateMessage}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
+            isGenerating={isGenerating}
+            editingKey={editingMessageKey}
+            onCancelEdit={handleEditOpenChange}
+            onSaveEdit={(newContent) => applyEdit(newContent, false)}
+            onSaveEditAndSubmit={(newContent) => applyEdit(newContent, true)}
+          />
+        ) : (
+          <PlaygroundLoading />
+        )}
       </div>
 
       <div className='mx-auto w-full max-w-4xl'>
         <PlaygroundInput
-          disabled={isGenerating}
+          disabled={isGenerating || !isHydrated}
           groups={groups}
           groupValue={config.group}
           isGenerating={isGenerating}

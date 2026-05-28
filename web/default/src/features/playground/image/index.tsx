@@ -43,6 +43,7 @@ import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
 import { filterModelsByTag } from '../shared/filter-models'
 import { ItemActions } from '../shared/item-actions'
+import { PlaygroundLoading } from '../shared/loading'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
@@ -280,43 +281,49 @@ export function ImagePlayground() {
             </div>
           )}
 
-          {items.length === 0 && hasKey && (
-            <div className='text-muted-foreground flex h-75 flex-col items-center justify-center gap-2 text-center'>
-              <ImageIcon className='size-10' />
-              <p className='text-sm'>
-                {t('Describe the image you want to generate below.')}
-              </p>
-            </div>
-          )}
+          {!isHydrated ? (
+            <PlaygroundLoading />
+          ) : (
+            <>
+              {items.length === 0 && hasKey && (
+                <div className='text-muted-foreground flex h-75 flex-col items-center justify-center gap-2 text-center'>
+                  <ImageIcon className='size-10' />
+                  <p className='text-sm'>
+                    {t('Describe the image you want to generate below.')}
+                  </p>
+                </div>
+              )}
 
-          {items.length > 0 && (
-            <div className='flex items-center justify-between'>
-              <p className='text-muted-foreground text-xs'>
-                {t('{{count}} generation(s)', { count: items.length })}
-              </p>
-              <Button
-                size='sm'
-                variant='ghost'
-                onClick={clearHistory}
-                disabled={isGenerating}
-              >
-                <Trash2Icon className='size-4' />
-                {t('Clear history')}
-              </Button>
-            </div>
-          )}
+              {items.length > 0 && (
+                <div className='flex items-center justify-between'>
+                  <p className='text-muted-foreground text-xs'>
+                    {t('{{count}} generation(s)', { count: items.length })}
+                  </p>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    onClick={clearHistory}
+                    disabled={isGenerating}
+                  >
+                    <Trash2Icon className='size-4' />
+                    {t('Clear history')}
+                  </Button>
+                </div>
+              )}
 
-          {items.map((item) => (
-            <ImageGenItemCard
-              key={item.id}
-              item={item}
-              onDelete={removeItem}
-              onEdit={handleEdit}
-              onRegenerate={handleRegenerate}
-              onPreview={handlePreview}
-              disableRegenerate={isGenerating || !hasKey}
-            />
-          ))}
+              {items.map((item) => (
+                <ImageGenItemCard
+                  key={item.id}
+                  item={item}
+                  onDelete={removeItem}
+                  onEdit={handleEdit}
+                  onRegenerate={handleRegenerate}
+                  onPreview={handlePreview}
+                  disableRegenerate={isGenerating || !hasKey}
+                />
+              ))}
+            </>
+          )}
         </div>
       </div>
 

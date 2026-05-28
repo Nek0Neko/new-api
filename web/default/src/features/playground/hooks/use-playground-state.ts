@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { DEFAULT_CONFIG, DEFAULT_PARAMETER_ENABLED } from '../constants'
 import {
   loadConfig,
@@ -26,6 +26,7 @@ import {
   loadMessages,
   saveMessages,
 } from '../lib'
+import { scheduleAfterPaint } from '../shared/schedule'
 import type {
   Message,
   PlaygroundConfig,
@@ -51,9 +52,23 @@ export function usePlaygroundState() {
     }
   )
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    return loadMessages() || []
-  })
+  // Conversation history can hold multi-MB base64 vision images. Parsing it
+  // inside a useState initializer would run during render and block first
+  // paint. Start empty and hydrate after mount so the UI appears instantly.
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  useEffect(() => {
+    // Read/parse after first paint so the (potentially multi-MB) payload is
+    // handled off the render path — the panel shows its loading state until
+    // this resolves.
+    return scheduleAfterPaint(() => {
+      const loaded = loadMessages() || []
+      // Guard against clobbering anything the user added before hydration.
+      setMessages((current) => (current.length === 0 ? loaded : current))
+      setIsHydrated(true)
+    })
+  }, [])
 
   const [models, setModels] = useState<ModelOption[]>([])
   const [groups, setGroups] = useState<GroupOption[]>([])
@@ -113,6 +128,7 @@ export function usePlaygroundState() {
     config,
     parameterEnabled,
     messages,
+    isHydrated,
     models,
     groups,
 

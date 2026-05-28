@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
+import { scheduleAfterPaint } from '../shared/schedule'
 import { fetchVideoTask, submitVideo } from './api'
 import {
   loadVideoConfig,
@@ -85,7 +86,10 @@ function normalizeStatus(status: string): VideoTaskItem['status'] {
 
 export function useVideoPlayground(apiKey: string | null) {
   const [config, setConfig] = useState<VideoConfig>(() => loadVideoConfig())
-  const [items, setItems] = useState<VideoTaskItem[]>(() => loadVideoItems())
+  // Start empty and hydrate after first paint (see effect below) so parsing
+  // the saved list never runs during render.
+  const [items, setItems] = useState<VideoTaskItem[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
 
   const itemsRef = useRef<VideoTaskItem[]>(items)
   itemsRef.current = items
@@ -184,7 +188,7 @@ export function useVideoPlayground(apiKey: string | null) {
                   format: response.format ?? it.format,
                   errorMessage:
                     status === 'failed'
-                      ? response.error?.message ?? 'Task failed'
+                      ? (response.error?.message ?? 'Task failed')
                       : it.errorMessage,
                 }
               : it
@@ -220,16 +224,27 @@ export function useVideoPlayground(apiKey: string | null) {
     [pollOnce]
   )
 
-  // Resume polling for any in-flight tasks on mount; clean up on unmount.
+  // Hydrate persisted history after first paint, then resume polling for any
+  // in-flight tasks. Reading/parsing here (post-paint) instead of in the
+  // useState initializer keeps the heavy work out of the render path.
   useEffect(() => {
     stoppedRef.current = false
-    itemsRef.current.forEach((it) => {
-      if (it.taskId && ACTIVE_STATUSES.includes(it.status)) {
-        ensurePolling(it.id)
-      }
+    const cancel = scheduleAfterPaint(() => {
+      const loaded = loadVideoItems()
+      // Preserve anything the user submitted before hydration completed.
+      setItems((current) =>
+        current.length === 0 ? loaded : [...current, ...loaded]
+      )
+      loaded.forEach((it) => {
+        if (it.taskId && ACTIVE_STATUSES.includes(it.status)) {
+          ensurePolling(it.id)
+        }
+      })
+      setIsHydrated(true)
     })
     const timers = pollTimersRef.current
     return () => {
+      cancel()
       stoppedRef.current = true
       Object.keys(timers).forEach((id) => stopPolling(id))
     }
@@ -317,6 +332,7 @@ export function useVideoPlayground(apiKey: string | null) {
   return {
     config,
     items,
+    isHydrated,
     isSubmitting,
     updateConfig,
     submit,
