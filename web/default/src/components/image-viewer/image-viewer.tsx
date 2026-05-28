@@ -86,8 +86,10 @@ export function ImageViewer({
   const count = images.length
   const hasMultiple = count > 1
   const current = count > 0 ? images[Math.min(activeIndex, count - 1)] : undefined
+  const hasImage = current !== undefined
 
-  // Keep internal index in sync with the controlled prop.
+  // Controlled usage: parent drives the active image via `index` and updates it
+  // from onIndexChange. When `index` is omitted, the viewer manages it internally.
   useEffect(() => {
     if (index !== undefined) setActiveIndex(index)
   }, [index])
@@ -145,7 +147,7 @@ export function ImageViewer({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [open, zoomAtPoint])
+  }, [open, zoomAtPoint, hasImage])
 
   const canPan = transform.scale > 1
 
