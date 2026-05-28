@@ -1799,6 +1799,8 @@
     "Filter...": "Filter...",
     "Filters": "Filters",
     "Filters active": "Filters active",
+    "Flip horizontal": "Flip horizontal",
+    "Flip vertical": "Flip vertical",
     "Final Consumed": "Final Consumed",
     "Final cost = base × multiplier when conditions match": "Final cost = base × multiplier when conditions match",
     "Final price multiplier (0.95 = 5% discount": "Final price multiplier (0.95 = 5% discount",
@@ -2586,6 +2588,7 @@
     "Next page": "Next page",
     "Next reset": "Next reset",
     "Next tier:": "Next tier:",
+    "Next image": "Next image",
     "No": "No",
     "No About Content Set": "No About Content Set",
     "No Active": "No Active",
@@ -3142,6 +3145,7 @@
     "Previous": "Previous",
     "Previous branch": "Previous branch",
     "Previous page": "Previous page",
+    "Previous image": "Previous image",
     "Price": "Price",
     "Price ($/1K calls)": "Price ($/1K calls)",
     "Price (local currency / USD)": "Price (local currency / USD)",
@@ -3527,6 +3531,8 @@
     "Routing Strategy": "Routing Strategy",
     "Routing uptime": "Routing uptime",
     "Rows per page": "Rows per page",
+    "Rotate left": "Rotate left",
+    "Rotate right": "Rotate right",
     "RPM": "RPM",
     "RPM = requests per minute, TPM = tokens per minute, RPD = requests per day. Limits apply per token group.": "RPM = requests per minute, TPM = tokens per minute, RPD = requests per day. Limits apply per token group.",
     "RSA Private Key (Production)": "RSA Private Key (Production)",
@@ -4683,6 +4689,9 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom",
+    "Zoom in": "Zoom in",
+    "Zoom out": "Zoom out",
     "Partial Images": "Partial Images",
-    "Streaming…": "Streaming…"  }
+    "Streaming…": "Streaming…"
+  }
 }
