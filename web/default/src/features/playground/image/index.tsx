@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { ImageViewer, type ImageViewerItem } from '@/components/image-viewer'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -84,7 +84,7 @@ function ImageGenItemCard({
   onDelete: (id: string) => void
   onEdit: (item: ImageGenerationItem) => void
   onRegenerate: (item: ImageGenerationItem) => void
-  onPreview: (src: string, alt: string) => void
+  onPreview: (images: ImageViewerItem[], index: number) => void
   disableRegenerate: boolean
 }) {
   const { t } = useTranslation()
@@ -140,46 +140,70 @@ function ImageGenItemCard({
         </div>
       )}
 
-      {item.status === 'success' && item.images.length > 0 && (
-        <div className='flex flex-wrap gap-3'>
-          {item.images.map((image, idx) => {
-            const src = resolveImageSrc(image)
-            if (!src) return null
-            const alt = image.revised_prompt ?? item.prompt
-            return (
-              <div
-                key={`${item.id}-${idx}`}
-                className='group bg-muted relative size-28 overflow-hidden rounded-lg sm:size-32'
-              >
-                <button
-                  type='button'
-                  onClick={() => onPreview(src, alt)}
-                  className='focus-visible:ring-ring block h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
-                  aria-label={t('Preview')}
-                >
-                  <img
-                    alt={alt}
-                    src={src}
-                    className='block h-full w-full object-cover'
-                    loading='lazy'
-                  />
-                </button>
-                <a
-                  href={src}
-                  download={`image-${item.id}-${idx}.png`}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  onClick={(e) => e.stopPropagation()}
-                  className='bg-background/80 text-foreground absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
-                  aria-label={t('Download')}
-                >
-                  <DownloadIcon className='size-3.5' />
-                </a>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      {item.status === 'success' &&
+        item.images.length > 0 &&
+        (() => {
+          const resolved: (ImageViewerItem | null)[] = item.images.map(
+            (image, idx) => {
+              const src = resolveImageSrc(image)
+              return src
+                ? {
+                    src,
+                    alt: image.revised_prompt ?? item.prompt,
+                    caption: image.revised_prompt ?? item.prompt,
+                    downloadName: `image-${item.id}-${idx}.png`,
+                  }
+                : null
+            }
+          )
+          const viewerImages = resolved.filter(
+            (x): x is ImageViewerItem => x !== null
+          )
+          return (
+            <div className='flex flex-wrap gap-3'>
+              {item.images.map((_image, idx) => {
+                const entry = resolved[idx]
+                if (!entry) return null
+                const src = entry.src
+                const alt = entry.alt
+                const previewIndex = resolved
+                  .slice(0, idx)
+                  .filter(Boolean).length
+                return (
+                  <div
+                    key={`${item.id}-${idx}`}
+                    className='group bg-muted relative size-28 overflow-hidden rounded-lg sm:size-32'
+                  >
+                    <button
+                      type='button'
+                      onClick={() => onPreview(viewerImages, previewIndex)}
+                      className='focus-visible:ring-ring block h-full w-full cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
+                      aria-label={t('Preview')}
+                    >
+                      <img
+                        alt={alt}
+                        src={src}
+                        className='block h-full w-full object-cover'
+                        loading='lazy'
+                      />
+                    </button>
+                    <a
+                      href={src}
+                      download={`image-${item.id}-${idx}.png`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      onClick={(e) => e.stopPropagation()}
+                      className='bg-background/80 text-foreground absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-md opacity-0 backdrop-blur transition-opacity group-hover:opacity-100'
+                      aria-label={t('Download')}
+                    >
+                      <DownloadIcon className='size-3.5' />
+                    </a>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
 
       <div className='mt-3 flex items-center justify-end'>
         <ItemActions
@@ -203,13 +227,17 @@ export function ImagePlayground() {
   const [prompt, setPrompt] = useState('')
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
-  const [preview, setPreview] = useState<{ src: string; alt: string } | null>(
-    null
-  )
+  const [preview, setPreview] = useState<{
+    images: ImageViewerItem[]
+    index: number
+  } | null>(null)
 
-  const handlePreview = useCallback((src: string, alt: string) => {
-    setPreview({ src, alt })
-  }, [])
+  const handlePreview = useCallback(
+    (images: ImageViewerItem[], index: number) => {
+      setPreview({ images, index })
+    },
+    []
+  )
 
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
     queryKey: ['playground-models'],
@@ -481,25 +509,17 @@ export function ImagePlayground() {
         </div>
       </div>
 
-      <Dialog
+      <ImageViewer
+        images={preview?.images ?? []}
+        index={preview?.index ?? 0}
+        onIndexChange={(i) =>
+          setPreview((p) => (p ? { ...p, index: i } : p))
+        }
         open={!!preview}
         onOpenChange={(open) => {
           if (!open) setPreview(null)
         }}
-      >
-        <DialogContent
-          className='max-h-[95vh] w-auto max-w-[95vw] grid-cols-1 bg-transparent p-0 ring-0 sm:max-w-none'
-          showCloseButton={false}
-        >
-          {preview && (
-            <img
-              alt={preview.alt}
-              src={preview.src}
-              className='block max-h-[95vh] max-w-[95vw] rounded-lg object-contain shadow-2xl'
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      />
     </div>
   )
 }
