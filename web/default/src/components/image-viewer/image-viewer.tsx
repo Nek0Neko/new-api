@@ -16,8 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   ChevronLeftIcon,
@@ -91,6 +97,7 @@ export function ImageViewer({
   // Controlled usage: parent drives the active image via `index` and updates it
   // from onIndexChange. When `index` is omitted, the viewer manages it internally.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (index !== undefined) setActiveIndex(index)
   }, [index])
 
@@ -98,6 +105,7 @@ export function ImageViewer({
   useEffect(() => {
     if (!open) return
     reset()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoading(true)
     setHasError(false)
   }, [open, activeIndex, current?.src, reset])
