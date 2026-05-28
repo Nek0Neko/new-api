@@ -16,17 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ImageViewer } from '@/components/image-viewer'
 
 interface ImageDialogProps {
   imageUrl: string
@@ -42,79 +33,23 @@ export function ImageDialog({
   onOpenChange,
 }: ImageDialogProps) {
   const { t } = useTranslation()
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
-
-  // Reset loading state when dialog opens or image URL changes
-  const handleOpenChange = (newOpen: boolean) => {
-    if (newOpen) {
-      setIsLoading(true)
-      setHasError(false)
-    }
-    onOpenChange(newOpen)
-  }
-
-  const handleImageLoad = () => {
-    setIsLoading(false)
-    setHasError(false)
-  }
-
-  const handleImageError = () => {
-    setIsLoading(false)
-    setHasError(true)
-  }
+  const caption = taskId
+    ? `${t('Task ID:')} ${taskId}  ·  ${imageUrl}`
+    : imageUrl
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-4xl lg:max-w-6xl'>
-        <DialogHeader>
-          <DialogTitle>{t('Image Preview')}</DialogTitle>
-          <DialogDescription>
-            {taskId
-              ? `${t('Task ID:')} ${taskId}`
-              : t('View the generated image')}
-          </DialogDescription>
-        </DialogHeader>
-
-        <ScrollArea className='max-h-[80vh]'>
-          <div className='py-4'>
-            <div className='bg-muted/50 relative flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-lg border'>
-              {/* Skeleton - show when loading or error */}
-              {(isLoading || hasError) && (
-                <Skeleton className='absolute inset-0 h-full w-full rounded-lg' />
-              )}
-
-              {/* Actual Image */}
-              <img
-                src={imageUrl}
-                alt={t('Generated image')}
-                className={`block h-auto max-h-[70vh] w-auto max-w-full rounded-lg object-contain ${
-                  isLoading || hasError ? 'opacity-0' : 'opacity-100'
-                }`}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                loading='lazy'
-              />
-
-              {/* Error text overlay (shown on skeleton) */}
-              {hasError && (
-                <div className='absolute inset-0 flex items-center justify-center'>
-                  <p className='text-muted-foreground text-sm'>
-                    {t('Failed to load image')}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Image URL */}
-            <div className='bg-muted mt-4 rounded-md p-3'>
-              <p className='text-muted-foreground font-mono text-xs break-all'>
-                {imageUrl}
-              </p>
-            </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    <ImageViewer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('Image Preview')}
+      images={[
+        {
+          src: imageUrl,
+          alt: t('Generated image'),
+          caption,
+          downloadName: taskId ? `${taskId}.png` : 'image.png',
+        },
+      ]}
+    />
   )
 }
