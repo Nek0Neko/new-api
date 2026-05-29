@@ -448,6 +448,9 @@ export function MaskEditor({
         window.cancelAnimationFrame(previewFrameRef.current)
         previewFrameRef.current = null
       }
+      undoStackRef.current = []
+      redoStackRef.current = []
+      syncHistoryState()
     }
   }, [
     open,
@@ -829,6 +832,7 @@ export function MaskEditor({
         <div
           ref={stageRef}
           className='bg-muted/30 relative flex h-[55vh] items-center justify-center overflow-hidden rounded-lg p-2'
+          style={{ containerType: 'size' }}
         >
           <div
             ref={baseFrameRef}
