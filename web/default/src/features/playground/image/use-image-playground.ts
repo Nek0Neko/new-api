@@ -18,7 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
-import { generateImage, generateImageStream } from './api'
+import {
+  editImage,
+  editImageStream,
+  generateImage,
+  generateImageStream,
+} from './api'
 import {
   clearImageItems,
   loadImageConfig,
@@ -28,8 +33,10 @@ import {
 } from './storage'
 import type {
   ImageConfig,
+  ImageEditRequest,
   ImageGenerationItem,
   ImageGenerationRequest,
+  ImageInputFile,
 } from './types'
 
 function generateId() {
@@ -57,6 +64,26 @@ export function useImagePlayground(apiKey: string | null) {
   const [items, setItems] = useState<ImageGenerationItem[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [inputImages, setInputImages] = useState<ImageInputFile[]>([])
+  const [maskImage, setMaskImage] = useState<ImageInputFile | null>(null)
+
+  const addInputImages = useCallback((files: ImageInputFile[]) => {
+    setInputImages((prev) => [...prev, ...files])
+  }, [])
+
+  const removeInputImage = useCallback((id: string) => {
+    setInputImages((prev) => prev.filter((img) => img.id !== id))
+  }, [])
+
+  const clearInputs = useCallback(() => {
+    setInputImages([])
+    setMaskImage(null)
+  }, [])
+
+  // A mask only makes sense with a primary image; drop it once images are gone.
+  useEffect(() => {
+    if (inputImages.length === 0 && maskImage) setMaskImage(null)
+  }, [inputImages, maskImage])
 
   // Mirror the latest apiKey in a ref so callbacks always see the current
   // value without recreating closures.
@@ -116,20 +143,29 @@ export function useImagePlayground(apiKey: string | null) {
   )
 
   const submit = useCallback(
-    async (prompt: string) => {
+    async (
+      prompt: string,
+      override?: { inputImages: ImageInputFile[]; maskImage: ImageInputFile | null }
+    ) => {
       const trimmed = prompt.trim()
       const key = apiKeyRef.current
       if (!trimmed || isGenerating || !config.model || !key) return
 
+      const images = override ? override.inputImages : inputImages
+      const mask = override ? override.maskImage : maskImage
+      const isEdit = images.length > 0
       const id = generateId()
       const useStream = !!config.stream
+
       const placeholder: ImageGenerationItem = {
         id,
         prompt: trimmed,
         model: config.model,
         size: config.size,
         quality: config.quality,
-        mode: 'generation',
+        mode: isEdit ? 'edit' : 'generation',
+        inputImages: isEdit ? images : undefined,
+        maskImage: isEdit ? (mask ?? undefined) : undefined,
         createdAt: Date.now(),
         status: useStream ? 'streaming' : 'loading',
         images: [],
@@ -137,70 +173,80 @@ export function useImagePlayground(apiKey: string | null) {
 
       updateItems((prev) => [placeholder, ...prev])
       setIsGenerating(true)
+      // Clear the tray immediately for a fresh (non-regenerate) edit submit.
+      if (!override && isEdit) clearInputs()
 
-      const payload: ImageGenerationRequest = {
-        model: config.model,
-        prompt: trimmed,
-        n: config.n,
-        size: config.size,
-        quality: config.quality,
-        response_format: useStream ? 'b64_json' : 'url',
-      }
-      if (useStream) {
-        payload.stream = true
-        if (config.partialImages > 0) {
-          payload.partial_images = config.partialImages
-        }
-      }
+      const markSuccess = (resultImages: ImageGenerationItem['images']) =>
+        updateItems((prev) =>
+          prev.map((it) =>
+            it.id === id
+              ? { ...it, status: 'success', images: resultImages, partialImage: undefined }
+              : it
+          )
+        )
 
       try {
-        if (useStream) {
-          const finalImage = await generateImageStream(payload, key, {
-            onPartial: (b64) => {
-              updateItems((prev) =>
-                prev.map((it) =>
-                  it.id === id ? { ...it, partialImage: b64 } : it
-                )
-              )
-            },
-          })
-          updateItems((prev) =>
-            prev.map((it) =>
-              it.id === id
-                ? {
-                    ...it,
-                    status: 'success',
-                    images: [finalImage],
-                    partialImage: undefined,
-                  }
-                : it
-            )
-          )
+        if (isEdit) {
+          const editReq: ImageEditRequest = {
+            model: config.model,
+            prompt: trimmed,
+            n: config.n,
+            size: config.size,
+            quality: config.quality,
+            response_format: useStream ? 'b64_json' : 'url',
+            images,
+            mask: mask ?? undefined,
+          }
+          if (useStream) {
+            const finalImage = await editImageStream(editReq, key, {
+              onPartial: (b64) =>
+                updateItems((prev) =>
+                  prev.map((it) =>
+                    it.id === id ? { ...it, partialImage: b64 } : it
+                  )
+                ),
+            })
+            markSuccess([finalImage])
+          } else {
+            const response = await editImage(editReq, key)
+            markSuccess(response.data ?? [])
+          }
         } else {
-          const response = await generateImage(payload, key)
-          updateItems((prev) =>
-            prev.map((it) =>
-              it.id === id
-                ? {
-                    ...it,
-                    status: 'success',
-                    images: response.data ?? [],
-                  }
-                : it
-            )
-          )
+          const payload: ImageGenerationRequest = {
+            model: config.model,
+            prompt: trimmed,
+            n: config.n,
+            size: config.size,
+            quality: config.quality,
+            response_format: useStream ? 'b64_json' : 'url',
+          }
+          if (useStream) {
+            payload.stream = true
+            if (config.partialImages > 0) {
+              payload.partial_images = config.partialImages
+            }
+          }
+          if (useStream) {
+            const finalImage = await generateImageStream(payload, key, {
+              onPartial: (b64) =>
+                updateItems((prev) =>
+                  prev.map((it) =>
+                    it.id === id ? { ...it, partialImage: b64 } : it
+                  )
+                ),
+            })
+            markSuccess([finalImage])
+          } else {
+            const response = await generateImage(payload, key)
+            markSuccess(response.data ?? [])
+          }
         }
       } catch (error) {
         const message = extractErrorMessage(error)
         updateItems((prev) =>
           prev.map((it) =>
             it.id === id
-              ? {
-                  ...it,
-                  status: 'error',
-                  errorMessage: message,
-                  partialImage: undefined,
-                }
+              ? { ...it, status: 'error', errorMessage: message, partialImage: undefined }
               : it
           )
         )
@@ -208,7 +254,7 @@ export function useImagePlayground(apiKey: string | null) {
         setIsGenerating(false)
       }
     },
-    [config, isGenerating, updateItems]
+    [config, isGenerating, inputImages, maskImage, updateItems, clearInputs]
   )
 
   return {
@@ -216,6 +262,12 @@ export function useImagePlayground(apiKey: string | null) {
     items,
     isHydrated,
     isGenerating,
+    inputImages,
+    maskImage,
+    addInputImages,
+    removeInputImage,
+    setMaskImage,
+    clearInputs,
     updateConfig,
     submit,
     clearHistory,
