@@ -59,6 +59,12 @@ export interface ImageGenerationItem {
   model: string
   size: string
   quality: string
+  /** Whether this item used text-to-image or image edit. */
+  mode: 'generation' | 'edit'
+  /** Reference images used for an edit (base64). Present only for edits. */
+  inputImages?: ImageInputFile[]
+  /** Mask used for an edit (base64). Present only when the user painted one. */
+  maskImage?: ImageInputFile
   createdAt: number
   status: ImageGenerationStatus
   images: ImageDataItem[]
@@ -68,4 +74,28 @@ export interface ImageGenerationItem {
    */
   partialImage?: string
   errorMessage?: string
+}
+
+export interface ImageInputFile {
+  id: string
+  name: string
+  /** MIME type, e.g. "image/png". */
+  mime: string
+  /** Raw base64 (no data-URL prefix). */
+  b64: string
+}
+
+export interface ImageEditRequest {
+  model: string
+  prompt: string
+  n?: number
+  size?: string
+  quality?: string
+  response_format?: 'url' | 'b64_json'
+  stream?: boolean
+  partial_images?: number
+  /** One or more reference images to edit. */
+  images: ImageInputFile[]
+  /** Optional mask: transparent areas mark where to edit. */
+  mask?: ImageInputFile
 }

@@ -129,6 +129,7 @@ export function useImagePlayground(apiKey: string | null) {
         model: config.model,
         size: config.size,
         quality: config.quality,
+        mode: 'generation',
         createdAt: Date.now(),
         status: useStream ? 'streaming' : 'loading',
         images: [],
