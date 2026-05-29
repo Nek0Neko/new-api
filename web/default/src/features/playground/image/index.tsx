@@ -43,7 +43,7 @@ import { MaskEditor } from './mask-editor'
 import PromptEditor from './prompt-editor'
 import { stripImageMentionMarkers } from './prompt-mentions'
 import type { ImageGenerationItem } from './types'
-import { UploadTray } from './upload-tray'
+import { AddImageButton, UploadTray } from './upload-tray'
 import { useImagePlayground } from './use-image-playground'
 
 function resolveImageSrc(
@@ -364,47 +364,60 @@ export function ImagePlayground() {
       </div>
 
       <div className='bg-background/80 border-t backdrop-blur'>
-        <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
-          <UploadTray
-            images={inputImages}
-            mask={maskImage}
-            disabled={isGenerating || !hasKey}
-            onAdd={addInputImages}
-            onRemove={removeInputImage}
-            onEditMask={() => setMaskEditorOpen(true)}
-            onClearMask={() => setMaskImage(null)}
-          />
-          <PromptEditor
-            value={prompt}
-            inputImages={inputImages}
-            disabled={isGenerating || !hasKey}
-            onChange={setPrompt}
-            onSubmit={() => void handleSubmit()}
-          />
+        <div className='mx-auto w-full max-w-4xl px-4 py-3'>
+          <div className='border-border bg-card focus-within:border-primary/40 rounded-2xl border p-2 shadow-sm transition-colors'>
+            {inputImages.length > 0 && (
+              <div className='px-1 pt-1 pb-2'>
+                <UploadTray
+                  images={inputImages}
+                  mask={maskImage}
+                  disabled={isGenerating || !hasKey}
+                  onRemove={removeInputImage}
+                  onEditMask={() => setMaskEditorOpen(true)}
+                  onClearMask={() => setMaskImage(null)}
+                />
+              </div>
+            )}
 
-          <div className='flex flex-wrap items-end justify-between gap-3'>
-            <InputToolbar
-              config={config}
-              disabled={isGenerating}
-              onChange={updateConfig}
+            <PromptEditor
+              value={prompt}
+              inputImages={inputImages}
+              disabled={isGenerating || !hasKey}
+              bare
+              onChange={setPrompt}
+              onSubmit={() => void handleSubmit()}
             />
 
-            <div className='flex items-center gap-2'>
-              <ModelSelector
-                selectedModel={config.model}
-                models={models}
-                onModelChange={(v) => updateConfig('model', v)}
-                disabled={isGenerating || isLoadingModels}
-              />
+            <div className='mt-1 flex flex-wrap items-center justify-between gap-2'>
+              <div className='flex flex-wrap items-center gap-2'>
+                <AddImageButton
+                  disabled={isGenerating || !hasKey}
+                  onAdd={addInputImages}
+                />
+                <InputToolbar
+                  config={config}
+                  disabled={isGenerating}
+                  onChange={updateConfig}
+                />
+              </div>
 
-              <Button onClick={handleSubmit} disabled={!canSubmit}>
-                {isGenerating ? (
-                  <Loader2Icon className='size-4 animate-spin' />
-                ) : (
-                  <SparklesIcon className='size-4' />
-                )}
-                {inputImages.length > 0 ? t('Edit') : t('Generate')}
-              </Button>
+              <div className='flex items-center gap-2'>
+                <ModelSelector
+                  selectedModel={config.model}
+                  models={models}
+                  onModelChange={(v) => updateConfig('model', v)}
+                  disabled={isGenerating || isLoadingModels}
+                />
+
+                <Button onClick={handleSubmit} disabled={!canSubmit}>
+                  {isGenerating ? (
+                    <Loader2Icon className='size-4 animate-spin' />
+                  ) : (
+                    <SparklesIcon className='size-4' />
+                  )}
+                  {inputImages.length > 0 ? t('Edit') : t('Generate')}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

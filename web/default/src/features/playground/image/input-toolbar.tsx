@@ -17,8 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
-import { Settings2Icon } from 'lucide-react'
+import { RatioIcon, Settings2Icon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -60,216 +61,233 @@ interface Props {
   onChange: <K extends keyof ImageConfig>(key: K, value: ImageConfig[K]) => void
 }
 
+/** A single labeled row inside the settings popover: label left, control right. */
+function SettingRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string
+  htmlFor?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className='flex items-center justify-between gap-3'>
+      <Label htmlFor={htmlFor} className='text-muted-foreground text-sm'>
+        {label}
+      </Label>
+      {children}
+    </div>
+  )
+}
+
 export function InputToolbar({ config, disabled, onChange }: Props) {
   const { t } = useTranslation()
   const [sizeModalOpen, setSizeModalOpen] = useState(false)
   const compressionDisabled = config.outputFormat === 'png'
 
+  // Surface a dot on the gear when any setting differs from its default so the
+  // collapsed controls don't hide active tweaks.
+  const hasCustomSettings =
+    config.quality !== 'auto' ||
+    config.outputFormat !== 'png' ||
+    config.outputCompression != null ||
+    config.moderation !== 'auto' ||
+    config.n !== 1 ||
+    config.stream
+
   return (
-    <div className='flex flex-wrap items-end gap-3'>
-      {/* Size */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>{t('Size')}</Label>
-        <Button
-          type='button'
-          variant='outline'
-          className='h-8 w-32.5 justify-start font-mono'
-          disabled={disabled}
-          onClick={() => setSizeModalOpen(true)}
-        >
-          {config.size}
-        </Button>
-      </div>
+    <div className='flex flex-wrap items-center gap-2'>
+      {/* Size — primary control, opens the picker modal */}
+      <Button
+        type='button'
+        variant='outline'
+        className='h-8 gap-1.5 font-mono'
+        disabled={disabled}
+        onClick={() => setSizeModalOpen(true)}
+      >
+        <RatioIcon className='size-4 shrink-0' />
+        {config.size}
+      </Button>
 
-      {/* Quality */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>{t('Quality')}</Label>
-        <Select
-          value={config.quality}
-          disabled={disabled}
-          onValueChange={(v) => {
-            if (v) onChange('quality', v as ImageConfig['quality'])
-          }}
-        >
-          <SelectTrigger className='h-8 w-27.5'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {QUALITY_OPTIONS.map((q) => (
-              <SelectItem key={q} value={q}>
-                {q}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Format */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>{t('Format')}</Label>
-        <Select
-          value={config.outputFormat}
-          disabled={disabled}
-          onValueChange={(v) => {
-            if (!v) return
-            onChange('outputFormat', v as ImageConfig['outputFormat'])
-            if (v === 'png') onChange('outputCompression', null)
-          }}
-        >
-          <SelectTrigger className='h-8 w-24'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FORMAT_OPTIONS.map((f) => (
-              <SelectItem key={f} value={f}>
-                {f.toUpperCase()}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Compression */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>
-          {t('Compression')}
-        </Label>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger render={<div />}>
-              <Input
-                type='number'
-                min={0}
-                max={100}
-                step={1}
-                placeholder='0-100'
-                className='h-8 w-24'
-                disabled={disabled || compressionDisabled}
-                value={config.outputCompression ?? ''}
-                onChange={(e) => {
-                  const raw = e.target.value
-                  if (raw === '') {
-                    onChange('outputCompression', null)
-                    return
-                  }
-                  const n = Math.max(0, Math.min(100, Math.floor(Number(raw))))
-                  if (Number.isFinite(n)) onChange('outputCompression', n)
-                }}
-              />
-            </TooltipTrigger>
-            {compressionDisabled && (
-              <TooltipContent side='top'>
-                <p className='text-xs'>
-                  {t('Only JPEG and WebP support compression')}
-                </p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      {/* Moderation */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>
-          {t('Moderation')}
-        </Label>
-        <Select
-          value={config.moderation}
-          disabled={disabled}
-          onValueChange={(v) => {
-            if (v) onChange('moderation', v as ImageConfig['moderation'])
-          }}
-        >
-          <SelectTrigger className='h-8 w-24'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {MODERATION_OPTIONS.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Count */}
-      <div className='flex flex-col gap-1'>
-        <Label className='text-muted-foreground text-xs'>{t('Count')}</Label>
-        <Input
-          type='number'
-          min={1}
-          max={MAX_OUTPUT_IMAGES}
-          step={1}
-          className='h-8 w-20'
-          disabled={disabled || config.stream}
-          value={config.n}
-          onChange={(e) => {
-            const n = Math.max(
-              1,
-              Math.min(
-                MAX_OUTPUT_IMAGES,
-                Math.floor(Number(e.target.value) || 1)
-              )
-            )
-            onChange('n', n)
-          }}
-        />
-      </div>
-
-      {/* More settings */}
+      {/* All other generation parameters live in the settings popover */}
       <Popover>
         <PopoverTrigger
           render={
             <Button
               type='button'
-              variant='ghost'
-              size='icon'
-              className='h-8 w-8 self-end'
+              variant='outline'
+              className='relative h-8 gap-1.5'
               disabled={disabled}
               aria-label={t('More settings')}
             >
               <Settings2Icon className='size-4' />
+              {t('Settings')}
+              {hasCustomSettings && (
+                <span className='bg-primary absolute -top-1 -right-1 size-2 rounded-full' />
+              )}
             </Button>
           }
         />
-        <PopoverContent className='w-56 space-y-3'>
-          <div className='flex items-center justify-between'>
-            <Label htmlFor='img-stream' className='text-sm'>
-              {t('Stream')}
-            </Label>
+        <PopoverContent className='w-72 space-y-3' align='start'>
+          <SettingRow label={t('Quality')}>
+            <Select
+              value={config.quality}
+              disabled={disabled}
+              onValueChange={(v) => {
+                if (v) onChange('quality', v as ImageConfig['quality'])
+              }}
+            >
+              <SelectTrigger className='h-8 w-32'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {QUALITY_OPTIONS.map((q) => (
+                  <SelectItem key={q} value={q}>
+                    {q}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          <SettingRow label={t('Format')}>
+            <Select
+              value={config.outputFormat}
+              disabled={disabled}
+              onValueChange={(v) => {
+                if (!v) return
+                onChange('outputFormat', v as ImageConfig['outputFormat'])
+                if (v === 'png') onChange('outputCompression', null)
+              }}
+            >
+              <SelectTrigger className='h-8 w-32'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FORMAT_OPTIONS.map((f) => (
+                  <SelectItem key={f} value={f}>
+                    {f.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          <SettingRow label={t('Compression')}>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger render={<div className='w-32' />}>
+                  <Input
+                    type='number'
+                    min={0}
+                    max={100}
+                    step={1}
+                    placeholder='0-100'
+                    className='h-8 w-32'
+                    disabled={disabled || compressionDisabled}
+                    value={config.outputCompression ?? ''}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      if (raw === '') {
+                        onChange('outputCompression', null)
+                        return
+                      }
+                      const n = Math.max(
+                        0,
+                        Math.min(100, Math.floor(Number(raw)))
+                      )
+                      if (Number.isFinite(n)) onChange('outputCompression', n)
+                    }}
+                  />
+                </TooltipTrigger>
+                {compressionDisabled && (
+                  <TooltipContent side='top'>
+                    <p className='text-xs'>
+                      {t('Only JPEG and WebP support compression')}
+                    </p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </SettingRow>
+
+          <SettingRow label={t('Moderation')}>
+            <Select
+              value={config.moderation}
+              disabled={disabled}
+              onValueChange={(v) => {
+                if (v) onChange('moderation', v as ImageConfig['moderation'])
+              }}
+            >
+              <SelectTrigger className='h-8 w-32'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODERATION_OPTIONS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          <SettingRow label={t('Count')}>
+            <Input
+              type='number'
+              min={1}
+              max={MAX_OUTPUT_IMAGES}
+              step={1}
+              className='h-8 w-32'
+              disabled={disabled || config.stream}
+              value={config.n}
+              onChange={(e) => {
+                const n = Math.max(
+                  1,
+                  Math.min(
+                    MAX_OUTPUT_IMAGES,
+                    Math.floor(Number(e.target.value) || 1)
+                  )
+                )
+                onChange('n', n)
+              }}
+            />
+          </SettingRow>
+
+          <div className='bg-border h-px' />
+
+          <SettingRow label={t('Stream')} htmlFor='img-stream'>
             <Switch
               id='img-stream'
               checked={config.stream}
               disabled={disabled}
               onCheckedChange={(v) => onChange('stream', v)}
             />
-          </div>
-          {config.stream && (
-            <div className='flex flex-col gap-1'>
-              <Label className='text-muted-foreground text-xs'>
-                {t('Partial Images')}
-              </Label>
-              <Select
-                value={String(config.partialImages)}
-                disabled={disabled}
-                onValueChange={(v) => {
-                  if (v) onChange('partialImages', Number(v))
-                }}
+          </SettingRow>
+
+          <SettingRow label={t('Partial Images')}>
+            <Select
+              value={String(config.partialImages)}
+              disabled={disabled || !config.stream}
+              onValueChange={(v) => {
+                if (v) onChange('partialImages', Number(v))
+              }}
+            >
+              <SelectTrigger
+                className={cn('h-8 w-32', !config.stream && 'opacity-50')}
               >
-                <SelectTrigger className='h-8'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[0, 1, 2, 3].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
         </PopoverContent>
       </Popover>
 

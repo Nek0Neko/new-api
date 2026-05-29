@@ -157,6 +157,22 @@ export function SizePickerModal({
     return ''
   }, [mode, tier, activeRatio, customW, customH])
 
+  // Aspect ratio (w/h) of the resolved size, for the visual preview box.
+  const previewAspect = useMemo(() => {
+    if (mode === 'auto') return 1
+    const parsed = parseSize(previewSize)
+    if (parsed) {
+      const w = Number(parsed.width)
+      const h = Number(parsed.height)
+      if (w > 0 && h > 0) return w / h
+    }
+    if (mode === 'ratio') {
+      const r = parseRatio(activeRatio)
+      if (r && r.width > 0 && r.height > 0) return r.width / r.height
+    }
+    return 1
+  }, [mode, previewSize, activeRatio])
+
   const isClamped = useMemo(() => {
     if (!previewSize || previewSize === 'auto') return false
     if (mode === 'ratio' && ratio === 'custom') return customRatioClamped
@@ -182,7 +198,7 @@ export function SizePickerModal({
 
   const segCls = (active: boolean) =>
     cn(
-      'flex-1 rounded-md py-1.5 text-sm font-medium transition',
+      'flex-1 rounded-md py-1.5 text-sm font-medium transition-colors',
       active
         ? 'bg-background text-foreground shadow-sm'
         : 'text-muted-foreground hover:text-foreground'
@@ -190,10 +206,10 @@ export function SizePickerModal({
 
   const tileCls = (active: boolean) =>
     cn(
-      'rounded-xl border px-3 py-2.5 text-sm transition flex flex-col items-center justify-center gap-1.5',
+      'rounded-xl border px-3 py-2.5 text-sm transition-colors flex flex-col items-center justify-center gap-1.5',
       active
         ? 'border-primary bg-primary/10 text-primary'
-        : 'border-border bg-card hover:bg-accent text-muted-foreground'
+        : 'border-border bg-card hover:bg-accent hover:text-foreground text-muted-foreground'
     )
 
   return (
@@ -287,7 +303,7 @@ export function SizePickerModal({
                         className={tileCls(ratio === item)}
                         onClick={() => setRatio(item)}
                       >
-                        <div className='flex h-5 w-5 items-center justify-center'>
+                        <div className='flex h-6 w-6 items-center justify-center'>
                           <div
                             className='rounded-[3px] border-[1.5px] border-current opacity-60'
                             style={{
@@ -375,28 +391,53 @@ export function SizePickerModal({
           )}
 
           {/* Preview */}
-          <div className='bg-muted rounded-lg px-4 py-3'>
-            <div className='text-muted-foreground text-xs'>{t('Will use')}</div>
-            <div className='mt-1 flex items-center gap-2'>
-              <span className='text-foreground font-mono text-lg font-semibold'>
-                {previewSize || t('Invalid size')}
-              </span>
-              {isClamped && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span className='inline-flex cursor-help text-amber-500' />
-                      }
-                    >
-                      <InfoIcon className='size-4' />
-                    </TooltipTrigger>
-                    <TooltipContent className='max-w-xs text-center'>
-                      {sizeLimitText}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+          <div className='bg-muted flex items-center gap-4 rounded-lg px-4 py-3'>
+            <div className='flex size-14 shrink-0 items-center justify-center'>
+              {previewSize === 'auto' ? (
+                <div className='border-muted-foreground/40 text-muted-foreground flex size-12 items-center justify-center rounded-md border-2 border-dashed text-[10px] font-medium'>
+                  {t('Auto')}
+                </div>
+              ) : previewSize ? (
+                <div
+                  className='border-primary bg-primary/10 rounded-md border-2'
+                  style={{
+                    width:
+                      previewAspect >= 1 ? '3rem' : `${previewAspect * 3}rem`,
+                    height:
+                      previewAspect >= 1
+                        ? `${(1 / previewAspect) * 3}rem`
+                        : '3rem',
+                  }}
+                />
+              ) : (
+                <div className='border-destructive/40 size-12 rounded-md border-2 border-dashed' />
               )}
+            </div>
+            <div className='min-w-0'>
+              <div className='text-muted-foreground text-xs'>
+                {t('Will use')}
+              </div>
+              <div className='mt-1 flex items-center gap-2'>
+                <span className='text-foreground font-mono text-lg font-semibold'>
+                  {previewSize || t('Invalid size')}
+                </span>
+                {isClamped && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <span className='inline-flex cursor-help text-amber-500' />
+                        }
+                      >
+                        <InfoIcon className='size-4' />
+                      </TooltipTrigger>
+                      <TooltipContent className='max-w-xs text-center'>
+                        {sizeLimitText}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
           </div>
         </div>

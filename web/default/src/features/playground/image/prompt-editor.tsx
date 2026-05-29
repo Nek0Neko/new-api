@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import {
   escapeHtml,
   getContentEditableCursor,
@@ -44,6 +45,8 @@ interface Props {
   value: string
   inputImages: ImageInputFile[]
   disabled?: boolean
+  /** Drop the border/ring/padding so the editor blends into a parent card. */
+  bare?: boolean
   /** Reports marker-bearing plain text. */
   onChange: (next: string) => void
   onSubmit: () => void
@@ -76,6 +79,7 @@ export default function PromptEditor({
   value,
   inputImages,
   disabled,
+  bare,
   onChange,
   onSubmit,
 }: Props) {
@@ -256,7 +260,12 @@ export default function PromptEditor({
         )}
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className='focus-visible:ring-ring empty:before:text-muted-foreground min-h-20 w-full resize-none rounded-md border bg-transparent px-3 py-2 text-sm break-words whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] focus:outline-none focus-visible:ring-1'
+        className={cn(
+          'empty:before:text-muted-foreground min-h-20 w-full resize-none bg-transparent text-sm break-words whitespace-pre-wrap empty:before:content-[attr(data-placeholder)] focus:outline-none',
+          bare
+            ? 'px-2 py-1.5'
+            : 'focus-visible:ring-ring rounded-md border px-3 py-2 focus-visible:ring-1'
+        )}
       />
     </div>
   )
