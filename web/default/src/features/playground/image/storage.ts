@@ -131,7 +131,9 @@ export async function loadImageItems(): Promise<ImageGenerationItem[]> {
 
 // Produce a slimmed copy safe to persist:
 // - Drop `partialImage` (ephemeral by design — see `types.ts`).
-// - Drop the heavy `images` payload for any not-yet-finalized item.
+// - Drop the heavy output `images` payload for any not-yet-finalized item.
+// - Keep `inputImages`/`maskImage` (carried by the spread) so edit items can
+//   be regenerated after a reload.
 function toPersistable(item: ImageGenerationItem): ImageGenerationItem {
   const { partialImage: _partial, ...rest } = item
   void _partial
