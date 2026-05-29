@@ -203,7 +203,9 @@ export function useImagePlayground(apiKey: string | null) {
           const editReq: ImageEditRequest = {
             model: config.model,
             prompt: apiPrompt,
-            n: config.n,
+            // Streaming only ever yields a single image upstream; force n=1 so a
+            // stale count (set before enabling stream) can't trigger a 400.
+            n: useStream ? 1 : config.n,
             size: config.size,
             quality: config.quality,
             moderation: config.moderation,
@@ -239,7 +241,9 @@ export function useImagePlayground(apiKey: string | null) {
           const payload: ImageGenerationRequest = {
             model: config.model,
             prompt: apiPrompt,
-            n: config.n,
+            // Streaming only ever yields a single image upstream; force n=1 so a
+            // stale count (set before enabling stream) can't trigger a 400.
+            n: useStream ? 1 : config.n,
             size: config.size,
             quality: config.quality,
             moderation: config.moderation,
