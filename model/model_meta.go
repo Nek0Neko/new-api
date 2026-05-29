@@ -252,6 +252,62 @@ func GetModelTagsByNames(names []string) (map[string]string, error) {
 	return result, nil
 }
 
+func normalizeLookupValues(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+	return normalized
+}
+
+func GetPreferredModelOwnerChannelTypes(modelNames []string, groups []string) (map[string]int, error) {
+	result := make(map[string]int)
+	modelNames = normalizeLookupValues(modelNames)
+	if len(modelNames) == 0 {
+		return result, nil
+	}
+
+	type row struct {
+		Model       string
+		ChannelType int
+	}
+	var rows []row
+
+	query := DB.Table("abilities").
+		Select("abilities.model as model, channels.type as channel_type").
+		Joins("JOIN channels ON abilities.channel_id = channels.id").
+		Where("abilities.model IN ? AND abilities.enabled = ? AND channels.status = ?", modelNames, true, common.ChannelStatusEnabled).
+		Order("COALESCE(abilities.priority, 0) DESC").
+		Order("abilities.weight DESC").
+		Order("abilities.channel_id ASC")
+
+	groups = normalizeLookupValues(groups)
+	if len(groups) > 0 {
+		query = query.Where("abilities."+commonGroupCol+" IN ?", groups)
+	}
+
+	if err := query.Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	for _, r := range rows {
+		if _, ok := result[r.Model]; ok {
+			continue
+		}
+		result[r.Model] = r.ChannelType
+	}
+	return result, nil
+}
+
 func SearchModels(keyword string, vendor string, offset int, limit int) ([]*Model, int64, error) {
 	var models []*Model
 	db := DB.Model(&Model{})

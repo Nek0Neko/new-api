@@ -220,12 +220,8 @@ export function UpdateCheckerSection({
 
   return (
     <>
-      <SettingsSection
-        title={t('System maintenance')}
-        description={t(
-          'Compare the running container image against the registry and roll out updates.'
-        )}
-      >
+      <SettingsSection title={t('System maintenance')}>
+
         <div className='space-y-6'>
           <div className='grid gap-4 md:grid-cols-2'>
             <div className='rounded-lg border p-4'>
