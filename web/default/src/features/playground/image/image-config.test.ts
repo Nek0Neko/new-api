@@ -26,14 +26,8 @@ describe('normalizeImageConfig', () => {
   })
 
   test('migrates legacy quality standard/hd to auto', () => {
-    assert.equal(
-      normalizeImageConfig({ quality: 'hd' } as unknown).quality,
-      'auto'
-    )
-    assert.equal(
-      normalizeImageConfig({ quality: 'standard' } as unknown).quality,
-      'auto'
-    )
+    assert.equal(normalizeImageConfig({ quality: 'hd' }).quality, 'auto')
+    assert.equal(normalizeImageConfig({ quality: 'standard' }).quality, 'auto')
   })
 
   test('keeps valid new quality values', () => {
@@ -62,5 +56,17 @@ describe('normalizeImageConfig', () => {
         .outputCompression,
       null
     )
+  })
+
+  test('preserves compression value of 0 for jpeg', () => {
+    assert.equal(
+      normalizeImageConfig({ outputFormat: 'jpeg', outputCompression: 0 })
+        .outputCompression,
+      0
+    )
+  })
+
+  test('returns defaults for non-object primitive input', () => {
+    assert.deepEqual(normalizeImageConfig(42), DEFAULT_IMAGE_CONFIG)
   })
 })

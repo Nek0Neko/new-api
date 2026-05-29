@@ -39,7 +39,9 @@ const FORMAT_VALUES = ['png', 'jpeg', 'webp'] as const
 const MODERATION_VALUES = ['auto', 'low'] as const
 
 export function normalizeImageConfig(raw: unknown): ImageConfig {
-  const r = (raw ?? {}) as Partial<ImageConfig>
+  const r = (
+    raw !== null && typeof raw === 'object' ? raw : {}
+  ) as Partial<ImageConfig>
   const quality = QUALITY_VALUES.includes(r.quality as never)
     ? (r.quality as ImageConfig['quality'])
     : 'auto' // migrates legacy 'standard' | 'hd' | undefined
