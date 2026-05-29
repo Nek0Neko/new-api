@@ -205,6 +205,9 @@ export function useImagePlayground(apiKey: string | null) {
             images,
             mask: mask ?? undefined,
           }
+          if (useStream && config.partialImages > 0) {
+            editReq.partial_images = config.partialImages
+          }
           if (useStream) {
             const finalImage = await editImageStream(editReq, key, {
               onPartial: (b64) =>
