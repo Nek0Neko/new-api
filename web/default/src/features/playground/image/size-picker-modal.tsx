@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { InfoIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
@@ -103,6 +103,28 @@ export function SizePickerModal({
   // Resolution mode state
   const [customW, setCustomW] = useState(currentParsedSize?.width ?? '1024')
   const [customH, setCustomH] = useState(currentParsedSize?.height ?? '1024')
+
+  // Re-seed form state whenever the modal reopens. Base UI's Dialog keeps the
+  // component mounted, so useState initializers only run once; mirror them here.
+  useEffect(() => {
+    if (!open) return
+    const preset = findPresetForSize(currentSize)
+    const parsed = parseSize(currentSize)
+    setMode(
+      !currentSize || currentSize === 'auto'
+        ? allowAuto
+          ? 'auto'
+          : 'ratio'
+        : preset
+          ? 'ratio'
+          : 'resolution'
+    )
+    setTier(preset?.tier ?? '1K')
+    setRatio(preset?.ratio ?? (allowAuto ? '1:1' : '4:3'))
+    setCustomW(parsed?.width ?? '1024')
+    setCustomH(parsed?.height ?? '1024')
+    // leave customRatio as-is (keeps its default '16:9')
+  }, [open, currentSize, allowAuto])
 
   const activeRatio = ratio === 'custom' ? customRatio : ratio
   const parsedCustomRatio = parseRatio(customRatio)
@@ -323,6 +345,8 @@ export function SizePickerModal({
                   </span>
                   <Input
                     type='number'
+                    min={1}
+                    step={16}
                     value={customW}
                     onChange={(e) => setCustomW(e.target.value)}
                     placeholder='1024'
@@ -335,6 +359,8 @@ export function SizePickerModal({
                   </span>
                   <Input
                     type='number'
+                    min={1}
+                    step={16}
                     value={customH}
                     onChange={(e) => setCustomH(e.target.value)}
                     placeholder='1024'
