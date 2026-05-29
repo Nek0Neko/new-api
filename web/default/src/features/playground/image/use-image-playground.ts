@@ -145,7 +145,10 @@ export function useImagePlayground(apiKey: string | null) {
   const submit = useCallback(
     async (
       prompt: string,
-      override?: { inputImages: ImageInputFile[]; maskImage: ImageInputFile | null }
+      override?: {
+        inputImages: ImageInputFile[]
+        maskImage: ImageInputFile | null
+      }
     ) => {
       const trimmed = prompt.trim()
       const key = apiKeyRef.current
@@ -180,7 +183,12 @@ export function useImagePlayground(apiKey: string | null) {
         updateItems((prev) =>
           prev.map((it) =>
             it.id === id
-              ? { ...it, status: 'success', images: resultImages, partialImage: undefined }
+              ? {
+                  ...it,
+                  status: 'success',
+                  images: resultImages,
+                  partialImage: undefined,
+                }
               : it
           )
         )
@@ -246,7 +254,12 @@ export function useImagePlayground(apiKey: string | null) {
         updateItems((prev) =>
           prev.map((it) =>
             it.id === id
-              ? { ...it, status: 'error', errorMessage: message, partialImage: undefined }
+              ? {
+                  ...it,
+                  status: 'error',
+                  errorMessage: message,
+                  partialImage: undefined,
+                }
               : it
           )
         )

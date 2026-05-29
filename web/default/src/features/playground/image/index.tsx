@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { ImageViewer, type ImageViewerItem } from '@/components/image-viewer'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -39,6 +38,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { ImageViewer, type ImageViewerItem } from '@/components/image-viewer'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
 import { filterModelsByTag } from '../shared/filter-models'
@@ -47,11 +47,11 @@ import { PlaygroundLoading } from '../shared/loading'
 import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
-import type { ImageGenerationItem } from './types'
-import { useImagePlayground } from './use-image-playground'
-import { UploadTray } from './upload-tray'
-import { MaskEditor } from './mask-editor'
 import { imageInputFileToDataUrl } from './image-encoding'
+import { MaskEditor } from './mask-editor'
+import type { ImageGenerationItem } from './types'
+import { UploadTray } from './upload-tray'
+import { useImagePlayground } from './use-image-playground'
 
 const SIZE_OPTIONS = [
   '256x256',
@@ -120,9 +120,7 @@ function ImageGenItemCard({
             />
           ))}
           {item.maskImage ? (
-            <span className='text-muted-foreground text-xs'>
-              · {t('Mask')}
-            </span>
+            <span className='text-muted-foreground text-xs'>· {t('Mask')}</span>
           ) : null}
         </div>
       ) : null}
@@ -556,9 +554,7 @@ export function ImagePlayground() {
       <ImageViewer
         images={preview?.images ?? []}
         index={preview?.index ?? 0}
-        onIndexChange={(i) =>
-          setPreview((p) => (p ? { ...p, index: i } : p))
-        }
+        onIndexChange={(i) => setPreview((p) => (p ? { ...p, index: i } : p))}
         open={!!preview}
         onOpenChange={(open) => {
           if (!open) setPreview(null)

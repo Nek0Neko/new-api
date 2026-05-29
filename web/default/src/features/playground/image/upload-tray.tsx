@@ -17,8 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import { ImagePlusIcon, XIcon, ScissorsIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { fileToImageInputFile, imageInputFileToDataUrl } from './image-encoding'
 import type { ImageInputFile } from './types'

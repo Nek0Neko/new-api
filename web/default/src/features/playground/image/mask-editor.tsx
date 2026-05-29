@@ -17,8 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { EraserIcon, BrushIcon, RotateCcwIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { fileToImageInputFile, imageInputFileToDataUrl } from './image-encoding'
 import type { ImageInputFile } from './types'

@@ -17,8 +17,16 @@ describe('consumeImageStream', () => {
   test('emits partials and resolves with the completed image', async () => {
     const partials: string[] = []
     const res = sseResponse([
-      JSON.stringify({ type: 'image_generation.partial_image', b64_json: 'AAA', partial_image_index: 0 }),
-      JSON.stringify({ type: 'image_generation.completed', b64_json: 'BBB', revised_prompt: 'rp' }),
+      JSON.stringify({
+        type: 'image_generation.partial_image',
+        b64_json: 'AAA',
+        partial_image_index: 0,
+      }),
+      JSON.stringify({
+        type: 'image_generation.completed',
+        b64_json: 'BBB',
+        revised_prompt: 'rp',
+      }),
       '[DONE]',
     ])
     const final = await consumeImageStream(res, {
@@ -36,6 +44,9 @@ describe('consumeImageStream', () => {
 
   test('throws when the stream ends without a completed image', async () => {
     const res = sseResponse(['[DONE]'])
-    await assert.rejects(() => consumeImageStream(res, {}), /without a completed image/)
+    await assert.rejects(
+      () => consumeImageStream(res, {}),
+      /without a completed image/
+    )
   })
 })

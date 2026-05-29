@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { base64ToBlob, blobToBase64, fileToImageInputFile } from './image-encoding'
+import {
+  base64ToBlob,
+  blobToBase64,
+  fileToImageInputFile,
+} from './image-encoding'
 
 // "hello" in base64
 const HELLO_B64 = 'aGVsbG8='

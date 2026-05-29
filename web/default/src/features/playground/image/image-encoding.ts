@@ -44,7 +44,9 @@ function generateInputId(): string {
 }
 
 /** Read a browser File into an ImageInputFile (base64 payload). */
-export async function fileToImageInputFile(file: File): Promise<ImageInputFile> {
+export async function fileToImageInputFile(
+  file: File
+): Promise<ImageInputFile> {
   const b64 = await blobToBase64(file)
   return {
     id: generateInputId(),
