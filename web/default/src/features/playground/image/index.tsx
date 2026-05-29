@@ -28,15 +28,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { ImageViewer, type ImageViewerItem } from '@/components/image-viewer'
 import { ModelSelector } from '@/components/model-group-selector'
@@ -48,24 +39,11 @@ import { PromptText } from '../shared/prompt-text'
 import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
 import { imageInputFileToDataUrl } from './image-encoding'
+import { InputToolbar } from './input-toolbar'
 import { MaskEditor } from './mask-editor'
 import type { ImageGenerationItem } from './types'
 import { UploadTray } from './upload-tray'
 import { useImagePlayground } from './use-image-playground'
-
-const SIZE_OPTIONS = [
-  '256x256',
-  '512x512',
-  '1024x1024',
-  '1024x1792',
-  '1792x1024',
-]
-
-const QUALITY_OPTIONS = ['standard', 'hd']
-
-const N_OPTIONS = [1, 2, 3, 4]
-
-const PARTIAL_IMAGES_OPTIONS = [0, 1, 2, 3]
 
 function resolveImageSrc(
   image: ImageGenerationItem['images'][number]
@@ -101,7 +79,7 @@ function ImageGenItemCard({
           <div className='text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
             <span>{item.model}</span>
             <span>{item.size}</span>
-            {item.quality !== 'standard' && <span>{item.quality}</span>}
+            {item.quality !== 'auto' && <span>{item.quality}</span>}
             <span>{date.toLocaleString()}</span>
           </div>
         </div>
@@ -415,120 +393,11 @@ export function ImagePlayground() {
           />
 
           <div className='flex flex-wrap items-end justify-between gap-3'>
-            <div className='flex flex-wrap items-end gap-3'>
-              <div className='flex flex-col gap-1'>
-                <Label className='text-muted-foreground text-xs'>
-                  {t('Size')}
-                </Label>
-                <Select
-                  value={config.size}
-                  onValueChange={(v) => {
-                    if (v) updateConfig('size', v)
-                  }}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className='h-8 w-32.5'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SIZE_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='flex flex-col gap-1'>
-                <Label className='text-muted-foreground text-xs'>
-                  {t('Quality')}
-                </Label>
-                <Select
-                  value={config.quality}
-                  onValueChange={(v) => {
-                    if (v) updateConfig('quality', v)
-                  }}
-                  disabled={isGenerating}
-                >
-                  <SelectTrigger className='h-8 w-27.5'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {QUALITY_OPTIONS.map((q) => (
-                      <SelectItem key={q} value={q}>
-                        {q}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='flex flex-col gap-1'>
-                <Label className='text-muted-foreground text-xs'>
-                  {t('Count')}
-                </Label>
-                <Select
-                  value={String(config.n)}
-                  onValueChange={(v) => updateConfig('n', Number(v))}
-                  disabled={isGenerating || config.stream}
-                >
-                  <SelectTrigger className='h-8 w-20'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {N_OPTIONS.map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='flex flex-col gap-1'>
-                <Label
-                  className='text-muted-foreground text-xs'
-                  htmlFor='image-stream-toggle'
-                >
-                  {t('Stream')}
-                </Label>
-                <div className='flex h-8 items-center'>
-                  <Switch
-                    id='image-stream-toggle'
-                    checked={config.stream}
-                    onCheckedChange={(v) => updateConfig('stream', v)}
-                    disabled={isGenerating}
-                  />
-                </div>
-              </div>
-
-              {config.stream && (
-                <div className='flex flex-col gap-1'>
-                  <Label className='text-muted-foreground text-xs'>
-                    {t('Partial Images')}
-                  </Label>
-                  <Select
-                    value={String(config.partialImages)}
-                    onValueChange={(v) =>
-                      updateConfig('partialImages', Number(v))
-                    }
-                    disabled={isGenerating}
-                  >
-                    <SelectTrigger className='h-8 w-20'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PARTIAL_IMAGES_OPTIONS.map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+            <InputToolbar
+              config={config}
+              disabled={isGenerating}
+              onChange={updateConfig}
+            />
 
             <div className='flex items-center gap-2'>
               <ModelSelector
