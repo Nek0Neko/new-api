@@ -81,8 +81,10 @@ export default function PromptEditor({
 }: Props) {
   const { t } = useTranslation()
   const editorRef = useRef<HTMLDivElement>(null)
-  // Guards DOM re-render so typing does not clobber the caret.
-  const isUserInput = useRef(false)
+  // Tracks the exact text we last emitted from user input so the reflection
+  // effect can skip clobbering the caret for our own change — and only that
+  // change — without a sticky boolean that could swallow a real external one.
+  const lastEmittedRef = useRef<string | null>(null)
   const [query, setQuery] = useState<AtImageQuery | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuIndex, setMenuIndex] = useState(0)
@@ -91,8 +93,10 @@ export default function PromptEditor({
   useEffect(() => {
     const el = editorRef.current
     if (!el) return
-    if (isUserInput.current) {
-      isUserInput.current = false
+    if (value === lastEmittedRef.current) {
+      // This value originated from our own onChange; the DOM already matches
+      // and the caret is correct, so do not rewrite it.
+      lastEmittedRef.current = null
       return
     }
     const html = renderHtmlFromValue(value, inputImages)
@@ -125,9 +129,9 @@ export default function PromptEditor({
   const handleInput = useCallback(() => {
     const el = editorRef.current
     if (!el) return
-    isUserInput.current = true
     syncMentionTagSelection(el)
     const text = refreshQuery(el)
+    lastEmittedRef.current = text
     onChange(text)
   }, [onChange, refreshQuery])
 
@@ -150,18 +154,22 @@ export default function PromptEditor({
 
       // Preferred path: replace the typed "@query" via execCommand so the
       // browser keeps a clean undo stack and a sane caret.
-      isUserInput.current = true
       el.focus()
       setContentEditableSelection(el, q.start, cursor)
       if (document.execCommand('insertHTML', false, getMentionTagHtml(label))) {
         setContentEditableCursor(el, nextCursor)
-        onChange(getContentEditablePlainText(el))
+        const emitted = getContentEditablePlainText(el)
+        // We already mutated the DOM + caret here, so mark this as our own
+        // emission to keep the reflection effect from rewriting it.
+        lastEmittedRef.current = emitted
+        onChange(emitted)
         return
       }
 
       // Fallback: rebuild the marker string directly, then re-render + restore.
+      // Leave lastEmittedRef null so the reflection effect rewrites the DOM,
+      // then restore the caret afterwards.
       const next = insertImageMentionAtVisibleRange(text, q.start, cursor, o.i)
-      isUserInput.current = false
       onChange(next.prompt)
       window.setTimeout(() => {
         const node = editorRef.current

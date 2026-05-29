@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ImageIcon,
@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { ImageViewer, type ImageViewerItem } from '@/components/image-viewer'
 import { ModelSelector } from '@/components/model-group-selector'
 import { getUserModels } from '../api'
@@ -41,6 +40,8 @@ import { useSelectedToken } from '../shared/use-selected-token'
 import { imageInputFileToDataUrl } from './image-encoding'
 import { InputToolbar } from './input-toolbar'
 import { MaskEditor } from './mask-editor'
+import PromptEditor from './prompt-editor'
+import { stripImageMentionMarkers } from './prompt-mentions'
 import type { ImageGenerationItem } from './types'
 import { UploadTray } from './upload-tray'
 import { useImagePlayground } from './use-image-playground'
@@ -223,7 +224,6 @@ function ImageGenItemCard({
 export function ImagePlayground() {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
-  const promptInputRef = useRef<HTMLTextAreaElement>(null)
   const selectedToken = useSelectedToken()
   const [preview, setPreview] = useState<{
     images: ImageViewerItem[]
@@ -271,7 +271,11 @@ export function ImagePlayground() {
   }, [models, config.model, updateConfig])
   const hasKey = !!selectedToken.key
   const canSubmit =
-    hasKey && !!prompt.trim() && !!config.model && !isGenerating && isHydrated
+    hasKey &&
+    !!stripImageMentionMarkers(prompt).trim() &&
+    !!config.model &&
+    !isGenerating &&
+    isHydrated
 
   const handleSubmit = async () => {
     if (!canSubmit) return
@@ -282,13 +286,6 @@ export function ImagePlayground() {
 
   const handleEdit = useCallback((item: ImageGenerationItem) => {
     setPrompt(item.prompt)
-    requestAnimationFrame(() => {
-      const el = promptInputRef.current
-      if (!el) return
-      el.focus()
-      const end = el.value.length
-      el.setSelectionRange(end, end)
-    })
   }, [])
 
   const handleRegenerate = useCallback(
@@ -377,19 +374,12 @@ export function ImagePlayground() {
             onEditMask={() => setMaskEditorOpen(true)}
             onClearMask={() => setMaskImage(null)}
           />
-          <Textarea
-            ref={promptInputRef}
+          <PromptEditor
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={t('Describe what you want to see…')}
+            inputImages={inputImages}
             disabled={isGenerating || !hasKey}
-            className='min-h-20 resize-none'
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                void handleSubmit()
-              }
-            }}
+            onChange={setPrompt}
+            onSubmit={() => void handleSubmit()}
           />
 
           <div className='flex flex-wrap items-end justify-between gap-3'>

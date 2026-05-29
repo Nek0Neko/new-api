@@ -25,6 +25,10 @@ import {
   generateImageStream,
 } from './api'
 import {
+  replaceImageMentionsForApi,
+  stripImageMentionMarkers,
+} from './prompt-mentions'
+import {
   clearImageItems,
   loadImageConfig,
   loadImageItems,
@@ -150,19 +154,20 @@ export function useImagePlayground(apiKey: string | null) {
         maskImage: ImageInputFile | null
       }
     ) => {
-      const trimmed = prompt.trim()
+      const visiblePrompt = stripImageMentionMarkers(prompt).trim()
       const key = apiKeyRef.current
-      if (!trimmed || isGenerating || !config.model || !key) return
+      if (!visiblePrompt || isGenerating || !config.model || !key) return
 
       const images = override ? override.inputImages : inputImages
       const mask = override ? override.maskImage : maskImage
+      const apiPrompt = replaceImageMentionsForApi(prompt, images.length)
       const isEdit = images.length > 0
       const id = generateId()
       const useStream = !!config.stream
 
       const placeholder: ImageGenerationItem = {
         id,
-        prompt: trimmed,
+        prompt: visiblePrompt,
         model: config.model,
         size: config.size,
         quality: config.quality,
@@ -197,13 +202,21 @@ export function useImagePlayground(apiKey: string | null) {
         if (isEdit) {
           const editReq: ImageEditRequest = {
             model: config.model,
-            prompt: trimmed,
+            prompt: apiPrompt,
             n: config.n,
             size: config.size,
             quality: config.quality,
+            moderation: config.moderation,
+            output_format: config.outputFormat,
             response_format: useStream ? 'b64_json' : 'url',
             images,
             mask: mask ?? undefined,
+          }
+          if (
+            config.outputFormat !== 'png' &&
+            config.outputCompression != null
+          ) {
+            editReq.output_compression = config.outputCompression
           }
           if (useStream && config.partialImages > 0) {
             editReq.partial_images = config.partialImages
@@ -225,11 +238,19 @@ export function useImagePlayground(apiKey: string | null) {
         } else {
           const payload: ImageGenerationRequest = {
             model: config.model,
-            prompt: trimmed,
+            prompt: apiPrompt,
             n: config.n,
             size: config.size,
             quality: config.quality,
+            moderation: config.moderation,
+            output_format: config.outputFormat,
             response_format: useStream ? 'b64_json' : 'url',
+          }
+          if (
+            config.outputFormat !== 'png' &&
+            config.outputCompression != null
+          ) {
+            payload.output_compression = config.outputCompression
           }
           if (useStream) {
             payload.stream = true
