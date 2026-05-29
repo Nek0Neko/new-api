@@ -31,6 +31,11 @@ export function buildEditFormData(req: ImageEditRequest): FormData {
   if (req.n != null) fd.append('n', String(req.n))
   if (req.size) fd.append('size', req.size)
   if (req.quality) fd.append('quality', req.quality)
+  if (req.output_format) fd.append('output_format', req.output_format)
+  if (req.output_compression != null) {
+    fd.append('output_compression', String(req.output_compression))
+  }
+  if (req.moderation) fd.append('moderation', req.moderation)
   if (req.response_format) fd.append('response_format', req.response_format)
   if (req.stream) {
     fd.append('stream', 'true')

@@ -59,4 +59,30 @@ describe('buildEditFormData', () => {
     assert.equal(fd.get('partial_images'), '2')
     assert.ok(fd.get('mask') instanceof Blob)
   })
+
+  test('appends output_format, output_compression and moderation when set', () => {
+    const req: ImageEditRequest = {
+      model: 'gpt-image-1',
+      prompt: 'x',
+      images: [img('a')],
+      output_format: 'jpeg',
+      output_compression: 70,
+      moderation: 'low',
+    }
+    const fd = buildEditFormData(req)
+    assert.equal(fd.get('output_format'), 'jpeg')
+    assert.equal(fd.get('output_compression'), '70')
+    assert.equal(fd.get('moderation'), 'low')
+  })
+
+  test('omits output_compression when not provided', () => {
+    const req: ImageEditRequest = {
+      model: 'gpt-image-1',
+      prompt: 'x',
+      images: [img('a')],
+      output_format: 'png',
+    }
+    const fd = buildEditFormData(req)
+    assert.equal(fd.get('output_compression'), null)
+  })
 })
