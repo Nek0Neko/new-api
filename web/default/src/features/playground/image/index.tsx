@@ -49,6 +49,9 @@ import { TokenPicker } from '../shared/token-picker'
 import { useSelectedToken } from '../shared/use-selected-token'
 import type { ImageGenerationItem } from './types'
 import { useImagePlayground } from './use-image-playground'
+import { UploadTray } from './upload-tray'
+import { MaskEditor } from './mask-editor'
+import { imageInputFileToDataUrl } from './image-encoding'
 
 const SIZE_OPTIONS = [
   '256x256',
@@ -103,6 +106,26 @@ function ImageGenItemCard({
           </div>
         </div>
       </div>
+
+      {item.mode === 'edit' && item.inputImages?.length ? (
+        <div className='mb-3 flex flex-wrap items-center gap-2'>
+          <span className='text-muted-foreground text-xs'>{t('Inputs')}</span>
+          {item.inputImages.map((img) => (
+            <img
+              key={img.id}
+              alt={img.name}
+              src={imageInputFileToDataUrl(img)}
+              className='bg-muted size-12 rounded-md object-cover'
+              loading='lazy'
+            />
+          ))}
+          {item.maskImage ? (
+            <span className='text-muted-foreground text-xs'>
+              · {t('Mask')}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
 
       {item.status === 'loading' && (
         <div className='border-border bg-muted/30 flex h-40 items-center justify-center rounded-lg border border-dashed'>
@@ -230,6 +253,7 @@ export function ImagePlayground() {
     images: ImageViewerItem[]
     index: number
   } | null>(null)
+  const [maskEditorOpen, setMaskEditorOpen] = useState(false)
 
   const handlePreview = useCallback(
     (images: ImageViewerItem[], index: number) => {
@@ -253,6 +277,11 @@ export function ImagePlayground() {
     items,
     isHydrated,
     isGenerating,
+    inputImages,
+    maskImage,
+    addInputImages,
+    removeInputImage,
+    setMaskImage,
     updateConfig,
     submit,
     clearHistory,
@@ -289,6 +318,13 @@ export function ImagePlayground() {
   const handleRegenerate = useCallback(
     (item: ImageGenerationItem) => {
       if (isGenerating || !hasKey || !isHydrated) return
+      if (item.mode === 'edit' && item.inputImages?.length) {
+        void submit(item.prompt, {
+          inputImages: item.inputImages,
+          maskImage: item.maskImage ?? null,
+        })
+        return
+      }
       void submit(item.prompt)
     },
     [isGenerating, hasKey, isHydrated, submit]
@@ -356,6 +392,15 @@ export function ImagePlayground() {
 
       <div className='bg-background/80 border-t backdrop-blur'>
         <div className='mx-auto w-full max-w-4xl space-y-3 px-4 py-3'>
+          <UploadTray
+            images={inputImages}
+            mask={maskImage}
+            disabled={isGenerating || !hasKey}
+            onAdd={addInputImages}
+            onRemove={removeInputImage}
+            onEditMask={() => setMaskEditorOpen(true)}
+            onClearMask={() => setMaskImage(null)}
+          />
           <Textarea
             ref={promptInputRef}
             value={prompt}
@@ -501,7 +546,7 @@ export function ImagePlayground() {
                 ) : (
                   <SparklesIcon className='size-4' />
                 )}
-                {t('Generate')}
+                {inputImages.length > 0 ? t('Edit') : t('Generate')}
               </Button>
             </div>
           </div>
@@ -519,6 +564,16 @@ export function ImagePlayground() {
           if (!open) setPreview(null)
         }}
       />
+
+      {inputImages.length > 0 && (
+        <MaskEditor
+          open={maskEditorOpen}
+          image={inputImages[0]}
+          initialMask={maskImage}
+          onOpenChange={setMaskEditorOpen}
+          onConfirm={(mask) => setMaskImage(mask)}
+        />
+      )}
     </div>
   )
 }
