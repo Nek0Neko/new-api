@@ -1218,6 +1218,7 @@
     "Desc": "降序",
     "Describe": "图生文",
     "Describe the image you want to generate below.": "在下方描述你想生成的图像。",
+    "Describe the image you want, type @ to reference an image…": "描述你想生成的图片，可输入 @ 来指定参考图…",
     "Describe the scene, motion, style…": "描述场景、动作、风格…",
     "Describe the song mood, genre, story… (Suno picks the rest)": "描述歌曲的情绪、风格、故事…（Suno 自动补全其余部分）",
     "Describe the song you want to create below.": "在下方描述你想创作的歌曲。",
