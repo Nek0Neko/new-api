@@ -23,12 +23,52 @@ const CONFIG_KEY = 'playground_image_config'
 const ITEMS_KEY = 'playground_image_items'
 
 export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
-  model: 'dall-e-3',
-  size: '1024x1024',
-  quality: 'standard',
+  model: '',
+  size: 'auto',
+  quality: 'auto',
+  outputFormat: 'png',
+  outputCompression: null,
+  moderation: 'auto',
   n: 1,
   stream: false,
-  partialImages: 2,
+  partialImages: 1,
+}
+
+const QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
+const FORMAT_VALUES = ['png', 'jpeg', 'webp'] as const
+const MODERATION_VALUES = ['auto', 'low'] as const
+
+export function normalizeImageConfig(raw: unknown): ImageConfig {
+  const r = (raw ?? {}) as Partial<ImageConfig>
+  const quality = QUALITY_VALUES.includes(r.quality as never)
+    ? (r.quality as ImageConfig['quality'])
+    : 'auto' // migrates legacy 'standard' | 'hd' | undefined
+  const outputFormat = FORMAT_VALUES.includes(r.outputFormat as never)
+    ? (r.outputFormat as ImageConfig['outputFormat'])
+    : 'png'
+  const moderation = MODERATION_VALUES.includes(r.moderation as never)
+    ? (r.moderation as ImageConfig['moderation'])
+    : 'auto'
+  const compression =
+    typeof r.outputCompression === 'number' &&
+    r.outputCompression >= 0 &&
+    r.outputCompression <= 100
+      ? r.outputCompression
+      : null
+  return {
+    model: typeof r.model === 'string' ? r.model : DEFAULT_IMAGE_CONFIG.model,
+    size: typeof r.size === 'string' && r.size ? r.size : 'auto',
+    quality,
+    outputFormat,
+    outputCompression: outputFormat === 'png' ? null : compression,
+    moderation,
+    n: typeof r.n === 'number' && r.n >= 1 ? Math.floor(r.n) : 1,
+    stream: typeof r.stream === 'boolean' ? r.stream : false,
+    partialImages:
+      typeof r.partialImages === 'number' && r.partialImages >= 0
+        ? Math.floor(r.partialImages)
+        : 1,
+  }
 }
 
 // A single completed image is 3–5MB of base64, which blows past the
@@ -63,7 +103,8 @@ export function loadImageConfig(): ImageConfig {
   const saved = safeParse<Partial<ImageConfig>>(
     window.localStorage.getItem(CONFIG_KEY)
   )
-  return { ...DEFAULT_IMAGE_CONFIG, ...(saved ?? {}) }
+  if (!saved) return DEFAULT_IMAGE_CONFIG
+  return normalizeImageConfig(saved)
 }
 
 export function saveImageConfig(config: ImageConfig): void {

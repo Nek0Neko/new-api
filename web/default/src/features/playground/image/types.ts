@@ -22,6 +22,9 @@ export interface ImageGenerationRequest {
   n?: number
   size?: string
   quality?: string
+  output_format?: 'png' | 'jpeg' | 'webp'
+  output_compression?: number
+  moderation?: 'auto' | 'low'
   response_format?: 'url' | 'b64_json'
   stream?: boolean
   partial_images?: number
@@ -41,7 +44,11 @@ export interface ImageGenerationResponse {
 export interface ImageConfig {
   model: string
   size: string
-  quality: string
+  quality: 'auto' | 'low' | 'medium' | 'high'
+  outputFormat: 'png' | 'jpeg' | 'webp'
+  /** 0–100; null when not applicable (PNG, or unset). */
+  outputCompression: number | null
+  moderation: 'auto' | 'low'
   n: number
   stream: boolean
   partialImages: number
@@ -91,6 +98,9 @@ export interface ImageEditRequest {
   n?: number
   size?: string
   quality?: string
+  output_format?: 'png' | 'jpeg' | 'webp'
+  output_compression?: number
+  moderation?: 'auto' | 'low'
   response_format?: 'url' | 'b64_json'
   stream?: boolean
   partial_images?: number
