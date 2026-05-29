@@ -19,9 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import { isAxiosError } from 'axios'
 import { api } from '@/lib/api'
 import { bearerConfig } from '../shared/request-config'
+import { buildEditFormData } from './edit-form-data'
 import { consumeImageStream, type ImageStreamCallbacks } from './sse'
 import type {
   ImageDataItem,
+  ImageEditRequest,
   ImageGenerationRequest,
   ImageGenerationResponse,
 } from './types'
@@ -29,6 +31,7 @@ import type {
 export type { ImageStreamCallbacks } from './sse'
 
 export const IMAGE_GEN_ENDPOINT = '/v1/images/generations'
+export const IMAGE_EDIT_ENDPOINT = '/v1/images/edits'
 
 // Image generation regularly hits 504/502 from upstream gateways even when the
 // underlying model is reachable. The backend's retry loop hard-skips 504/524
@@ -99,6 +102,59 @@ export async function generateImageStream(
       'Cache-Control': 'no-store',
     },
     body: JSON.stringify(body),
+    credentials: 'include',
+    signal: callbacks.signal,
+  })
+
+  return consumeImageStream(response, callbacks)
+}
+
+/** Non-streaming image edit (img2img) via multipart POST /v1/images/edits. */
+export async function editImage(
+  req: ImageEditRequest,
+  apiKey: string
+): Promise<ImageGenerationResponse> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      const res = await api.post(
+        IMAGE_EDIT_ENDPOINT,
+        buildEditFormData(req),
+        bearerConfig(apiKey)
+      )
+      return res.data
+    } catch (error) {
+      lastError = error
+      if (attempt >= MAX_RETRIES || !isTransientGatewayError(error)) {
+        throw error
+      }
+      await sleep(RETRY_BACKOFF_MS * (attempt + 1))
+    }
+  }
+  throw lastError
+}
+
+/** Streaming image edit. Forces b64_json so partial frames render inline. */
+export async function editImageStream(
+  req: ImageEditRequest,
+  apiKey: string,
+  callbacks: ImageStreamCallbacks = {}
+): Promise<ImageDataItem> {
+  const formData = buildEditFormData({
+    ...req,
+    stream: true,
+    response_format: 'b64_json',
+  })
+
+  const response = await fetch(IMAGE_EDIT_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      // No Content-Type: the browser sets the multipart boundary for FormData.
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${apiKey}`,
+      'Cache-Control': 'no-store',
+    },
+    body: formData,
     credentials: 'include',
     signal: callbacks.signal,
   })
