@@ -39,11 +39,17 @@ For commercial licensing, please contact support@quantumnous.com
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
   }
   html {
     @apply overflow-x-hidden font-sans;
+    /* scrollbar-width/color are inherited properties: declare once here and
+       let them cascade, instead of forcing them onto every element via `*`.
+       Combined with `transition` (not `transition-all`) on interactive
+       elements, this avoids per-frame full-document style recalc when theme
+       variables change. Class utilities (no-scrollbar/hover-scrollbar) still
+       override via higher specificity. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   body {
     @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full font-sans;
