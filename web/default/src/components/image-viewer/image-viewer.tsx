@@ -92,7 +92,6 @@ export function ImageViewer({
   const count = images.length
   const hasMultiple = count > 1
   const current = count > 0 ? images[Math.min(activeIndex, count - 1)] : undefined
-  const hasImage = current !== undefined
 
   // Controlled usage: parent drives the active image via `index` and updates it
   // from onIndexChange. When `index` is omitted, the viewer manages it internally.
@@ -142,20 +141,33 @@ export function ImageViewer({
   }, [open, hasMultiple, goPrev, goNext, zoomIn, zoomOut])
 
   // Cursor-anchored wheel zoom (non-passive so preventDefault works).
-  useEffect(() => {
-    const el = stageRef.current
-    if (!el || !open) return
-    const onWheel = (e: WheelEvent) => {
+  // Base UI mounts the dialog popup one render after `open` flips, so a
+  // state-deps effect reading stageRef.current races the mount and may never
+  // attach. A callback ref binds the listener exactly when the node mounts.
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      const el = stageRef.current
+      if (!el) return
       e.preventDefault()
       const rect = el.getBoundingClientRect()
       const px = e.clientX - rect.left - rect.width / 2
       const py = e.clientY - rect.top - rect.height / 2
       const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
       zoomAtPoint(factor, px, py)
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [open, zoomAtPoint, hasImage])
+    },
+    [zoomAtPoint]
+  )
+
+  const setStageRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (stageRef.current) {
+        stageRef.current.removeEventListener('wheel', handleWheel)
+      }
+      stageRef.current = node
+      if (node) node.addEventListener('wheel', handleWheel, { passive: false })
+    },
+    [handleWheel]
+  )
 
   const canPan = transform.scale > 1
 
@@ -297,7 +309,7 @@ export function ImageViewer({
 
         {/* Stage */}
         <div
-          ref={stageRef}
+          ref={setStageRef}
           className='bg-muted/30 relative flex flex-1 items-center justify-center overflow-hidden select-none'
         >
           {(isLoading || hasError) && (

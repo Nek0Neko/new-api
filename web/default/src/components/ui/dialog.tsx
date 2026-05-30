@@ -47,7 +47,11 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot='dialog-overlay'
       className={cn(
-        'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs',
+        // No backdrop-filter: fading the opacity of a full-viewport blur layer
+        // forces a per-frame re-rasterization of the blur across the whole page
+        // (heavy CPU/jank on every dialog open/close). A plain translucent scrim
+        // fades on the compositor for free.
+        'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 isolate z-50 bg-black/20 duration-100',
         className
       )}
       {...props}

@@ -135,6 +135,11 @@ export default function PromptEditor({
     if (!el) return
     syncMentionTagSelection(el)
     const text = refreshQuery(el)
+    // Deleting all text leaves a stray <br> behind in contentEditable, so the
+    // CSS :empty placeholder never re-appears. Clear it so :empty matches again.
+    if (text === '' && el.innerHTML !== '') {
+      el.innerHTML = ''
+    }
     lastEmittedRef.current = text
     onChange(text)
   }, [onChange, refreshQuery])
