@@ -2,7 +2,9 @@ package controller
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -200,4 +202,75 @@ func DeleteGroupManage(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{"name": name})
+}
+
+// GetGroupChannels lists channels that serve the given group, derived from Ability.
+func GetGroupChannels(c *gin.Context) {
+	name := c.Param("name")
+	var channelIds []int
+	// Use a map condition so GORM quotes the reserved-word "group" column
+	// correctly across SQLite/MySQL/PostgreSQL.
+	err := model.DB.Model(&model.Ability{}).
+		Where(map[string]interface{}{"group": name}).
+		Distinct("channel_id").
+		Pluck("channel_id", &channelIds).Error
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	var channels []model.Channel
+	if len(channelIds) > 0 {
+		if err := model.DB.Where("id IN ?", channelIds).
+			Find(&channels).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
+	common.ApiSuccess(c, channels)
+}
+
+// GroupChannelMutateRequest attaches or detaches a single channel to/from a group.
+type GroupChannelMutateRequest struct {
+	ChannelId int    `json:"channel_id"`
+	Action    string `json:"action"` // "attach" | "detach"
+}
+
+// MutateGroupChannel edits Channel.Group CSV then refreshes abilities by reusing
+// channel.Update (which calls UpdateAbilities) — the exact path the channel editor uses.
+func MutateGroupChannel(c *gin.Context) {
+	name := c.Param("name")
+	var req GroupChannelMutateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	ch, err := model.GetChannelById(req.ChannelId, true)
+	if err != nil {
+		common.ApiErrorMsg(c, "渠道不存在")
+		return
+	}
+	set := map[string]struct{}{}
+	for _, g := range ch.GetGroups() {
+		set[g] = struct{}{}
+	}
+	switch req.Action {
+	case "attach":
+		set[name] = struct{}{}
+	case "detach":
+		delete(set, name)
+	default:
+		common.ApiErrorMsg(c, "无效的 action")
+		return
+	}
+	newGroups := make([]string, 0, len(set))
+	for g := range set {
+		newGroups = append(newGroups, g)
+	}
+	sort.Strings(newGroups)
+	ch.Group = strings.Join(newGroups, ",")
+	if err := ch.Update(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"channel_id": req.ChannelId, "group": ch.Group})
 }
