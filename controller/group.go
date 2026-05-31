@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
@@ -63,5 +64,40 @@ func GetUserGroups(c *gin.Context) {
 		"success": true,
 		"message": "",
 		"data":    usableGroups,
+	})
+}
+
+// GroupManageItem is the wire shape for the unified group-management page.
+type GroupManageItem struct {
+	model.Group
+	ChannelCount int `json:"channel_count"`
+}
+
+// GetGroupManageList returns every group with its distinct-channel count, plus the
+// global scalars rendered in the page header.
+func GetGroupManageList(c *gin.Context) {
+	groups, err := model.GetAllGroups()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	counts, err := model.CountChannelsByGroup()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	items := make([]GroupManageItem, 0, len(groups))
+	for _, g := range groups {
+		items = append(items, GroupManageItem{Group: *g, ChannelCount: counts[g.Name]})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"groups":                 items,
+			"default_channel_group":  setting.GetDefaultChannelGroup(),
+			"new_user_default_group": setting.GetNewUserDefaultGroup(),
+			"default_use_auto_group": setting.DefaultUseAutoGroup,
+		},
 	})
 }
