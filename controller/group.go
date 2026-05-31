@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -100,4 +101,103 @@ func GetGroupManageList(c *gin.Context) {
 			"default_use_auto_group": setting.DefaultUseAutoGroup,
 		},
 	})
+}
+
+// CreateGroupManage creates a new group then syncs settings.
+func CreateGroupManage(c *gin.Context) {
+	var g model.Group
+	if err := c.ShouldBindJSON(&g); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if g.Name == "" {
+		common.ApiErrorMsg(c, "分组名称不能为空")
+		return
+	}
+	if dup, err := model.IsGroupNameDuplicated(0, g.Name); err != nil {
+		common.ApiError(c, err)
+		return
+	} else if dup {
+		common.ApiErrorMsg(c, "分组名称已存在")
+		return
+	}
+	if g.ConsumptionRatio == 0 {
+		g.ConsumptionRatio = 1
+	}
+	if g.Visibility == "" {
+		g.Visibility = "public"
+	}
+	if err := g.Insert(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.SyncGroupsToOptions(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, &g)
+}
+
+// UpdateGroupManage updates an existing group (looked up by :name) then syncs.
+// Renames are not supported here to keep Channel.Group / User.Group references
+// coherent; deleting + recreating is the explicit path for a rename.
+func UpdateGroupManage(c *gin.Context) {
+	name := c.Param("name")
+	existing, err := model.GetGroupByName(name)
+	if err != nil {
+		common.ApiErrorMsg(c, "分组不存在")
+		return
+	}
+	var in model.Group
+	if err := c.ShouldBindJSON(&in); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	existing.Description = in.Description
+	existing.ConsumptionRatio = in.ConsumptionRatio
+	existing.TopupRatio = in.TopupRatio
+	existing.Visibility = in.Visibility
+	existing.AdminOnly = in.AdminOnly
+	existing.AutoUpgrade = in.AutoUpgrade
+	existing.UpgradeThreshold = in.UpgradeThreshold
+	existing.InAutoRotation = in.InAutoRotation
+	existing.AutoOrder = in.AutoOrder
+	if existing.ConsumptionRatio == 0 {
+		existing.ConsumptionRatio = 1
+	}
+	if existing.Visibility == "" {
+		existing.Visibility = "public"
+	}
+	if err := existing.Update(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.SyncGroupsToOptions(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, existing)
+}
+
+// DeleteGroupManage refuses to delete a group still referenced by any channel.
+func DeleteGroupManage(c *gin.Context) {
+	name := c.Param("name")
+	counts, err := model.CountChannelsByGroup()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if counts[name] > 0 {
+		common.ApiErrorMsg(c, "该分组仍被 "+strconv.Itoa(counts[name])+" 个渠道使用，请先解除关联")
+		return
+	}
+	if err := model.DeleteGroupByName(name); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.SyncGroupsToOptions(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"name": name})
 }
