@@ -23,6 +23,7 @@ import {
   FileText,
   FlaskConical,
   Key,
+  Layers,
   LayoutDashboard,
   ListTodo,
   MessageSquare,
@@ -120,6 +121,11 @@ export function useSidebarData(): SidebarData {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
+          },
+          {
+            title: t('Groups'),
+            url: '/groups',
+            icon: Layers,
           },
           {
             title: t('Models'),
