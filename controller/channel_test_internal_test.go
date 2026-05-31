@@ -6,12 +6,25 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+// A row-level operation on the channels table (toggling status, changing
+// priority/weight) sends a partial PATCH that does not include the group
+// field, so it arrives as an empty string. validateChannel must NOT force the
+// group to the default value on update, otherwise GORM's Updates() would
+// overwrite the channel's real group with "default".
+func TestValidateChannelPreservesEmptyGroupOnUpdate(t *testing.T) {
+	ch := &model.Channel{Group: ""}
+	err := validateChannel(ch, false)
+	require.NoError(t, err)
+	require.Equal(t, "", ch.Group, "empty group on update must be left untouched so GORM omits it")
+}
 
 func TestSettleTestQuotaUsesTieredBilling(t *testing.T) {
 	info := &relaycommon.RelayInfo{
