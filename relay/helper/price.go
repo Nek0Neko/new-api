@@ -197,6 +197,11 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 		}
 	}
 
+	// Phase 2: per-channel model override (per-call billing).
+	override := ApplyChannelModelOverride(info.ChannelSetting, info.OriginModelName, modelRatio, 0, modelPrice)
+	modelRatio = override.ModelRatio
+	modelPrice = override.ModelPrice
+
 	var quota int
 	freeModel := false
 
