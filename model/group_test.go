@@ -13,15 +13,28 @@ import (
 
 func setupGroupTestDB(t *testing.T) {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// Unique per-test DSN: a shared-cache in-memory DB would leak the groups table
+	// across tests and trigger UNIQUE collisions / stale rows.
+	dsn := "file:" + t.Name() + "?mode=memory&cache=shared"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
 	if err := db.AutoMigrate(&Group{}, &Channel{}, &Ability{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
+	// Swap the global DB for this test, restoring the package-wide TestMain DB
+	// afterwards so sibling tests (e.g. task_cas_test.go) keep their schema.
+	prevDB := DB
 	DB = db
+	t.Cleanup(func() { DB = prevDB })
+
 	common.UsingSQLite = true
+	// InitDB normally sets these cross-DB column-quoting vars; mirror the SQLite case.
+	commonGroupCol = "`group`"
+	commonKeyCol = "`key`"
+	commonTrueVal = "1"
+	commonFalseVal = "0"
 	if common.OptionMap == nil {
 		common.OptionMap = make(map[string]string)
 	}
@@ -96,5 +109,24 @@ func TestSyncGroupsToOptions(t *testing.T) {
 	auto := setting.GetAutoGroups()
 	if len(auto) != 2 || auto[0] != "default" || auto[1] != "vip" {
 		t.Errorf("AutoGroups = %v, want [default vip]", auto)
+	}
+}
+
+func TestCountChannelsByGroup(t *testing.T) {
+	setupGroupTestDB(t)
+	_ = DB.Create(&Ability{Group: "vip", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error
+	_ = DB.Create(&Ability{Group: "vip", Model: "claude", ChannelId: 1, Enabled: true}).Error
+	_ = DB.Create(&Ability{Group: "vip", Model: "gpt-4o", ChannelId: 2, Enabled: true}).Error
+	_ = DB.Create(&Ability{Group: "default", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error
+
+	counts, err := CountChannelsByGroup()
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if counts["vip"] != 2 {
+		t.Errorf("vip channel count = %d, want 2 (distinct channels)", counts["vip"])
+	}
+	if counts["default"] != 1 {
+		t.Errorf("default channel count = %d, want 1", counts["default"])
 	}
 }

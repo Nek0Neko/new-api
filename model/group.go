@@ -208,3 +208,24 @@ func SyncGroupsToOptions() error {
 	}
 	return nil
 }
+
+// CountChannelsByGroup returns the number of DISTINCT channels serving each group,
+// derived from the Ability table (which already explodes Channel.Group CSV into rows).
+func CountChannelsByGroup() (map[string]int, error) {
+	type row struct {
+		Grp string `gorm:"column:grp"`
+		Cnt int    `gorm:"column:cnt"`
+	}
+	var rows []row
+	err := DB.Raw(
+		"SELECT "+commonGroupCol+" as grp, COUNT(DISTINCT channel_id) as cnt FROM abilities GROUP BY "+commonGroupCol,
+	).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]int, len(rows))
+	for _, r := range rows {
+		out[r.Grp] = r.Cnt
+	}
+	return out, nil
+}
