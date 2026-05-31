@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +39,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
   const { t } = useTranslation()
   const [channels, setChannels] = useState<GroupChannel[]>([])
   const [attachId, setAttachId] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const reload = async () => {
     const res = await getGroupChannels(groupName)
@@ -51,26 +51,33 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName])
 
+  // Server errors are surfaced by the global axios interceptor's toast.
   const detach = async (id: number) => {
-    const res = await mutateGroupChannel(groupName, id, 'detach')
-    if (res.success) {
-      await reload()
-      onChanged()
-    } else {
-      toast.error(res.message || t('Failed'))
+    setBusy(true)
+    try {
+      const res = await mutateGroupChannel(groupName, id, 'detach')
+      if (res.success) {
+        await reload()
+        onChanged()
+      }
+    } finally {
+      setBusy(false)
     }
   }
 
   const attach = async () => {
     const id = Number(attachId)
     if (!id) return
-    const res = await mutateGroupChannel(groupName, id, 'attach')
-    if (res.success) {
-      setAttachId('')
-      await reload()
-      onChanged()
-    } else {
-      toast.error(res.message || t('Failed'))
+    setBusy(true)
+    try {
+      const res = await mutateGroupChannel(groupName, id, 'attach')
+      if (res.success) {
+        setAttachId('')
+        await reload()
+        onChanged()
+      }
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -85,7 +92,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
             value={attachId}
             onChange={(e) => setAttachId(e.target.value)}
           />
-          <Button size="sm" onClick={attach}>
+          <Button size="sm" onClick={attach} disabled={busy}>
             {t('Attach')}
           </Button>
         </div>
@@ -115,6 +122,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
                     size="sm"
                     variant="ghost"
                     onClick={() => detach(ch.id)}
+                    disabled={busy}
                   >
                     {t('Detach')}
                   </Button>

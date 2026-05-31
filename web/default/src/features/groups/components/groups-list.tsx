@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,6 +37,7 @@ type Props = {
 export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
   const { t } = useTranslation()
   const [creating, setCreating] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [name, setName] = useState('')
   const [ratio, setRatio] = useState('1')
   const [description, setDescription] = useState('')
@@ -49,20 +49,25 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
     setCreating(false)
   }
 
+  // Server errors are surfaced by the global axios interceptor's toast.
   const submit = async () => {
     if (!name.trim()) return
-    const res = await createGroup({
-      name: name.trim(),
-      consumption_ratio: Number(ratio) || 1,
-      description,
-      visibility: 'public',
-    })
-    if (res.success) {
-      reset()
-      onSelect(name.trim())
-      onChanged()
-    } else {
-      toast.error(res.message || t('Failed'))
+    setSubmitting(true)
+    try {
+      const res = await createGroup({
+        name: name.trim(),
+        consumption_ratio: Number(ratio) || 1,
+        description,
+        visibility: 'public',
+      })
+      if (res.success) {
+        const created = name.trim()
+        reset()
+        onSelect(created)
+        onChanged()
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -123,7 +128,7 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
             />
           </div>
           <div className="flex gap-1">
-            <Button size="sm" onClick={submit}>
+            <Button size="sm" onClick={submit} disabled={submitting}>
               {t('Create')}
             </Button>
             <Button size="sm" variant="ghost" onClick={reset}>

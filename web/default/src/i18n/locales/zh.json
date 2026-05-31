@@ -1200,6 +1200,7 @@
     "Delete failed": "删除失败",
     "Delete Field": "删除字段",
     "Delete group": "删除分组",
+    "Delete this group? This cannot be undone.": "确定删除该分组？此操作不可撤销。",
     "Delete Header": "删请求头",
     "Delete Invalid": "删除无效",
     "Delete invalid codes": "删除无效代码",

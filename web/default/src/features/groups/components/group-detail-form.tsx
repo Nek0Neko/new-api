@@ -40,28 +40,49 @@ export function GroupDetailForm({ group, onChanged }: Props) {
   const { t } = useTranslation()
   const [form, setForm] = useState<GroupManageItem>(group)
 
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   const set = <K extends keyof GroupManageItem>(
     k: K,
     v: GroupManageItem[K]
   ) => setForm((f) => ({ ...f, [k]: v }))
 
+  // Guard numeric inputs: a cleared field yields '' -> Number('') === 0, and a
+  // stray non-numeric value yields NaN (which would serialize to JSON null and be
+  // silently coerced to 0 server-side). Treat both as 0 here so the value the admin
+  // sees is exactly what gets saved.
+  const setNum = (k: keyof GroupManageItem, raw: string) => {
+    const n = Number(raw)
+    set(k, (Number.isNaN(n) ? 0 : n) as GroupManageItem[typeof k])
+  }
+
+  // Server errors are surfaced by the global axios interceptor's toast, so we only
+  // toast on success here to avoid a duplicate error toast.
   const save = async () => {
-    const res = await updateGroup(group.name, form)
-    if (res.success) {
-      toast.success(t('Saved'))
-      onChanged()
-    } else {
-      toast.error(res.message || t('Failed'))
+    setSaving(true)
+    try {
+      const res = await updateGroup(group.name, form)
+      if (res.success) {
+        toast.success(t('Saved'))
+        onChanged()
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
   const remove = async () => {
-    const res = await deleteGroup(group.name)
-    if (res.success) {
-      toast.success(t('Deleted'))
-      onChanged()
-    } else {
-      toast.error(res.message || t('Failed'))
+    if (!window.confirm(t('Delete this group? This cannot be undone.'))) return
+    setDeleting(true)
+    try {
+      const res = await deleteGroup(group.name)
+      if (res.success) {
+        toast.success(t('Deleted'))
+        onChanged()
+      }
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -87,9 +108,7 @@ export function GroupDetailForm({ group, onChanged }: Props) {
             type="number"
             step="0.01"
             value={form.consumption_ratio}
-            onChange={(e) =>
-              set('consumption_ratio', Number(e.target.value))
-            }
+            onChange={(e) => setNum('consumption_ratio', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -99,7 +118,7 @@ export function GroupDetailForm({ group, onChanged }: Props) {
             type="number"
             step="0.01"
             value={form.topup_ratio}
-            onChange={(e) => set('topup_ratio', Number(e.target.value))}
+            onChange={(e) => setNum('topup_ratio', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -127,9 +146,7 @@ export function GroupDetailForm({ group, onChanged }: Props) {
             id="group-upgrade-threshold"
             type="number"
             value={form.upgrade_threshold}
-            onChange={(e) =>
-              set('upgrade_threshold', Number(e.target.value))
-            }
+            onChange={(e) => setNum('upgrade_threshold', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -138,7 +155,7 @@ export function GroupDetailForm({ group, onChanged }: Props) {
             id="group-auto-order"
             type="number"
             value={form.auto_order}
-            onChange={(e) => set('auto_order', Number(e.target.value))}
+            onChange={(e) => setNum('auto_order', e.target.value)}
           />
         </div>
       </div>
@@ -168,8 +185,10 @@ export function GroupDetailForm({ group, onChanged }: Props) {
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={save}>{t('Save')}</Button>
-        <Button variant="destructive" onClick={remove}>
+        <Button onClick={save} disabled={saving}>
+          {t('Save')}
+        </Button>
+        <Button variant="destructive" onClick={remove} disabled={deleting}>
           {t('Delete group')}
         </Button>
       </div>
