@@ -263,6 +263,14 @@ func MutateGroupChannel(c *gin.Context) {
 	}
 	switch req.Action {
 	case "attach":
+		// Only attach to a group that actually exists in the table, so we never
+		// create a channel tag for an undefined group (which would route with a
+		// silent default ratio of 1). Detach is always allowed so an orphaned tag
+		// can still be cleaned up.
+		if _, err := model.GetGroupByName(name); err != nil {
+			common.ApiErrorMsg(c, "分组不存在，请先在分组页面创建")
+			return
+		}
 		set[name] = struct{}{}
 	case "detach":
 		delete(set, name)

@@ -137,6 +137,17 @@ func UpdateOption(c *gin.Context) {
 	default:
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
+	// These four keys are now derived from the groups table (the single source of
+	// truth). Allowing a direct write here would let the in-memory maps diverge from
+	// the table, and the next group edit would silently clobber the change via
+	// SyncGroupsToOptions. Route admins to the dedicated endpoint instead.
+	// SyncGroupsToOptions itself calls model.UpdateOption directly and bypasses this
+	// handler, so the sync path is unaffected.
+	switch option.Key {
+	case "GroupRatio", "TopupGroupRatio", "UserUsableGroups", "AutoGroups":
+		common.ApiErrorMsg(c, "分组配置请在「分组」页面管理（/api/group/manage），不再支持通过通用设置接口修改")
+		return
+	}
 	switch option.Key {
 	case "QuotaForInviter", "QuotaForInvitee":
 		if isPositiveOptionValue(option.Value.(string)) && !operation_setting.IsPaymentComplianceConfirmed() {
