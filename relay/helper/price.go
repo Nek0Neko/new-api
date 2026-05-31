@@ -79,10 +79,6 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 	var audioCompletionRatio float64
 	var freeModel bool
 	if !usePrice {
-		preConsumedTokens := common.Max(promptTokens, common.PreConsumedQuota)
-		if meta.MaxTokens != 0 {
-			preConsumedTokens += meta.MaxTokens
-		}
 		var success bool
 		var matchName string
 		modelRatio, success, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
@@ -104,12 +100,30 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		imageRatio, _ = ratio_setting.GetImageRatio(info.OriginModelName)
 		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
-		ratio := modelRatio * groupRatioInfo.GroupRatio
-		preConsumedQuota = int(float64(preConsumedTokens) * ratio)
 	} else {
 		if meta.ImagePriceRatio != 0 {
 			modelPrice = modelPrice * meta.ImagePriceRatio
 		}
+	}
+
+	// Phase 2: apply per-channel, per-model billing override. Composes with the group
+	// ratio multiplicatively. tiered_expr models already returned above, so this only
+	// affects ratio/price-mode models.
+	override := ApplyChannelModelOverride(info.ChannelSetting, info.OriginModelName, modelRatio, completionRatio, modelPrice)
+	modelRatio = override.ModelRatio
+	completionRatio = override.CompletionRatio
+	modelPrice = override.ModelPrice
+	if (override.RatioOverridden || override.PriceOverridden) && common.DebugEnabled {
+		logger.LogDebug(c, "channel %d billing override applied for model %s (ratio=%v price=%v)", info.ChannelId, info.OriginModelName, modelRatio, modelPrice)
+	}
+
+	if !usePrice {
+		preConsumedTokens := common.Max(promptTokens, common.PreConsumedQuota)
+		if meta.MaxTokens != 0 {
+			preConsumedTokens += meta.MaxTokens
+		}
+		preConsumedQuota = int(float64(preConsumedTokens) * (modelRatio * groupRatioInfo.GroupRatio))
+	} else {
 		preConsumedQuota = int(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
 	}
 
