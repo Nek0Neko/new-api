@@ -7,6 +7,14 @@ type ChannelSettings struct {
 	PassThroughBodyEnabled bool   `json:"pass_through_body_enabled,omitempty"`
 	SystemPrompt           string `json:"system_prompt,omitempty"`
 	SystemPromptOverride   bool   `json:"system_prompt_override,omitempty"`
+	// Per-channel, per-model billing overrides. Keyed by the requested model name
+	// (OriginModelName), matching the global billing lookup key. An entry replaces
+	// the corresponding GLOBAL rate for requests served by THIS channel; the group
+	// ratio is still applied on top (final = override_ratio × group_ratio).
+	// Unset models fall back to the global rate. Not applied to tiered_expr models.
+	ModelRatioOverride      map[string]float64 `json:"model_ratio_override,omitempty"`
+	CompletionRatioOverride map[string]float64 `json:"completion_ratio_override,omitempty"`
+	ModelPriceOverride      map[string]float64 `json:"model_price_override,omitempty"`
 }
 
 type VertexKeyType string
