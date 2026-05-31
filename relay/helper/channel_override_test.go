@@ -41,3 +41,16 @@ func TestApplyChannelModelOverride(t *testing.T) {
 		t.Errorf("nil maps should be no-op: %+v", empty)
 	}
 }
+
+func TestApplyChannelModelOverride_ComposesWithGroupRatio(t *testing.T) {
+	cs := dto.ChannelSettings{ModelRatioOverride: map[string]float64{"gpt-4o": 3}}
+	o := ApplyChannelModelOverride(cs, "gpt-4o", 1.5, 0, 0)
+	const groupRatio = 2.0
+	if o.ModelRatio*groupRatio != 6 {
+		t.Errorf("final = %v, want 6 (override 3 × group 2)", o.ModelRatio*groupRatio)
+	}
+	o2 := ApplyChannelModelOverride(dto.ChannelSettings{}, "gpt-4o", 1.5, 0, 0)
+	if o2.ModelRatio*groupRatio != 3 {
+		t.Errorf("fallthrough final = %v, want 3", o2.ModelRatio*groupRatio)
+	}
+}
