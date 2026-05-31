@@ -47,6 +47,7 @@ export type GroupChannel = {
   status: number
   group: string
   type: number
+  has_override?: boolean
 }
 
 export type ApiResponse<T> = {

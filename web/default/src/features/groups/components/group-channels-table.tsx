@@ -126,6 +126,9 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
                   >
                     {t('Detach')}
                   </Button>
+                  {ch.has_override && (
+                    <Badge variant="outline">{t('override')}</Badge>
+                  )}
                   <Link
                     to="/channels"
                     search={{ group: [groupName] }}

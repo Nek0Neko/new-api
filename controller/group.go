@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
@@ -223,18 +224,52 @@ func GetGroupChannels(c *gin.Context) {
 		// Project only the display columns the management UI needs. Never select
 		// "key": full-row Find would serialize the upstream provider secret into
 		// the response (the Channel.Key field has no json:"-"), which every other
-		// channel-listing query in this codebase deliberately omits. Passing the
-		// columns as separate args lets GORM quote the reserved word "group"
-		// per-dialect across SQLite/MySQL/PostgreSQL.
+		// channel-listing query in this codebase deliberately omits. We do select
+		// "setting" so we can derive the per-channel billing-override flag, but we
+		// never leak the raw setting blob to the client (see the projection below).
+		// Passing the columns as separate args lets GORM quote the reserved word
+		// "group" per-dialect across SQLite/MySQL/PostgreSQL.
 		if err := model.DB.
-			Select([]string{"id", "name", "status", "type", "group"}).
+			Select([]string{"id", "name", "status", "type", "group", "setting"}).
 			Where("id IN ?", channelIds).
 			Find(&channels).Error; err != nil {
 			common.ApiError(c, err)
 			return
 		}
 	}
-	common.ApiSuccess(c, channels)
+
+	// groupChannel is a lightweight projection of model.Channel for the group
+	// management UI. It deliberately omits "setting" (and the secret "key") and
+	// exposes only a derived has_override flag so the raw setting blob never
+	// reaches the client.
+	type groupChannel struct {
+		Id          int    `json:"id"`
+		Name        string `json:"name"`
+		Status      int    `json:"status"`
+		Type        int    `json:"type"`
+		Group       string `json:"group"`
+		HasOverride bool   `json:"has_override"`
+	}
+	result := make([]groupChannel, 0, len(channels))
+	for _, ch := range channels {
+		cs := dto.ChannelSettings{}
+		if ch.Setting != nil && *ch.Setting != "" {
+			// Ignore parse errors: a malformed setting simply yields no overrides.
+			_ = common.Unmarshal([]byte(*ch.Setting), &cs)
+		}
+		hasOverride := len(cs.ModelRatioOverride)+
+			len(cs.CompletionRatioOverride)+
+			len(cs.ModelPriceOverride) > 0
+		result = append(result, groupChannel{
+			Id:          ch.Id,
+			Name:        ch.Name,
+			Status:      ch.Status,
+			Type:        ch.Type,
+			Group:       ch.Group,
+			HasOverride: hasOverride,
+		})
+	}
+	common.ApiSuccess(c, result)
 }
 
 // GroupChannelMutateRequest attaches or detaches a single channel to/from a group.
