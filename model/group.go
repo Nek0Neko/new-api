@@ -2,6 +2,8 @@ package model
 
 import (
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
 // Group is the single source of truth for a channel group. Each row consolidates
@@ -65,4 +67,67 @@ func IsGroupNameDuplicated(id int, name string) (bool, error) {
 
 func DeleteGroupByName(name string) error {
 	return DB.Where("name = ?", name).Delete(&Group{}).Error
+}
+
+// BackfillGroupsFromSettings populates the groups table from the current in-memory
+// settings on first run. It is idempotent: if any group rows already exist it is a
+// no-op, so it is safe to call on every startup.
+func BackfillGroupsFromSettings() error {
+	var cnt int64
+	if err := DB.Model(&Group{}).Count(&cnt).Error; err != nil {
+		return err
+	}
+	if cnt > 0 {
+		return nil
+	}
+
+	ratios := ratio_setting.GetGroupRatioCopy()
+	metas := setting.GetUserUsableGroupMetaCopy()
+	autoOrder := map[string]int{}
+	for i, name := range setting.GetAutoGroups() {
+		autoOrder[name] = i + 1
+	}
+	topups := map[string]float64{}
+	_ = common.Unmarshal([]byte(common.TopupGroupRatio2JSONString()), &topups)
+
+	names := map[string]struct{}{}
+	for n := range ratios {
+		names[n] = struct{}{}
+	}
+	for n := range metas {
+		names[n] = struct{}{}
+	}
+	for n := range topups {
+		names[n] = struct{}{}
+	}
+	for n := range autoOrder {
+		names[n] = struct{}{}
+	}
+
+	for name := range names {
+		g := &Group{Name: name, ConsumptionRatio: 1, Visibility: setting.GroupVisibilityPublic}
+		if r, ok := ratios[name]; ok {
+			g.ConsumptionRatio = r
+		}
+		if r, ok := topups[name]; ok {
+			g.TopupRatio = r
+		}
+		if m, ok := metas[name]; ok {
+			g.Description = m.Description
+			if m.Visibility != "" {
+				g.Visibility = m.Visibility
+			}
+			g.AdminOnly = m.AdminOnly
+			g.AutoUpgrade = m.AutoUpgrade
+			g.UpgradeThreshold = m.UpgradeThreshold
+		}
+		if ord, ok := autoOrder[name]; ok {
+			g.InAutoRotation = true
+			g.AutoOrder = ord
+		}
+		if err := g.Insert(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
