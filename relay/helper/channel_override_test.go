@@ -54,3 +54,17 @@ func TestApplyChannelModelOverride_ComposesWithGroupRatio(t *testing.T) {
 		t.Errorf("fallthrough final = %v, want 3", o2.ModelRatio*groupRatio)
 	}
 }
+
+// An explicit 0 override must replace the global rate (and flag the override), so
+// downstream billing treats the model as free on this channel. Guards against a
+// future "0 means unset" regression in the helper.
+func TestApplyChannelModelOverride_ZeroMeansFree(t *testing.T) {
+	cs := dto.ChannelSettings{ModelRatioOverride: map[string]float64{"m": 0}}
+	o := ApplyChannelModelOverride(cs, "m", 5, 0, 0)
+	if o.ModelRatio != 0 {
+		t.Errorf("ModelRatio = %v, want 0 (explicit zero override)", o.ModelRatio)
+	}
+	if !o.RatioOverridden {
+		t.Errorf("RatioOverridden should be true for an explicit 0 override")
+	}
+}

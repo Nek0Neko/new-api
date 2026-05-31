@@ -12,6 +12,8 @@ type ChannelSettings struct {
 	// the corresponding GLOBAL rate for requests served by THIS channel; the group
 	// ratio is still applied on top (final = override_ratio × group_ratio).
 	// Unset models fall back to the global rate. Not applied to tiered_expr models.
+	// An override of 0 makes the model free on this channel (same as a global rate
+	// of 0). Values are not validated here; the admin save path rejects negatives.
 	ModelRatioOverride      map[string]float64 `json:"model_ratio_override,omitempty"`
 	CompletionRatioOverride map[string]float64 `json:"completion_ratio_override,omitempty"`
 	ModelPriceOverride      map[string]float64 `json:"model_price_override,omitempty"`
