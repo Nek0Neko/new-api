@@ -220,7 +220,15 @@ func GetGroupChannels(c *gin.Context) {
 	}
 	var channels []model.Channel
 	if len(channelIds) > 0 {
-		if err := model.DB.Where("id IN ?", channelIds).
+		// Project only the display columns the management UI needs. Never select
+		// "key": full-row Find would serialize the upstream provider secret into
+		// the response (the Channel.Key field has no json:"-"), which every other
+		// channel-listing query in this codebase deliberately omits. Passing the
+		// columns as separate args lets GORM quote the reserved word "group"
+		// per-dialect across SQLite/MySQL/PostgreSQL.
+		if err := model.DB.
+			Select([]string{"id", "name", "status", "type", "group"}).
+			Where("id IN ?", channelIds).
 			Find(&channels).Error; err != nil {
 			common.ApiError(c, err)
 			return
