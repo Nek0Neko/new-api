@@ -1,6 +1,8 @@
 package model
 
 import (
+	"sort"
+
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -128,6 +130,81 @@ func BackfillGroupsFromSettings() error {
 		if err := g.Insert(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// SyncGroupsToOptions re-derives the four group-related Option JSON blobs from the
+// full groups table and persists them via UpdateOption (DB write + in-memory
+// refresh). Call after every group create/update/delete so hot paths see a coherent
+// picture without any change to their read code.
+func SyncGroupsToOptions() error {
+	groups, err := GetAllGroups()
+	if err != nil {
+		return err
+	}
+
+	groupRatio := map[string]float64{}
+	topupRatio := map[string]float64{}
+	usable := map[string]setting.GroupMeta{}
+
+	type autoEntry struct {
+		name  string
+		order int
+	}
+	var autoList []autoEntry
+
+	for _, g := range groups {
+		groupRatio[g.Name] = g.ConsumptionRatio
+		if g.TopupRatio > 0 {
+			topupRatio[g.Name] = g.TopupRatio
+		}
+		usable[g.Name] = setting.GroupMeta{
+			Description:      g.Description,
+			Visibility:       g.Visibility,
+			AdminOnly:        g.AdminOnly,
+			AutoUpgrade:      g.AutoUpgrade,
+			UpgradeThreshold: g.UpgradeThreshold,
+		}
+		if g.InAutoRotation {
+			autoList = append(autoList, autoEntry{g.Name, g.AutoOrder})
+		}
+	}
+
+	sort.SliceStable(autoList, func(i, j int) bool { return autoList[i].order < autoList[j].order })
+	autoNames := make([]string, 0, len(autoList))
+	for _, e := range autoList {
+		autoNames = append(autoNames, e.name)
+	}
+
+	groupRatioJSON, err := common.Marshal(groupRatio)
+	if err != nil {
+		return err
+	}
+	topupJSON, err := common.Marshal(topupRatio)
+	if err != nil {
+		return err
+	}
+	usableJSON, err := common.Marshal(usable)
+	if err != nil {
+		return err
+	}
+	autoJSON, err := common.Marshal(autoNames)
+	if err != nil {
+		return err
+	}
+
+	if err := UpdateOption("GroupRatio", string(groupRatioJSON)); err != nil {
+		return err
+	}
+	if err := UpdateOption("TopupGroupRatio", string(topupJSON)); err != nil {
+		return err
+	}
+	if err := UpdateOption("UserUsableGroups", string(usableJSON)); err != nil {
+		return err
+	}
+	if err := UpdateOption("AutoGroups", string(autoJSON)); err != nil {
+		return err
 	}
 	return nil
 }

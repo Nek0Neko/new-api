@@ -22,6 +22,9 @@ func setupGroupTestDB(t *testing.T) {
 	}
 	DB = db
 	common.UsingSQLite = true
+	if common.OptionMap == nil {
+		common.OptionMap = make(map[string]string)
+	}
 }
 
 func TestBackfillGroupsFromSettings(t *testing.T) {
@@ -66,5 +69,32 @@ func TestBackfillGroupsFromSettings(t *testing.T) {
 	groups2, _ := GetAllGroups()
 	if len(groups2) != 2 {
 		t.Fatalf("backfill not idempotent: got %d groups", len(groups2))
+	}
+}
+
+func TestSyncGroupsToOptions(t *testing.T) {
+	setupGroupTestDB(t)
+	_ = DB.AutoMigrate(&Option{})
+
+	_ = (&Group{Name: "default", ConsumptionRatio: 1, TopupRatio: 1.5, Description: "默认", Visibility: "public", InAutoRotation: true, AutoOrder: 1}).Insert()
+	_ = (&Group{Name: "vip", ConsumptionRatio: 2, TopupRatio: 1.35, Description: "VIP", Visibility: "public", AutoUpgrade: true, UpgradeThreshold: 15000, InAutoRotation: true, AutoOrder: 2}).Insert()
+
+	if err := SyncGroupsToOptions(); err != nil {
+		t.Fatalf("sync: %v", err)
+	}
+
+	if ratio_setting.GetGroupRatio("vip") != 2 {
+		t.Errorf("GroupRatio[vip] = %v, want 2", ratio_setting.GetGroupRatio("vip"))
+	}
+	if common.GetTopupGroupRatio("default") != 1.5 {
+		t.Errorf("TopupGroupRatio[default] = %v, want 1.5", common.GetTopupGroupRatio("default"))
+	}
+	meta, ok := setting.GetUserUsableGroupMeta("vip")
+	if !ok || meta.Description != "VIP" || !meta.AutoUpgrade {
+		t.Errorf("UserUsableGroups[vip] mismatch: %+v ok=%v", meta, ok)
+	}
+	auto := setting.GetAutoGroups()
+	if len(auto) != 2 || auto[0] != "default" || auto[1] != "vip" {
+		t.Errorf("AutoGroups = %v, want [default vip]", auto)
 	}
 }
