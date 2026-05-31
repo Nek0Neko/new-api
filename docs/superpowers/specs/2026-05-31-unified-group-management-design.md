@@ -154,7 +154,7 @@ type Group struct {
   - 分组元数据表单（倍率 / 充值折扣 / 描述 / 可见性 / admin_only / 自动升级 + 阈值 / 参与 auto + 顺序）。
   - 渠道关联子表（渠道行支持「移出 / 启用禁用」与「→去渠道页深编」跳转，跳转携带 group 预过滤参数，复用 channels 页 `:111` 已有的 group 过滤）。
   - `api.ts` — 对接 5.3 的 `/api/group/manage/*`。
-- **移除旧入口**：从 `web/default/src/features/system-settings/models/` 删除「分组倍率」相关 tab / 表单（`group-ratio-form.tsx`、`ratio-settings-card.tsx` 中分组部分），其逻辑迁移进新页面。同步更新 `system-settings/models` 的 section 导航配置。
+- **移除旧入口**：「分组倍率」tab 实际注册在 `web/default/src/features/system-settings/billing/section-registry.tsx`（section id `group-pricing`，`visibleTabs={['groups']}`，渲染 `RatioSettingsCard`；表单本体 `models/group-ratio-form.tsx`）。从 `BILLING_SECTIONS` 删除该 section，其逻辑迁移进新分组页。
 - i18n：新菜单项与页面文案走 `t()`，按 `web/default/src/i18n/` 流程补 zh/en（及 `bun run i18n:sync`）。
 
 ### 5.6 Phase 2：渠道级 × 模型 计费覆盖（场景 B）
