@@ -107,6 +107,9 @@ func BackfillGroupsFromSettings() error {
 	}
 
 	for name := range names {
+		// A group present only in topups/metas/auto (not in GroupRatio) defaults to
+		// consumption ratio 1 — the neutral billing multiplier — so it is never free
+		// by accident on backfill.
 		g := &Group{Name: name, ConsumptionRatio: 1, Visibility: setting.GroupVisibilityPublic}
 		if r, ok := ratios[name]; ok {
 			g.ConsumptionRatio = r
@@ -209,8 +212,12 @@ func SyncGroupsToOptions() error {
 	return nil
 }
 
-// CountChannelsByGroup returns the number of DISTINCT channels serving each group,
-// derived from the Ability table (which already explodes Channel.Group CSV into rows).
+// CountChannelsByGroup returns the number of DISTINCT channels attached to each
+// group, derived from the Ability table (which already explodes Channel.Group CSV
+// into rows). This counts ALL attached channels regardless of enabled state: the
+// management UI uses it to answer "how many channels are configured for this group"
+// (a group whose only channels are temporarily disabled should not read as empty),
+// not "how many are currently routable".
 func CountChannelsByGroup() (map[string]int, error) {
 	type row struct {
 		Grp string `gorm:"column:grp"`

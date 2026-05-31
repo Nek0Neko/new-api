@@ -13,8 +13,8 @@ import (
 
 func setupGroupTestDB(t *testing.T) {
 	t.Helper()
-	// Unique per-test DSN: a shared-cache in-memory DB would leak the groups table
-	// across tests and trigger UNIQUE collisions / stale rows.
+	// Unique per-test DSN (keyed on the test name): isolates each test's groups
+	// table so sibling tests can't leak rows / trigger UNIQUE collisions.
 	dsn := "file:" + t.Name() + "?mode=memory&cache=shared"
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -118,6 +118,9 @@ func TestCountChannelsByGroup(t *testing.T) {
 	_ = DB.Create(&Ability{Group: "vip", Model: "claude", ChannelId: 1, Enabled: true}).Error
 	_ = DB.Create(&Ability{Group: "vip", Model: "gpt-4o", ChannelId: 2, Enabled: true}).Error
 	_ = DB.Create(&Ability{Group: "default", Model: "gpt-4o", ChannelId: 1, Enabled: true}).Error
+	// A disabled channel is still ATTACHED to the group and must be counted: the
+	// management view reports configured channels, not currently-routable ones.
+	_ = DB.Create(&Ability{Group: "default", Model: "gpt-4o", ChannelId: 9, Enabled: false}).Error
 
 	counts, err := CountChannelsByGroup()
 	if err != nil {
@@ -126,7 +129,7 @@ func TestCountChannelsByGroup(t *testing.T) {
 	if counts["vip"] != 2 {
 		t.Errorf("vip channel count = %d, want 2 (distinct channels)", counts["vip"])
 	}
-	if counts["default"] != 1 {
-		t.Errorf("default channel count = %d, want 1", counts["default"])
+	if counts["default"] != 2 {
+		t.Errorf("default channel count = %d, want 2 (incl. disabled channel)", counts["default"])
 	}
 }
