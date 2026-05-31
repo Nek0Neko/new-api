@@ -284,6 +284,14 @@ func InitResources() error {
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
 
+	// Populate the groups table from existing settings on first run (idempotent).
+	// Must run after InitOptionMap so the in-memory group settings reflect the
+	// persisted Option rows, not just compiled defaults.
+	if err = model.BackfillGroupsFromSettings(); err != nil {
+		common.FatalLog("failed to backfill groups: " + err.Error())
+		return err
+	}
+
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()
 
