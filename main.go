@@ -133,6 +133,11 @@ func main() {
 			controller.UpdateTaskBulk()
 		})
 	}
+	if common.IsMasterNode {
+		// 进程重启后，后台图片 worker 已随进程消失，无法续跑——把残留的未完成
+		// 图片任务标记为失败，避免它们永久卡在 SUBMITTED/IN_PROGRESS。
+		controller.RecoverInterruptedImageTasks()
+	}
 	if os.Getenv("BATCH_UPDATE_ENABLED") == "true" {
 		common.BatchUpdateEnabled = true
 		common.SysLog("batch update enabled with interval " + strconv.Itoa(common.BatchUpdateInterval) + "s")

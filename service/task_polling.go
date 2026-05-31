@@ -142,6 +142,8 @@ func DispatchPlatformUpdate(platform constant.TaskPlatform, taskChannelM map[int
 	switch platform {
 	case constant.TaskPlatformMidjourney:
 		// MJ 轮询由其自身处理，这里预留入口
+	case constant.TaskPlatformImage:
+		// 图片任务由本服务后台 worker 驱动执行（上游为同步接口），不轮询上游。
 	case constant.TaskPlatformSuno:
 		_ = UpdateSunoTasks(context.Background(), taskChannelM, taskM)
 	default:

@@ -186,6 +186,19 @@ func SetRelayRouter(router *gin.Engine) {
 		relaySunoRouter.GET("/fetch/:id", controller.RelayTaskFetch)
 	}
 
+	// 异步图片生成任务：提交后立即返回 task_id，后台 worker 执行同步上游调用，
+	// 结果落库，客户端凭 task_id 轮询。提交走 Distribute 选渠道；查询（GET）无 body，
+	// 复用同一中间件链（与 suno 的 GET /fetch/:id 一致，Distribute 容忍无 model 的请求）。
+	relayImageTaskRouter := router.Group("/v1/images")
+	relayImageTaskRouter.Use(middleware.RouteTag("relay"))
+	relayImageTaskRouter.Use(middleware.SystemPerformanceCheck())
+	relayImageTaskRouter.Use(middleware.TokenAuth(), middleware.Distribute())
+	{
+		relayImageTaskRouter.POST("/generations/tasks", controller.SubmitImageGenerationTask)
+		relayImageTaskRouter.POST("/edits/tasks", controller.SubmitImageEditTask)
+		relayImageTaskRouter.GET("/generations/tasks/:task_id", controller.FetchImageTask)
+	}
+
 	relayGeminiRouter := router.Group("/v1beta")
 	relayGeminiRouter.Use(middleware.RouteTag("relay"))
 	relayGeminiRouter.Use(middleware.SystemPerformanceCheck())

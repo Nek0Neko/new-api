@@ -33,6 +33,69 @@ export type { ImageStreamCallbacks } from './sse'
 export const IMAGE_GEN_ENDPOINT = '/v1/images/generations'
 export const IMAGE_EDIT_ENDPOINT = '/v1/images/edits'
 
+// Async task endpoints: submit returns a task_id immediately; the actual
+// (synchronous) upstream generation runs in a background worker on the server,
+// so the user can leave the page / refresh / close the browser and poll later.
+export const IMAGE_GEN_TASK_ENDPOINT = '/v1/images/generations/tasks'
+export const IMAGE_EDIT_TASK_ENDPOINT = '/v1/images/edits/tasks'
+
+export interface ImageTaskSubmitResponse {
+  task_id: string
+  status: string
+  submit_time?: number
+}
+
+export interface ImageTaskFetchResponse {
+  task_id: string
+  status: string
+  progress?: string
+  fail_reason?: string
+  // Present once the task succeeds — the upstream image response payload.
+  data?: ImageGenerationResponse | null
+}
+
+/** Submit a text→image generation as a server-side async task. */
+export async function submitImageGenerationTask(
+  payload: ImageGenerationRequest,
+  apiKey: string
+): Promise<ImageTaskSubmitResponse> {
+  const body: ImageGenerationRequest = { ...payload }
+  // Async tasks cannot stream — results are polled.
+  delete body.stream
+  delete body.partial_images
+  const res = await api.post(
+    IMAGE_GEN_TASK_ENDPOINT,
+    body,
+    bearerConfig(apiKey)
+  )
+  return res.data
+}
+
+/** Submit an image→image edit (multipart) as a server-side async task. */
+export async function submitImageEditTask(
+  req: ImageEditRequest,
+  apiKey: string
+): Promise<ImageTaskSubmitResponse> {
+  const res = await api.post(
+    IMAGE_EDIT_TASK_ENDPOINT,
+    buildEditFormData({ ...req, stream: false }),
+    bearerConfig(apiKey)
+  )
+  return res.data
+}
+
+/** Poll the status/result of a previously submitted image task. */
+export async function fetchImageTask(
+  taskId: string,
+  apiKey: string
+): Promise<ImageTaskFetchResponse> {
+  const res = await api.get(
+    `${IMAGE_GEN_TASK_ENDPOINT}/${encodeURIComponent(taskId)}`,
+    bearerConfig(apiKey)
+  )
+  return res.data
+}
+
 // Image generation regularly hits 504/502 from upstream gateways even when the
 // underlying model is reachable. The backend's retry loop hard-skips 504/524
 // (see setting/operation_setting/status_code_ranges.go), so we add a small

@@ -21,8 +21,11 @@ import { isAxiosError } from 'axios'
 import {
   editImage,
   editImageStream,
+  fetchImageTask,
   generateImage,
   generateImageStream,
+  submitImageEditTask,
+  submitImageGenerationTask,
 } from './api'
 import {
   replaceImageMentionsForApi,
@@ -43,6 +46,11 @@ import type {
   ImageInputFile,
 } from './types'
 
+// Async-task polling cadence. Image generation usually finishes well under a
+// minute, but we allow a generous ceiling for slow models / queueing.
+const POLL_INTERVAL_MS = 3000
+const MAX_POLL_ATTEMPTS = 200 // ~10 minutes
+
 function generateId() {
   return `img-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
@@ -61,6 +69,21 @@ function extractErrorMessage(error: unknown): string {
   }
   if (error instanceof Error) return error.message
   return 'Image generation failed'
+}
+
+// Map the server task status onto the item's UI status. Anything that isn't a
+// terminal state keeps the card in its spinning `loading` state.
+function taskStatusToItemStatus(
+  status: string
+): 'loading' | 'success' | 'error' {
+  switch ((status || '').toUpperCase()) {
+    case 'SUCCESS':
+      return 'success'
+    case 'FAILURE':
+      return 'error'
+    default:
+      return 'loading'
+  }
 }
 
 export function useImagePlayground(apiKey: string | null) {
@@ -94,21 +117,13 @@ export function useImagePlayground(apiKey: string | null) {
   const apiKeyRef = useRef<string | null>(apiKey)
   apiKeyRef.current = apiKey
 
-  // Hydrate items from IndexedDB on mount. Guard against late completion
-  // overwriting items the user has already added (race with submit()).
-  useEffect(() => {
-    let cancelled = false
-    void loadImageItems().then((loaded) => {
-      if (cancelled) return
-      setItems((current) =>
-        current.length === 0 ? loaded : [...current, ...loaded]
-      )
-      setIsHydrated(true)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  // Mirror items so polling — which spans many renders — always reads the
+  // current list without recreating closures.
+  const itemsRef = useRef<ImageGenerationItem[]>(items)
+
+  const pollAttemptsRef = useRef<Record<string, number>>({})
+  const pollTimersRef = useRef<Record<string, number>>({})
+  const stoppedRef = useRef(false)
 
   const updateConfig = useCallback(
     <K extends keyof ImageConfig>(key: K, value: ImageConfig[K]) => {
@@ -127,6 +142,7 @@ export function useImagePlayground(apiKey: string | null) {
     (updater: (prev: ImageGenerationItem[]) => ImageGenerationItem[]) => {
       setItems((prev) => {
         const next = updater(prev)
+        itemsRef.current = next
         void saveImageItems(next)
         return next
       })
@@ -134,16 +150,144 @@ export function useImagePlayground(apiKey: string | null) {
     []
   )
 
+  const stopPolling = useCallback((id: string) => {
+    const timer = pollTimersRef.current[id]
+    if (timer) {
+      window.clearTimeout(timer)
+      delete pollTimersRef.current[id]
+    }
+    delete pollAttemptsRef.current[id]
+  }, [])
+
+  const pollOnce = useCallback(
+    async (id: string) => {
+      if (stoppedRef.current) return
+      const item = itemsRef.current.find((it) => it.id === id)
+      if (!item || !item.taskId || item.status !== 'loading') {
+        stopPolling(id)
+        return
+      }
+      const key = apiKeyRef.current
+      if (!key) {
+        // Pause (don't terminate) — re-arm so polling resumes once a key is set.
+        pollTimersRef.current[id] = window.setTimeout(
+          () => pollOnce(id),
+          POLL_INTERVAL_MS
+        )
+        return
+      }
+      const attempts = (pollAttemptsRef.current[id] ?? 0) + 1
+      pollAttemptsRef.current[id] = attempts
+      if (attempts > MAX_POLL_ATTEMPTS) {
+        updateItems((prev) =>
+          prev.map((it) =>
+            it.id === id
+              ? { ...it, status: 'error', errorMessage: 'Polling timeout' }
+              : it
+          )
+        )
+        stopPolling(id)
+        return
+      }
+
+      try {
+        const resp = await fetchImageTask(item.taskId, key)
+        const status = taskStatusToItemStatus(resp.status)
+        if (status === 'success') {
+          const images = resp.data?.data ?? []
+          updateItems((prev) =>
+            prev.map((it) =>
+              it.id === id ? { ...it, status: 'success', images } : it
+            )
+          )
+          stopPolling(id)
+          return
+        }
+        if (status === 'error') {
+          updateItems((prev) =>
+            prev.map((it) =>
+              it.id === id
+                ? {
+                    ...it,
+                    status: 'error',
+                    errorMessage: resp.fail_reason || 'Task failed',
+                  }
+                : it
+            )
+          )
+          stopPolling(id)
+          return
+        }
+        // still in progress — fall through to reschedule
+      } catch (error) {
+        // Transient error — keep polling until max attempts.
+        // eslint-disable-next-line no-console
+        console.warn('image task fetch failed', error)
+      }
+
+      if (stoppedRef.current) return
+      pollTimersRef.current[id] = window.setTimeout(
+        () => pollOnce(id),
+        POLL_INTERVAL_MS
+      )
+    },
+    [updateItems, stopPolling]
+  )
+
+  const ensurePolling = useCallback(
+    (id: string) => {
+      if (pollTimersRef.current[id]) return
+      pollTimersRef.current[id] = window.setTimeout(
+        () => pollOnce(id),
+        POLL_INTERVAL_MS
+      )
+    },
+    [pollOnce]
+  )
+
+  // Hydrate items from IndexedDB on mount, then resume polling for any task
+  // items still in flight. Guard against late completion overwriting items the
+  // user has already added (race with submit()).
+  useEffect(() => {
+    stoppedRef.current = false
+    let cancelled = false
+    void loadImageItems().then((loaded) => {
+      if (cancelled) return
+      setItems((current) => {
+        const next = current.length === 0 ? loaded : [...current, ...loaded]
+        itemsRef.current = next
+        return next
+      })
+      loaded.forEach((it) => {
+        if (it.taskId && it.status === 'loading') ensurePolling(it.id)
+      })
+      setIsHydrated(true)
+    })
+    const timers = pollTimersRef.current
+    return () => {
+      cancelled = true
+      stoppedRef.current = true
+      Object.keys(timers).forEach((id) => {
+        window.clearTimeout(timers[id])
+        delete timers[id]
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const clearHistory = useCallback(() => {
+    Object.keys(pollTimersRef.current).forEach((id) => stopPolling(id))
+    itemsRef.current = []
     setItems([])
     void clearImageItems()
-  }, [])
+  }, [stopPolling])
 
   const removeItem = useCallback(
     (id: string) => {
+      stopPolling(id)
       updateItems((prev) => prev.filter((it) => it.id !== id))
     },
-    [updateItems]
+    [updateItems, stopPolling]
   )
 
   const submit = useCallback(
@@ -163,7 +307,9 @@ export function useImagePlayground(apiKey: string | null) {
       const apiPrompt = replaceImageMentionsForApi(prompt, images.length)
       const isEdit = images.length > 0
       const id = generateId()
-      const useStream = !!config.stream
+      const useAsync = !!config.asyncTask
+      // A task cannot stream — async mode ignores the stream toggle.
+      const useStream = !useAsync && !!config.stream
 
       const placeholder: ImageGenerationItem = {
         id,
@@ -199,6 +345,58 @@ export function useImagePlayground(apiKey: string | null) {
         )
 
       try {
+        if (useAsync) {
+          // Submit as a server-side task and start polling. The actual upstream
+          // generation runs on the server, so the user may leave/refresh/close.
+          let taskId: string
+          if (isEdit) {
+            const editReq: ImageEditRequest = {
+              model: config.model,
+              prompt: apiPrompt,
+              n: config.n,
+              size: config.size,
+              quality: config.quality,
+              moderation: config.moderation,
+              output_format: config.outputFormat,
+              response_format: 'url',
+              images,
+              mask: mask ?? undefined,
+            }
+            if (
+              config.outputFormat !== 'png' &&
+              config.outputCompression != null
+            ) {
+              editReq.output_compression = config.outputCompression
+            }
+            const resp = await submitImageEditTask(editReq, key)
+            taskId = resp.task_id
+          } else {
+            const payload: ImageGenerationRequest = {
+              model: config.model,
+              prompt: apiPrompt,
+              n: config.n,
+              size: config.size,
+              quality: config.quality,
+              moderation: config.moderation,
+              output_format: config.outputFormat,
+              response_format: 'url',
+            }
+            if (
+              config.outputFormat !== 'png' &&
+              config.outputCompression != null
+            ) {
+              payload.output_compression = config.outputCompression
+            }
+            const resp = await submitImageGenerationTask(payload, key)
+            taskId = resp.task_id
+          }
+          updateItems((prev) =>
+            prev.map((it) => (it.id === id ? { ...it, taskId } : it))
+          )
+          ensurePolling(id)
+          return
+        }
+
         if (isEdit) {
           const editReq: ImageEditRequest = {
             model: config.model,
@@ -292,10 +490,13 @@ export function useImagePlayground(apiKey: string | null) {
           )
         )
       } finally {
+        // For async tasks the work continues in the background; unlock the UI
+        // as soon as the task is submitted. For sync/stream this runs after the
+        // full result arrives.
         setIsGenerating(false)
       }
     },
-    [config, isGenerating, inputImages, maskImage, updateItems, clearInputs]
+    [config, isGenerating, inputImages, maskImage, updateItems, clearInputs, ensurePolling]
   )
 
   return {

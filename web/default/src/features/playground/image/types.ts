@@ -52,6 +52,13 @@ export interface ImageConfig {
   n: number
   stream: boolean
   partialImages: number
+  /**
+   * Run generation as a server-side async task: submit returns immediately and
+   * the result is polled, so the user can leave the page / refresh / close the
+   * browser and still retrieve it. Mutually exclusive with `stream` (a task
+   * cannot stream); when true, streaming is ignored.
+   */
+  asyncTask: boolean
 }
 
 export type ImageGenerationStatus =
@@ -74,6 +81,12 @@ export interface ImageGenerationItem {
   maskImage?: ImageInputFile
   createdAt: number
   status: ImageGenerationStatus
+  /**
+   * Server-side async task id (when this item was submitted as a task). Used to
+   * resume polling after a reload and to keep a `loading` item alive instead of
+   * surfacing it as interrupted.
+   */
+  taskId?: string
   images: ImageDataItem[]
   /**
    * Latest partial image (base64) received while streaming. Cleared when the

@@ -427,6 +427,27 @@ func TaskBulkUpdate(taskIds []string, params map[string]any) error {
 		Updates(params).Error
 }
 
+// FailUnfinishedImageTasks 把所有未完成的图片任务（platform=image）标记为失败。
+// 用于（主节点）启动时的崩溃恢复——后台 worker 随进程消失，无法续跑。
+// 返回受影响的行数。
+func FailUnfinishedImageTasks(reason string) (int64, error) {
+	result := DB.Model(&Task{}).
+		Where("platform = ?", constant.TaskPlatformImage).
+		Where("status IN ?", []TaskStatus{
+			TaskStatusNotStart,
+			TaskStatusSubmitted,
+			TaskStatusQueued,
+			TaskStatusInProgress,
+		}).
+		Updates(map[string]any{
+			"status":      TaskStatusFailure,
+			"progress":    "100%",
+			"fail_reason": reason,
+			"finish_time": time.Now().Unix(),
+		})
+	return result.RowsAffected, result.Error
+}
+
 // TaskBulkUpdateByID performs an unconditional bulk UPDATE by primary key IDs.
 // WARNING: This function has NO CAS (Compare-And-Swap) guard — it will overwrite
 // any concurrent status changes. DO NOT use in billing/quota lifecycle flows

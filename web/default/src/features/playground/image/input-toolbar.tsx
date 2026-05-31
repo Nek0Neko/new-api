@@ -94,7 +94,8 @@ export function InputToolbar({ config, disabled, onChange }: Props) {
     config.outputCompression != null ||
     config.moderation !== 'auto' ||
     config.n !== 1 ||
-    config.stream
+    config.stream ||
+    config.asyncTask
 
   return (
     <div className='flex flex-wrap items-center gap-2'>
@@ -257,11 +258,29 @@ export function InputToolbar({ config, disabled, onChange }: Props) {
 
           <div className='bg-border h-px' />
 
+          <SettingRow label={t('Background task')} htmlFor='img-async'>
+            <Switch
+              id='img-async'
+              checked={config.asyncTask}
+              disabled={disabled}
+              onCheckedChange={(v) => {
+                onChange('asyncTask', v)
+                // A task cannot stream — turning it on disables streaming.
+                if (v && config.stream) onChange('stream', false)
+              }}
+            />
+          </SettingRow>
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Run on the server; you can leave this page and come back for the result. Disables streaming.'
+            )}
+          </p>
+
           <SettingRow label={t('Stream')} htmlFor='img-stream'>
             <Switch
               id='img-stream'
               checked={config.stream}
-              disabled={disabled}
+              disabled={disabled || config.asyncTask}
               onCheckedChange={(v) => onChange('stream', v)}
             />
           </SettingRow>

@@ -32,6 +32,7 @@ export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
   n: 1,
   stream: false,
   partialImages: 1,
+  asyncTask: false,
 }
 
 const QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
@@ -70,6 +71,7 @@ export function normalizeImageConfig(raw: unknown): ImageConfig {
       typeof r.partialImages === 'number' && r.partialImages >= 0
         ? Math.floor(r.partialImages)
         : 1,
+    asyncTask: typeof r.asyncTask === 'boolean' ? r.asyncTask : false,
   }
 }
 
@@ -122,6 +124,13 @@ export function saveImageConfig(config: ImageConfig): void {
 // the SSE connection died with the page. Surface them as errors so the UI
 // doesn't show a forever-spinning card.
 function reviveLoadedItem(item: ImageGenerationItem): ImageGenerationItem {
+  // Async-task items keep their `loading` status across reloads — the server
+  // is still working and polling resumes from the persisted taskId.
+  if (item.status === 'loading' && item.taskId) {
+    return item
+  }
+  // Streaming/loading items with no server-side task can never complete after a
+  // reload (the connection died with the page) — surface them as errors.
   if (item.status === 'streaming' || item.status === 'loading') {
     return {
       ...item,
