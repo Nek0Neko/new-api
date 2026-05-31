@@ -86,6 +86,9 @@ export interface ChannelSettings {
   pass_through_body_enabled?: boolean
   system_prompt?: string
   system_prompt_override?: boolean
+  model_ratio_override?: Record<string, number>
+  completion_ratio_override?: Record<string, number>
+  model_price_override?: Record<string, number>
 }
 
 export interface ChannelOtherSettings {

@@ -966,6 +966,43 @@ export function ChannelMutateDrawer({
         }
       }
 
+      // Validate per-model billing override maps (model->non-negative number)
+      const overrideFields: Array<
+        [keyof ChannelFormValues, string]
+      > = [
+        ['model_ratio_override', 'Model ratio override'],
+        ['completion_ratio_override', 'Completion ratio override'],
+        ['model_price_override', 'Model price override'],
+      ]
+      for (const [fieldName, label] of overrideFields) {
+        const raw = data[fieldName]
+        if (typeof raw !== 'string' || raw.trim() === '') continue
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(raw)
+        } catch {
+          toast.error(
+            t('{{field}}: invalid JSON', { field: t(label) })
+          )
+          return
+        }
+        if (
+          !parsed ||
+          typeof parsed !== 'object' ||
+          Array.isArray(parsed) ||
+          !Object.values(parsed as Record<string, unknown>).every(
+            (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0
+          )
+        ) {
+          toast.error(
+            t(
+              'Billing override must be a JSON object mapping models to non-negative numbers'
+            )
+          )
+          return
+        }
+      }
+
       // Normalize models array
       const normalizedModels = parseModelsString(data.models || '')
 
@@ -2452,6 +2489,50 @@ export function ChannelMutateDrawer({
                             </FormItem>
                           )}
                         />
+                      </div>
+
+                      <div className='border-border/60 space-y-4 rounded-lg border p-4'>
+                        <div className='space-y-1'>
+                          <FormLabel className='mb-0'>
+                            {t('Per-model billing override')}
+                          </FormLabel>
+                          <FormDescription>
+                            {t('Leave empty to use the global rate')}
+                          </FormDescription>
+                        </div>
+                        {(
+                          [
+                            ['model_ratio_override', 'Model ratio override'],
+                            [
+                              'completion_ratio_override',
+                              'Completion ratio override',
+                            ],
+                            ['model_price_override', 'Model price override'],
+                          ] as const
+                        ).map(([fieldName, label]) => (
+                          <FormField
+                            key={fieldName}
+                            control={form.control}
+                            name={fieldName}
+                            render={({ field }) => (
+                              <FormItem className='space-y-2'>
+                                <FormLabel>{t(label)}</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    value={field.value || ''}
+                                    onChange={field.onChange}
+                                    onBlur={field.onBlur}
+                                    disabled={isSubmitting}
+                                    rows={4}
+                                    placeholder='{"gpt-4o": 2.5}'
+                                    className='font-mono text-sm'
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ))}
                       </div>
 
                       <div className='border-border/60 rounded-lg border p-4'>

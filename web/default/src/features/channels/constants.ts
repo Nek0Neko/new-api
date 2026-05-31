@@ -238,6 +238,8 @@ export const ERROR_MESSAGES = {
   REQUIRED_GROUP: 'Group is required',
   INVALID_JSON: 'Invalid JSON format',
   INVALID_MODEL_MAPPING: 'Invalid model mapping format',
+  INVALID_BILLING_OVERRIDE:
+    'Billing override must be a JSON object mapping models to non-negative numbers',
   CREATE_FAILED: 'Failed to create channel',
   UPDATE_FAILED: 'Failed to update channel',
   DELETE_FAILED: 'Failed to delete channel',

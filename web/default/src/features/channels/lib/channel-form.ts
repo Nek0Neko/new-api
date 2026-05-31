@@ -57,6 +57,22 @@ function isOptionalModelMapping(value: string | undefined): boolean {
   }
 }
 
+// Validates a model->number override map (used for billing overrides).
+// Empty/undefined is allowed. Values must be finite numbers >= 0
+// (0 means free; negatives are invalid).
+function isOptionalNumberOverrideMap(value: string | undefined): boolean {
+  try {
+    const parsed = parseOptionalJson(value)
+    if (parsed === undefined) return true
+    if (!isJsonObjectValue(parsed)) return false
+    return Object.values(parsed).every(
+      (item) => typeof item === 'number' && Number.isFinite(item) && item >= 0
+    )
+  } catch {
+    return false
+  }
+}
+
 function isOptionalStatusCodeMapping(value: string | undefined): boolean {
   try {
     const parsed = parseOptionalJson(value)
@@ -182,6 +198,28 @@ export const channelFormSchema = z
     pass_through_body_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
+    // Per-model billing overrides (stored in setting JSON as model->number maps)
+    model_ratio_override: z
+      .string()
+      .optional()
+      .refine(
+        isOptionalNumberOverrideMap,
+        ERROR_MESSAGES.INVALID_BILLING_OVERRIDE
+      ),
+    completion_ratio_override: z
+      .string()
+      .optional()
+      .refine(
+        isOptionalNumberOverrideMap,
+        ERROR_MESSAGES.INVALID_BILLING_OVERRIDE
+      ),
+    model_price_override: z
+      .string()
+      .optional()
+      .refine(
+        isOptionalNumberOverrideMap,
+        ERROR_MESSAGES.INVALID_BILLING_OVERRIDE
+      ),
     // Type-specific settings (stored in settings JSON)
     is_enterprise_account: z.boolean().optional(), // OpenRouter specific
     vertex_key_type: z.enum(['json', 'api_key']).optional(), // Vertex AI specific
@@ -305,6 +343,10 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
+  // Per-model billing overrides
+  model_ratio_override: '',
+  completion_ratio_override: '',
+  model_price_override: '',
   // Type-specific settings
   is_enterprise_account: false,
   vertex_key_type: 'json',
@@ -356,6 +398,9 @@ export function transformChannelToFormDefaults(
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
+    model_ratio_override: '',
+    completion_ratio_override: '',
+    model_price_override: '',
   }
 
   if (channel.setting) {
@@ -368,6 +413,11 @@ export function transformChannelToFormDefaults(
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
+        model_ratio_override: stringifyOverrideMap(parsed.model_ratio_override),
+        completion_ratio_override: stringifyOverrideMap(
+          parsed.completion_ratio_override
+        ),
+        model_price_override: stringifyOverrideMap(parsed.model_price_override),
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -467,16 +517,66 @@ export function transformChannelToFormDefaults(
 }
 
 /**
+ * Pretty-print an override map (model->number) for display in a JSON editor.
+ * Returns '' when the map is empty/absent so the field renders as blank.
+ */
+function stringifyOverrideMap(value: unknown): string {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return ''
+  const entries = Object.entries(value as Record<string, unknown>)
+  if (entries.length === 0) return ''
+  return JSON.stringify(value, null, 2)
+}
+
+/**
+ * Parse a JSON string override map into a model->number record.
+ * Returns undefined when empty/invalid so the field is omitted from setting.
+ */
+function parseOverrideMap(
+  value: string | undefined
+): Record<string, number> | undefined {
+  if (!value?.trim()) return undefined
+  try {
+    const parsed = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return undefined
+    }
+    const result: Record<string, number> = {}
+    for (const [key, raw] of Object.entries(parsed)) {
+      if (typeof raw === 'number' && Number.isFinite(raw)) {
+        result[key] = raw
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Build the setting JSON string from form extra settings
  */
 function buildSettingJSON(formData: ChannelFormValues): string {
-  const settingObj = {
+  const settingObj: Record<string, unknown> = {
     force_format: formData.force_format || false,
     thinking_to_content: formData.thinking_to_content || false,
     proxy: formData.proxy || '',
     pass_through_body_enabled: formData.pass_through_body_enabled || false,
     system_prompt: formData.system_prompt || '',
     system_prompt_override: formData.system_prompt_override || false,
+  }
+  const modelRatioOverride = parseOverrideMap(formData.model_ratio_override)
+  if (modelRatioOverride) {
+    settingObj.model_ratio_override = modelRatioOverride
+  }
+  const completionRatioOverride = parseOverrideMap(
+    formData.completion_ratio_override
+  )
+  if (completionRatioOverride) {
+    settingObj.completion_ratio_override = completionRatioOverride
+  }
+  const modelPriceOverride = parseOverrideMap(formData.model_price_override)
+  if (modelPriceOverride) {
+    settingObj.model_price_override = modelPriceOverride
   }
   return JSON.stringify(settingObj)
 }
