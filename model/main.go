@@ -272,6 +272,8 @@ func migrateDB() error {
 		&Vendor{},
 		&PrefillGroup{},
 		&Group{},
+		&RechargeGroup{},
+		&ConsumptionGroup{},
 		&Setup{},
 		&TwoFA{},
 		&TwoFABackupCode{},
