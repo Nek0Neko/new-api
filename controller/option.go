@@ -145,7 +145,7 @@ func UpdateOption(c *gin.Context) {
 	// handler, so the sync path is unaffected.
 	switch option.Key {
 	case "GroupRatio", "TopupGroupRatio", "UserUsableGroups", "AutoGroups":
-		common.ApiErrorMsg(c, "分组配置请在「分组」页面管理（/api/group/manage），不再支持通过通用设置接口修改")
+		common.ApiErrorMsg(c, "分组配置请在「充值分组 / 消费分组」页面管理，不再支持通过通用设置接口修改")
 		return
 	}
 	switch option.Key {

@@ -64,6 +64,27 @@ func BackfillSplitGroups() error {
 		}
 	}
 
+	// Spec §6: every recharge group a user currently points at must exist as a
+	// recharge_groups row, even if that name was absent from all the settings maps
+	// above (e.g. a tier only ever set directly on a user). A missing row leaves
+	// that user with neutral topup ratio and no auto-upgrade metadata.
+	var userGroups []string
+	// Raw SELECT with commonGroupCol (already dialect-quoted) mirrors
+	// CountChannelsByGroup and avoids GORM double-quoting the reserved word "group".
+	if err := DB.Raw("SELECT DISTINCT " + commonGroupCol + " FROM users").Scan(&userGroups).Error; err != nil {
+		return err
+	}
+	for _, name := range userGroups {
+		if name == "" {
+			continue
+		}
+		if _, err := GetRechargeGroupByName(name); err != nil {
+			if err := (&RechargeGroup{Name: name, TopupRatio: 1}).Insert(); err != nil {
+				return err
+			}
+		}
+	}
+
 	// Guarantee the new-user default recharge group exists.
 	def := setting.GetNewUserDefaultGroup()
 	if _, err := GetRechargeGroupByName(def); err != nil {
