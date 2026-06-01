@@ -41,17 +41,29 @@ func consumptionGroupsFieldPresent(body []byte) bool {
 	return len(probe.Raw) > 0
 }
 
-// validateConsumptionGroups verifies every entry exists in the live
-// GroupRatio map. Returns an empty string on success, or a Chinese error
-// message intended for direct surfacing to the admin UI.
-func validateConsumptionGroups(groups []string) string {
-	for _, g := range groups {
+// validateUserGroupAssignment enforces the recharge/consumption split when a
+// user's groups are set. rechargeGroup is user.Group (must reference an existing
+// recharge group); consumptionGroups are the channel-group allowlist (each must
+// reference an existing consumption group). admin-only consumption groups may be
+// assigned only when byAdmin is true. Returns "" on success or an error message.
+// An empty consumptionGroups list is allowed (resolves to all user-visible
+// consumption groups at request time).
+func validateUserGroupAssignment(rechargeGroup string, consumptionGroups []string, byAdmin bool) string {
+	if name := strings.TrimSpace(rechargeGroup); name != "" {
+		if _, ok := setting.GetRechargeGroupMeta(name); !ok {
+			return fmt.Sprintf("充值分组 %s 不存在", name)
+		}
+	}
+	for _, g := range consumptionGroups {
 		name := strings.TrimSpace(g)
 		if name == "" {
 			continue
 		}
 		if !ratio_setting.ContainsGroupRatio(name) {
-			return fmt.Sprintf("分组 %s 不存在或已被弃用", name)
+			return fmt.Sprintf("消费分组 %s 不存在或已被弃用", name)
+		}
+		if meta, ok := setting.GetUserUsableGroupMeta(name); ok && meta.AdminOnly && !byAdmin {
+			return fmt.Sprintf("消费分组 %s 仅管理员可分配", name)
 		}
 	}
 	return ""
@@ -683,7 +695,7 @@ func UpdateUser(c *gin.Context) {
 	// field. Otherwise carry forward the existing on-disk value so Edit()'s
 	// map-based Updates does not unintentionally wipe the column.
 	if consumptionGroupsFieldPresent(bodyBytes) {
-		if msg := validateConsumptionGroups(updatedUser.ConsumptionGroupsList); msg != "" {
+		if msg := validateUserGroupAssignment(updatedUser.Group, updatedUser.ConsumptionGroupsList, true); msg != "" {
 			common.ApiErrorMsg(c, msg)
 			return
 		}
@@ -966,7 +978,7 @@ func CreateUser(c *gin.Context) {
 	// Allow admins to seed an allowlist at user creation time. Absence of the
 	// field keeps the new user on the default tier-fallback behavior.
 	if consumptionGroupsFieldPresent(bodyBytes) {
-		if msg := validateConsumptionGroups(user.ConsumptionGroupsList); msg != "" {
+		if msg := validateUserGroupAssignment(user.Group, user.ConsumptionGroupsList, true); msg != "" {
 			common.ApiErrorMsg(c, msg)
 			return
 		}
