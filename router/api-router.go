@@ -333,12 +333,26 @@ func SetApiRouter(router *gin.Engine) {
 		groupRoute.Use(middleware.AdminAuth())
 		{
 			groupRoute.GET("/", controller.GetGroups)
-			groupRoute.GET("/manage", controller.GetGroupManageList)
-			groupRoute.POST("/manage", controller.CreateGroupManage)
-			groupRoute.PUT("/manage/:name", controller.UpdateGroupManage)
-			groupRoute.DELETE("/manage/:name", controller.DeleteGroupManage)
-			groupRoute.GET("/manage/:name/channels", controller.GetGroupChannels)
-			groupRoute.POST("/manage/:name/channels", controller.MutateGroupChannel)
+		}
+
+		rechargeGroupRoute := apiRouter.Group("/recharge_group")
+		rechargeGroupRoute.Use(middleware.AdminAuth())
+		{
+			rechargeGroupRoute.GET("/manage", controller.GetRechargeGroupList)
+			rechargeGroupRoute.POST("/manage", controller.CreateRechargeGroup)
+			rechargeGroupRoute.PUT("/manage/:name", controller.UpdateRechargeGroup)
+			rechargeGroupRoute.DELETE("/manage/:name", controller.DeleteRechargeGroup)
+		}
+
+		consumptionGroupRoute := apiRouter.Group("/consumption_group")
+		consumptionGroupRoute.Use(middleware.AdminAuth())
+		{
+			consumptionGroupRoute.GET("/manage", controller.GetConsumptionGroupList)
+			consumptionGroupRoute.POST("/manage", controller.CreateConsumptionGroup)
+			consumptionGroupRoute.PUT("/manage/:name", controller.UpdateConsumptionGroup)
+			consumptionGroupRoute.DELETE("/manage/:name", controller.DeleteConsumptionGroup)
+			consumptionGroupRoute.GET("/manage/:name/channels", controller.GetConsumptionGroupChannels)
+			consumptionGroupRoute.POST("/manage/:name/channels", controller.MutateConsumptionGroupChannel)
 		}
 
 		prefillGroupRoute := apiRouter.Group("/prefill_group")
