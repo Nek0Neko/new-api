@@ -292,6 +292,22 @@ func InitResources() error {
 		return err
 	}
 
+	// Phase 3: split the unified groups table into recharge_groups /
+	// consumption_groups (idempotent), then push both halves down to the Option
+	// maps so hot paths read a coherent picture on first boot.
+	if err = model.BackfillSplitGroups(); err != nil {
+		common.FatalLog("failed to backfill split groups: " + err.Error())
+		return err
+	}
+	if err = model.SyncRechargeGroupsToOptions(); err != nil {
+		common.FatalLog("failed to sync recharge groups: " + err.Error())
+		return err
+	}
+	if err = model.SyncConsumptionGroupsToOptions(); err != nil {
+		common.FatalLog("failed to sync consumption groups: " + err.Error())
+		return err
+	}
+
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()
 
