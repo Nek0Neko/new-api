@@ -16,28 +16,38 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export type Group = {
+export type RechargeGroup = {
+  id: number
+  name: string
+  description: string
+  topup_ratio: number
+  auto_upgrade: boolean
+  upgrade_threshold: number
+  admin_only: boolean
+  created_time: number
+  updated_time: number
+}
+
+export type ConsumptionGroup = {
   id: number
   name: string
   description: string
   consumption_ratio: number
-  topup_ratio: number
   visibility: 'public' | 'private'
   admin_only: boolean
-  auto_upgrade: boolean
-  upgrade_threshold: number
   in_auto_rotation: boolean
   auto_order: number
   created_time: number
   updated_time: number
 }
 
-export type GroupManageItem = Group & { channel_count: number }
+export type ConsumptionGroupItem = ConsumptionGroup & { channel_count: number }
 
-export type GroupManageListData = {
-  groups: GroupManageItem[]
+export type RechargeGroupListData = { groups: RechargeGroup[] }
+
+export type ConsumptionGroupListData = {
+  groups: ConsumptionGroupItem[]
   default_channel_group: string
-  new_user_default_group: string
   default_use_auto_group: boolean
 }
 

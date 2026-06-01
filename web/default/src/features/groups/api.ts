@@ -18,64 +18,48 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 import type {
-  Group,
-  GroupManageListData,
+  RechargeGroup,
+  ConsumptionGroup,
+  RechargeGroupListData,
+  ConsumptionGroupListData,
   GroupChannel,
   ApiResponse,
 } from './types'
 
-export async function getGroupManageList(): Promise<
-  ApiResponse<GroupManageListData>
-> {
-  const res = await api.get('/api/group/manage')
-  return res.data
+const enc = encodeURIComponent
+
+export async function getRechargeGroups(): Promise<ApiResponse<RechargeGroupListData>> {
+  return (await api.get('/api/recharge_group/manage')).data
+}
+export async function createRechargeGroup(p: Partial<RechargeGroup>): Promise<ApiResponse<RechargeGroup>> {
+  return (await api.post('/api/recharge_group/manage', p)).data
+}
+export async function updateRechargeGroup(name: string, p: Partial<RechargeGroup>): Promise<ApiResponse<RechargeGroup>> {
+  return (await api.put(`/api/recharge_group/manage/${enc(name)}`, p)).data
+}
+export async function deleteRechargeGroup(name: string): Promise<ApiResponse<{ name: string }>> {
+  return (await api.delete(`/api/recharge_group/manage/${enc(name)}`)).data
 }
 
-export async function createGroup(
-  payload: Partial<Group>
-): Promise<ApiResponse<Group>> {
-  const res = await api.post('/api/group/manage', payload)
-  return res.data
+export async function getConsumptionGroups(): Promise<ApiResponse<ConsumptionGroupListData>> {
+  return (await api.get('/api/consumption_group/manage')).data
 }
-
-export async function updateGroup(
-  name: string,
-  payload: Partial<Group>
-): Promise<ApiResponse<Group>> {
-  const res = await api.put(
-    `/api/group/manage/${encodeURIComponent(name)}`,
-    payload
-  )
-  return res.data
+export async function createConsumptionGroup(p: Partial<ConsumptionGroup>): Promise<ApiResponse<ConsumptionGroup>> {
+  return (await api.post('/api/consumption_group/manage', p)).data
 }
-
-export async function deleteGroup(
-  name: string
-): Promise<ApiResponse<{ name: string }>> {
-  const res = await api.delete(`/api/group/manage/${encodeURIComponent(name)}`)
-  return res.data
+export async function updateConsumptionGroup(name: string, p: Partial<ConsumptionGroup>): Promise<ApiResponse<ConsumptionGroup>> {
+  return (await api.put(`/api/consumption_group/manage/${enc(name)}`, p)).data
 }
-
-export async function getGroupChannels(
-  name: string
-): Promise<ApiResponse<GroupChannel[]>> {
-  const res = await api.get(
-    `/api/group/manage/${encodeURIComponent(name)}/channels`
-  )
-  return res.data
+export async function deleteConsumptionGroup(name: string): Promise<ApiResponse<{ name: string }>> {
+  return (await api.delete(`/api/consumption_group/manage/${enc(name)}`)).data
 }
-
-export async function mutateGroupChannel(
+export async function getConsumptionGroupChannels(name: string): Promise<ApiResponse<GroupChannel[]>> {
+  return (await api.get(`/api/consumption_group/manage/${enc(name)}/channels`)).data
+}
+export async function mutateConsumptionGroupChannel(
   name: string,
   channelId: number,
-  action: 'attach' | 'detach'
+  action: 'attach' | 'detach',
 ): Promise<ApiResponse<{ channel_id: number; group: string }>> {
-  const res = await api.post(
-    `/api/group/manage/${encodeURIComponent(name)}/channels`,
-    {
-      channel_id: channelId,
-      action,
-    }
-  )
-  return res.data
+  return (await api.post(`/api/consumption_group/manage/${enc(name)}/channels`, { channel_id: channelId, action })).data
 }
