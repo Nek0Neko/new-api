@@ -199,15 +199,13 @@ i18n: add en/zh keys for the new labels (frontend i18next + any backend strings)
 - Phase 2 per-channel billing override is unchanged (lives on `Channel.Setting`).
 - No physical drop of the old `groups` table.
 
-## 11. Open Questions (confirm before plan)
+## 11. Resolved Decisions
 
-1. **Empty-allowlist semantics** (§2.5): confirm "empty = all user-visible
-   consumption groups" (vs strict "empty = none, backfill every user").
-2. **Recharge-meta source** (§7): dedicated `RechargeGroupMeta` Option blob
-   (consistent with the in-memory hot-path pattern) vs direct table read in the
-   upgrade tx. Recommendation: Option blob, for symmetry with Phase 1.
-3. **UI shape**: two tabs on the existing `/groups` page (recommended) vs two
-   separate sidebar entries.
+1. **Empty-allowlist semantics** (§2.5): **empty = all user-visible consumption
+   groups** (admin-only excluded). Backward-compatible; no per-user backfill.
+2. **Recharge-meta source** (§7): dedicated **`RechargeGroupMeta` Option blob**,
+   for symmetry with the Phase 1 in-memory hot-path pattern.
+3. **UI shape**: **two tabs on the existing `/groups` page**.
 
 ## 12. Testing
 
