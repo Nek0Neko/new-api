@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -177,5 +178,26 @@ func TestGroupInUserUsableGroupsForUserCache(t *testing.T) {
 	}
 	if !GroupInUserUsableGroupsForUserCache(cache, "default") {
 		t.Fatal("explicit allowlist including default should still permit it")
+	}
+}
+
+func TestResolveUsableGroups_EmptyExcludesAdminOnly(t *testing.T) {
+	seedGroupRatio(t, map[string]float64{"free": 1, "premium": 2})
+
+	// Seed consumption meta: free public, premium admin-only. Snapshot+restore so
+	// the mutation doesn't leak into sibling tests.
+	origUsable := setting.UserUsableGroups2JSONString()
+	t.Cleanup(func() { _ = setting.UpdateUserUsableGroupsByJSONString(origUsable) })
+	if err := setting.UpdateUserUsableGroupsByJSONString(`{"free":{"visibility":"public"},"premium":{"admin_only":true}}`); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveUsableGroups("default", nil) // empty allowlist
+
+	if _, ok := got["free"]; !ok {
+		t.Fatalf("expected free to be usable: %v", sortedKeys(got))
+	}
+	if _, ok := got["premium"]; ok {
+		t.Fatalf("admin-only premium must NOT be in empty-allowlist fallback: %v", sortedKeys(got))
 	}
 }

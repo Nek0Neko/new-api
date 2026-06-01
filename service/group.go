@@ -99,7 +99,16 @@ func GroupInUserUsableGroupsForUserCache(cache *model.UserBase, groupName string
 func resolveUsableGroups(tier string, explicitAllowlist []string) map[string]string {
 	tierMap := GetUserUsableGroups(tier)
 	if len(explicitAllowlist) == 0 {
-		return tierMap
+		out := make(map[string]string, len(tierMap))
+		for name, desc := range tierMap {
+			// admin-only / private groups are not auto-granted when the user has
+			// no explicit allowlist; they must be assigned explicitly.
+			if meta, ok := setting.GetUserUsableGroupMeta(name); ok && !meta.IsPublic() {
+				continue
+			}
+			out[name] = desc
+		}
+		return out
 	}
 
 	channelGroups := ratio_setting.GetGroupRatioCopy()
