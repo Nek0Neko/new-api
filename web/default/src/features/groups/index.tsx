@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { SectionPageLayout } from '@/components/layout'
 import { getRechargeGroups, getConsumptionGroups } from './api'
 import type {
@@ -36,32 +35,21 @@ import { GlobalGroupSettingsCard } from './components/global-group-settings-card
 export function Groups() {
   const { t } = useTranslation()
 
+  // Single shared selection across both lists: only one item is highlighted
+  // at a time, and the right-side detail panel renders by its type.
+  type Selection = { type: 'recharge' | 'consumption'; name: string } | null
+  const [selection, setSelection] = useState<Selection>(null)
+
   const [recharge, setRecharge] = useState<RechargeGroup[]>([])
-  const [rechargeSel, setRechargeSel] = useState<string | null>(null)
   const reloadRecharge = async () => {
     const res = await getRechargeGroups()
-    if (res.success) {
-      setRecharge(res.data.groups)
-      setRechargeSel((prev) =>
-        prev && res.data.groups.some((g) => g.name === prev)
-          ? prev
-          : (res.data.groups[0]?.name ?? null)
-      )
-    }
+    if (res.success) setRecharge(res.data.groups)
   }
 
   const [consumption, setConsumption] = useState<ConsumptionGroupListData | null>(null)
-  const [consSel, setConsSel] = useState<string | null>(null)
   const reloadConsumption = async () => {
     const res = await getConsumptionGroups()
-    if (res.success) {
-      setConsumption(res.data)
-      setConsSel((prev) =>
-        prev && res.data.groups.some((g) => g.name === prev)
-          ? prev
-          : (res.data.groups[0]?.name ?? null)
-      )
-    }
+    if (res.success) setConsumption(res.data)
   }
 
   useEffect(() => {
@@ -70,69 +58,96 @@ export function Groups() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const selRecharge: RechargeGroup | undefined = recharge.find(
-    (g) => g.name === rechargeSel
-  )
-  const selCons: ConsumptionGroupItem | undefined = consumption?.groups.find(
-    (g) => g.name === consSel
-  )
+  // Keep the selection valid as data loads/changes; default to the first
+  // consumption group, falling back to the first recharge group.
+  useEffect(() => {
+    setSelection((prev) => {
+      if (prev?.type === 'recharge' && recharge.some((g) => g.name === prev.name))
+        return prev
+      if (
+        prev?.type === 'consumption' &&
+        consumption?.groups.some((g) => g.name === prev.name)
+      )
+        return prev
+      if (consumption?.groups[0])
+        return { type: 'consumption', name: consumption.groups[0].name }
+      if (recharge[0]) return { type: 'recharge', name: recharge[0].name }
+      return null
+    })
+  }, [recharge, consumption])
+
+  const selRecharge: RechargeGroup | undefined =
+    selection?.type === 'recharge'
+      ? recharge.find((g) => g.name === selection.name)
+      : undefined
+  const selCons: ConsumptionGroupItem | undefined =
+    selection?.type === 'consumption'
+      ? consumption?.groups.find((g) => g.name === selection.name)
+      : undefined
 
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Groups')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
-        <Tabs defaultValue="consumption">
-          <TabsList>
-            <TabsTrigger value="consumption">{t('Consumption Groups')}</TabsTrigger>
-            <TabsTrigger value="recharge">{t('Recharge Groups')}</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="consumption" className="flex flex-col gap-4">
-            {consumption && (
-              <GlobalGroupSettingsCard data={consumption} onSaved={reloadConsumption} />
-            )}
-            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[260px_1fr]">
-              <GroupsList
-                groups={consumption?.groups ?? []}
-                selected={consSel}
-                onSelect={setConsSel}
-                onChanged={reloadConsumption}
-              />
-              {selCons && (
-                <div className="flex min-w-0 flex-col gap-4">
-                  <GroupDetailForm
-                    key={selCons.name}
-                    group={selCons}
-                    onChanged={reloadConsumption}
-                  />
-                  <GroupChannelsTable
-                    key={`${selCons.name}-channels`}
-                    groupName={selCons.name}
-                    onChanged={reloadConsumption}
-                  />
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="recharge">
-            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[260px_1fr]">
-              <RechargeGroupsList
-                groups={recharge}
-                selected={rechargeSel}
-                onSelect={setRechargeSel}
-                onChanged={reloadRecharge}
-              />
-              {selRecharge && (
-                <RechargeGroupDetailForm
-                  key={selRecharge.name}
-                  group={selRecharge}
+        <div className="flex flex-col gap-4">
+          {consumption && (
+            <GlobalGroupSettingsCard
+              data={consumption}
+              rechargeGroups={recharge}
+              onSaved={reloadConsumption}
+            />
+          )}
+          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[260px_1fr]">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <h3 className="px-1 text-sm font-medium text-muted-foreground">
+                  {t('Consumption Groups')}
+                </h3>
+                <GroupsList
+                  groups={consumption?.groups ?? []}
+                  selected={
+                    selection?.type === 'consumption' ? selection.name : null
+                  }
+                  onSelect={(name) => setSelection({ type: 'consumption', name })}
+                  onChanged={reloadConsumption}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <h3 className="px-1 text-sm font-medium text-muted-foreground">
+                  {t('Recharge Groups')}
+                </h3>
+                <RechargeGroupsList
+                  groups={recharge}
+                  selected={selection?.type === 'recharge' ? selection.name : null}
+                  onSelect={(name) => setSelection({ type: 'recharge', name })}
                   onChanged={reloadRecharge}
                 />
-              )}
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {selCons && (
+              <div className="flex min-w-0 flex-col gap-4">
+                <GroupDetailForm
+                  key={selCons.name}
+                  group={selCons}
+                  onChanged={reloadConsumption}
+                />
+                <GroupChannelsTable
+                  key={`${selCons.name}-channels`}
+                  groupName={selCons.name}
+                  onChanged={reloadConsumption}
+                />
+              </div>
+            )}
+            {selRecharge && (
+              <RechargeGroupDetailForm
+                key={selRecharge.name}
+                group={selRecharge}
+                onChanged={reloadRecharge}
+              />
+            )}
+          </div>
+        </div>
       </SectionPageLayout.Content>
     </SectionPageLayout>
   )

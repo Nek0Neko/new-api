@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -26,20 +26,57 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { updateSystemOption } from '@/features/system-settings/api'
-import type { ConsumptionGroupListData } from '../types'
+import type { ConsumptionGroupListData, RechargeGroup } from '../types'
 
-type Props = { data: ConsumptionGroupListData; onSaved: () => void }
+type Props = {
+  data: ConsumptionGroupListData
+  rechargeGroups: RechargeGroup[]
+  onSaved: () => void
+}
 
-export function GlobalGroupSettingsCard({ data, onSaved }: Props) {
+type GroupOption = { name: string; description?: string }
+
+// Build a deduped option list from the available groups, guaranteeing the
+// currently-saved value stays selectable even if it was since removed.
+function buildOptions(groups: GroupOption[], current: string): GroupOption[] {
+  const seen = new Set<string>()
+  const out: GroupOption[] = []
+  for (const g of groups) {
+    if (!g.name || seen.has(g.name)) continue
+    seen.add(g.name)
+    out.push(g)
+  }
+  if (current && !seen.has(current)) out.unshift({ name: current })
+  return out
+}
+
+export function GlobalGroupSettingsCard({ data, rechargeGroups, onSaved }: Props) {
   const { t } = useTranslation()
   const [defChannel, setDefChannel] = useState(data.default_channel_group)
   const [newUser, setNewUser] = useState(data.new_user_default_group)
   const [useAuto, setUseAuto] = useState(data.default_use_auto_group)
   const [saving, setSaving] = useState(false)
+
+  // Default channel group is a consumption-group axis (tokens pick these at
+  // API-key creation time); new-user default group is a recharge-tier axis.
+  const channelOptions = useMemo(
+    () => buildOptions(data.groups, defChannel),
+    [data.groups, defChannel]
+  )
+  const newUserOptions = useMemo(
+    () => buildOptions(rechargeGroups, newUser),
+    [rechargeGroups, newUser]
+  )
 
   const save = async () => {
     setSaving(true)
@@ -65,25 +102,39 @@ export function GlobalGroupSettingsCard({ data, onSaved }: Props) {
         <CardTitle>{t('Default channel group')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex w-56 flex-col gap-1.5">
           <Label htmlFor="default-channel-group">
             {t('Default channel group')}
           </Label>
-          <Input
-            id="default-channel-group"
-            value={defChannel}
-            onChange={(e) => setDefChannel(e.target.value)}
-          />
+          <Select value={defChannel} onValueChange={setDefChannel}>
+            <SelectTrigger id="default-channel-group">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {channelOptions.map((o) => (
+                <SelectItem key={o.name} value={o.name}>
+                  {o.description ? `${o.name} — ${o.description}` : o.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex w-56 flex-col gap-1.5">
           <Label htmlFor="new-user-default-group">
             {t('New user default group')}
           </Label>
-          <Input
-            id="new-user-default-group"
-            value={newUser}
-            onChange={(e) => setNewUser(e.target.value)}
-          />
+          <Select value={newUser} onValueChange={setNewUser}>
+            <SelectTrigger id="new-user-default-group">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {newUserOptions.map((o) => (
+                <SelectItem key={o.name} value={o.name}>
+                  {o.description ? `${o.name} — ${o.description}` : o.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <label className="flex h-9 items-center gap-2">
           <Switch checked={useAuto} onCheckedChange={setUseAuto} />
