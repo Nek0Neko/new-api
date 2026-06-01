@@ -18,24 +18,22 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { createConsumptionGroup } from '../api'
-import type { ConsumptionGroupItem } from '../types'
+import { createRechargeGroup } from '../api'
+import type { RechargeGroup } from '../types'
 
 type Props = {
-  groups: ConsumptionGroupItem[]
+  groups: RechargeGroup[]
   selected: string | null
   onSelect: (name: string) => void
   onChanged: () => void
 }
 
-export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
+export function RechargeGroupsList({ groups, selected, onSelect, onChanged }: Props) {
   const { t } = useTranslation()
   const [creating, setCreating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -50,16 +48,14 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
     setCreating(false)
   }
 
-  // Server errors are surfaced by the global axios interceptor's toast.
   const submit = async () => {
     if (!name.trim()) return
     setSubmitting(true)
     try {
-      const res = await createConsumptionGroup({
+      const res = await createRechargeGroup({
         name: name.trim(),
-        consumption_ratio: Number(ratio) || 1,
+        topup_ratio: Number(ratio) || 1,
         description,
-        visibility: 'public',
       })
       if (res.success) {
         const created = name.trim()
@@ -76,7 +72,6 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
     <Card size="sm" className="md:sticky md:top-1">
       <CardContent className="flex flex-col gap-0.5">
         {groups.map((g) => {
-          const empty = g.channel_count === 0
           const active = selected === g.name
           return (
             <button
@@ -93,18 +88,8 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
               {active && (
                 <span className="bg-primary absolute inset-y-1.5 left-0 w-0.5 rounded-full" />
               )}
-              <span className="flex min-w-0 items-center gap-1.5">
-                {empty && (
-                  <AlertTriangle className="size-3.5 shrink-0 text-amber-500" />
-                )}
-                <span className="truncate">{g.name}</span>
-              </span>
-              <Badge
-                variant={empty ? 'outline' : 'secondary'}
-                className={cn(empty && 'text-amber-500')}
-              >
-                {g.channel_count}
-              </Badge>
+              <span className="truncate">{g.name}</span>
+              <span className="text-muted-foreground text-xs">×{g.topup_ratio}</span>
             </button>
           )
         })}
@@ -112,18 +97,18 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
         {creating ? (
           <div className="mt-2 flex flex-col gap-2 rounded-lg border p-2.5">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="new-group-name">{t('Group name')}</Label>
+              <Label htmlFor="new-recharge-name">{t('Group name')}</Label>
               <Input
-                id="new-group-name"
+                id="new-recharge-name"
                 placeholder={t('Group name')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label htmlFor="new-group-ratio">{t('Consumption ratio')}</Label>
+              <Label htmlFor="new-recharge-ratio">{t('Topup ratio')}</Label>
               <Input
-                id="new-group-ratio"
+                id="new-recharge-ratio"
                 type="number"
                 step="0.01"
                 value={ratio}
@@ -131,9 +116,9 @@ export function GroupsList({ groups, selected, onSelect, onChanged }: Props) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label htmlFor="new-group-desc">{t('Description')}</Label>
+              <Label htmlFor="new-recharge-desc">{t('Description')}</Label>
               <Input
-                id="new-group-desc"
+                id="new-recharge-desc"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />

@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { getGroupChannels, mutateGroupChannel } from '../api'
+import { getConsumptionGroupChannels, mutateConsumptionGroupChannel } from '../api'
 import type { GroupChannel } from '../types'
 
 type Props = { groupName: string; onChanged: () => void }
@@ -49,7 +49,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
   const [busy, setBusy] = useState(false)
 
   const reload = async () => {
-    const res = await getGroupChannels(groupName)
+    const res = await getConsumptionGroupChannels(groupName)
     if (res.success) setChannels(res.data ?? [])
   }
 
@@ -62,7 +62,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
   const detach = async (id: number) => {
     setBusy(true)
     try {
-      const res = await mutateGroupChannel(groupName, id, 'detach')
+      const res = await mutateConsumptionGroupChannel(groupName, id, 'detach')
       if (res.success) {
         await reload()
         onChanged()
@@ -77,7 +77,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
     if (!id) return
     setBusy(true)
     try {
-      const res = await mutateGroupChannel(groupName, id, 'attach')
+      const res = await mutateConsumptionGroupChannel(groupName, id, 'attach')
       if (res.success) {
         setAttachId('')
         await reload()

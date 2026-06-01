@@ -30,9 +30,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { updateSystemOption } from '@/features/system-settings/api'
-import type { GroupManageListData } from '../types'
+import type { ConsumptionGroupListData } from '../types'
 
-type Props = { data: GroupManageListData; onSaved: () => void }
+type Props = { data: ConsumptionGroupListData; onSaved: () => void }
 
 export function GlobalGroupSettingsCard({ data, onSaved }: Props) {
   const { t } = useTranslation()

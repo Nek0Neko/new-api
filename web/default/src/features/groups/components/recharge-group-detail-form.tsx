@@ -19,11 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
-  CardAction,
   CardContent,
   CardFooter,
   CardHeader,
@@ -31,46 +29,30 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { deleteConsumptionGroup, updateConsumptionGroup } from '../api'
-import type { ConsumptionGroupItem } from '../types'
+import { deleteRechargeGroup, updateRechargeGroup } from '../api'
+import type { RechargeGroup } from '../types'
 
-type Props = { group: ConsumptionGroupItem; onChanged: () => void }
+type Props = { group: RechargeGroup; onChanged: () => void }
 
-export function GroupDetailForm({ group, onChanged }: Props) {
+export function RechargeGroupDetailForm({ group, onChanged }: Props) {
   const { t } = useTranslation()
-  const [form, setForm] = useState<ConsumptionGroupItem>(group)
-
+  const [form, setForm] = useState<RechargeGroup>(group)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const set = <K extends keyof ConsumptionGroupItem>(
-    k: K,
-    v: ConsumptionGroupItem[K]
-  ) => setForm((f) => ({ ...f, [k]: v }))
+  const set = <K extends keyof RechargeGroup>(k: K, v: RechargeGroup[K]) =>
+    setForm((f) => ({ ...f, [k]: v }))
 
-  // Guard numeric inputs: a cleared field yields '' -> Number('') === 0, and a
-  // stray non-numeric value yields NaN (which would serialize to JSON null and be
-  // silently coerced to 0 server-side). Treat both as 0 here so the value the admin
-  // sees is exactly what gets saved.
-  const setNum = (k: keyof ConsumptionGroupItem, raw: string) => {
+  const setNum = (k: keyof RechargeGroup, raw: string) => {
     const n = Number(raw)
-    set(k, (Number.isNaN(n) ? 0 : n) as ConsumptionGroupItem[typeof k])
+    set(k, (Number.isNaN(n) ? 0 : n) as RechargeGroup[typeof k])
   }
 
-  // Server errors are surfaced by the global axios interceptor's toast, so we only
-  // toast on success here to avoid a duplicate error toast.
   const save = async () => {
     setSaving(true)
     try {
-      const res = await updateConsumptionGroup(group.name, form)
+      const res = await updateRechargeGroup(group.name, form)
       if (res.success) {
         toast.success(t('Saved'))
         onChanged()
@@ -84,7 +66,7 @@ export function GroupDetailForm({ group, onChanged }: Props) {
     if (!window.confirm(t('Delete this group? This cannot be undone.'))) return
     setDeleting(true)
     try {
-      const res = await deleteConsumptionGroup(group.name)
+      const res = await deleteRechargeGroup(group.name)
       if (res.success) {
         toast.success(t('Deleted'))
         onChanged()
@@ -95,75 +77,45 @@ export function GroupDetailForm({ group, onChanged }: Props) {
   }
 
   const toggles = [
-    {
-      key: 'admin_only' as const,
-      label: t('Admin only'),
-      checked: form.admin_only,
-    },
-    {
-      key: 'in_auto_rotation' as const,
-      label: t('In auto rotation'),
-      checked: form.in_auto_rotation,
-    },
+    { key: 'admin_only' as const, label: t('Admin only'), checked: form.admin_only },
+    { key: 'auto_upgrade' as const, label: t('Auto upgrade'), checked: form.auto_upgrade },
   ]
 
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          <span className="truncate">{form.name}</span>
-        </CardTitle>
-        <CardAction className="flex items-center gap-2">
-          <Badge variant={form.visibility === 'public' ? 'secondary' : 'outline'}>
-            {form.visibility === 'public' ? t('Public') : t('Private')}
-          </Badge>
-        </CardAction>
+        <CardTitle className="truncate">{form.name}</CardTitle>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-6">
         <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="group-description">{t('Description')}</Label>
+            <Label htmlFor="recharge-description">{t('Description')}</Label>
             <Input
-              id="group-description"
+              id="recharge-description"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="group-visibility">{t('Visibility')}</Label>
-            <Select
-              value={form.visibility}
-              onValueChange={(v) =>
-                set('visibility', v as 'public' | 'private')
-              }
-            >
-              <SelectTrigger id="group-visibility">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">{t('Public')}</SelectItem>
-                <SelectItem value="private">{t('Private')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="group-consumption">{t('Consumption ratio')}</Label>
+            <Label htmlFor="recharge-topup">{t('Topup ratio')}</Label>
             <Input
-              id="group-consumption"
+              id="recharge-topup"
               type="number"
               step="0.01"
-              value={form.consumption_ratio}
-              onChange={(e) => setNum('consumption_ratio', e.target.value)}
+              value={form.topup_ratio}
+              onChange={(e) => setNum('topup_ratio', e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="group-auto-order">{t('Auto order')}</Label>
+            <Label htmlFor="recharge-upgrade-threshold">
+              {t('Upgrade threshold')}
+            </Label>
             <Input
-              id="group-auto-order"
+              id="recharge-upgrade-threshold"
               type="number"
-              value={form.auto_order}
-              onChange={(e) => setNum('auto_order', e.target.value)}
+              value={form.upgrade_threshold}
+              onChange={(e) => setNum('upgrade_threshold', e.target.value)}
             />
           </div>
         </div>
