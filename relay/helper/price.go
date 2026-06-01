@@ -109,7 +109,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 	// Phase 2: apply per-channel, per-model billing override. Composes with the group
 	// ratio multiplicatively. tiered_expr models already returned above, so this only
 	// affects ratio/price-mode models.
-	override := ApplyChannelModelOverride(info.ChannelSetting, info.OriginModelName, modelRatio, completionRatio, modelPrice)
+	override := relaycommon.ApplyChannelModelOverride(info.GetChannelSetting(), info.OriginModelName, modelRatio, completionRatio, modelPrice)
 	modelRatio = override.ModelRatio
 	completionRatio = override.CompletionRatio
 	modelPrice = override.ModelPrice
@@ -167,6 +167,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		logger.LogDebug(c, "model_price_helper result: %s", priceData.ToSetting())
 	}
 	info.PriceData = priceData
+	info.PriceComputed = true
 	return priceData, nil
 }
 
@@ -198,7 +199,7 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 	}
 
 	// Phase 2: per-channel model override (per-call billing).
-	override := ApplyChannelModelOverride(info.ChannelSetting, info.OriginModelName, modelRatio, 0, modelPrice)
+	override := relaycommon.ApplyChannelModelOverride(info.GetChannelSetting(), info.OriginModelName, modelRatio, 0, modelPrice)
 	modelRatio = override.ModelRatio
 	modelPrice = override.ModelPrice
 
@@ -314,5 +315,6 @@ func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptT
 	logger.LogDebug(c, "model_price_helper_tiered result: model=%s preConsume=%d quotaBeforeGroup=%.2f groupRatio=%.2f tier=%s", info.OriginModelName, preConsumedQuota, quotaBeforeGroup, groupRatioInfo.GroupRatio, trace.MatchedTier)
 
 	info.PriceData = priceData
+	info.PriceComputed = true
 	return priceData, nil
 }

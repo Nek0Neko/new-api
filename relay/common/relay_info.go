@@ -162,6 +162,20 @@ type RelayInfo struct {
 	UpstreamRequestBodySize int64
 
 	PriceData types.PriceData
+	// PriceComputed is set once ModelPriceHelper has populated PriceData. It gates
+	// the per-channel billing-override refresh in InitChannelMeta: only flows that
+	// price BEFORE channel selection (chat/claude/gemini pre-consume) need the
+	// refresh; flows that price AFTER InitChannelMeta apply the override inline.
+	PriceComputed bool
+	// billingBase* preserve the pre-override (global) rates, captured the first
+	// time refreshChannelBillingOverride runs (when PriceData still holds the
+	// channel-less pre-consume rates). Overrides are always applied onto this base
+	// so a retry that switches channels reverts correctly to global when the new
+	// channel has no override — rather than sticking at the previous channel's rate.
+	billingBaseCaptured        bool
+	billingBaseModelRatio      float64
+	billingBaseCompletionRatio float64
+	billingBaseModelPrice      float64
 
 	// TieredBillingSnapshot is a frozen snapshot of tiered billing rules
 	// captured at pre-consume time. Non-nil only when billing mode is "tiered_expr".
@@ -234,11 +248,61 @@ func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
 
 	info.ChannelMeta = channelMeta
 
+	// Now that the channel (and thus ChannelSetting) is known, fold any per-channel
+	// billing override into PriceData. For chat/claude/gemini, pricing ran at
+	// pre-consume time before a channel existed, so this is the only point the
+	// override can be applied; settlement reads the corrected PriceData.
+	info.refreshChannelBillingOverride()
+
 	// reset some fields based on channel meta
 	// 重置某些字段，例如模型名称等
 	if info.Request != nil {
 		info.Request.SetModelName(info.OriginModelName)
 	}
+}
+
+// refreshChannelBillingOverride folds the selected channel's per-model billing
+// override into an already-computed PriceData. It is a no-op unless pricing has
+// already run via ModelPriceHelper (PriceComputed) — flows that price after
+// InitChannelMeta apply the override inline and must not be touched here.
+// Tiered-expr models price via the expression engine (not ratio/price fields), so
+// overrides do not apply to them.
+//
+// The override is always applied onto the captured global base (not the current,
+// possibly already-overridden PriceData), so it is both idempotent and correct
+// across retries that switch to a channel with different or no overrides.
+func (info *RelayInfo) refreshChannelBillingOverride() {
+	if info == nil || info.ChannelMeta == nil || !info.PriceComputed {
+		return
+	}
+	if info.TieredBillingSnapshot != nil {
+		return
+	}
+	if !info.billingBaseCaptured {
+		info.billingBaseModelRatio = info.PriceData.ModelRatio
+		info.billingBaseCompletionRatio = info.PriceData.CompletionRatio
+		info.billingBaseModelPrice = info.PriceData.ModelPrice
+		info.billingBaseCaptured = true
+	}
+	override := ApplyChannelModelOverride(info.ChannelSetting, info.OriginModelName,
+		info.billingBaseModelRatio, info.billingBaseCompletionRatio, info.billingBaseModelPrice)
+	info.PriceData.ModelRatio = override.ModelRatio
+	info.PriceData.CompletionRatio = override.CompletionRatio
+	info.PriceData.ModelPrice = override.ModelPrice
+}
+
+// GetChannelSetting returns the channel settings safely. ChannelSetting is a
+// field promoted from the embedded *ChannelMeta, which is nil until
+// InitChannelMeta runs. Pricing at pre-consume time (controller.Relay) executes
+// before the channel is selected and before InitChannelMeta, so callers there
+// must use this accessor instead of info.ChannelSetting to avoid a nil-pointer
+// dereference. Returns the zero value (no overrides) when the channel is not yet
+// known, which is correct for pre-consume estimation.
+func (info *RelayInfo) GetChannelSetting() dto.ChannelSettings {
+	if info == nil || info.ChannelMeta == nil {
+		return dto.ChannelSettings{}
+	}
+	return info.ChannelSetting
 }
 
 func (info *RelayInfo) ToString() string {

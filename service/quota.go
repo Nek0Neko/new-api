@@ -171,7 +171,14 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	audioOutTokens := usage.OutputTokenDetails.AudioTokens
 
 	tokenName := ctx.GetString("token_name")
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(modelName))
+	// Prefer the completion ratio captured in PriceData so per-channel overrides
+	// (applied in InitChannelMeta) take effect; fall back to the global rate only
+	// when pricing did not populate it.
+	completionRatioVal := relayInfo.PriceData.CompletionRatio
+	if completionRatioVal == 0 {
+		completionRatioVal = ratio_setting.GetCompletionRatio(modelName)
+	}
+	completionRatio := decimal.NewFromFloat(completionRatioVal)
 	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
 	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(modelName))
 
@@ -292,7 +299,14 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	audioOutTokens := usage.CompletionTokenDetails.AudioTokens
 
 	tokenName := ctx.GetString("token_name")
-	completionRatio := decimal.NewFromFloat(ratio_setting.GetCompletionRatio(relayInfo.OriginModelName))
+	// Prefer the completion ratio captured in PriceData so per-channel overrides
+	// (applied in InitChannelMeta) take effect; fall back to the global rate only
+	// when pricing did not populate it.
+	completionRatioVal := relayInfo.PriceData.CompletionRatio
+	if completionRatioVal == 0 {
+		completionRatioVal = ratio_setting.GetCompletionRatio(relayInfo.OriginModelName)
+	}
+	completionRatio := decimal.NewFromFloat(completionRatioVal)
 	audioRatio := decimal.NewFromFloat(ratio_setting.GetAudioRatio(relayInfo.OriginModelName))
 	audioCompletionRatio := decimal.NewFromFloat(ratio_setting.GetAudioCompletionRatio(relayInfo.OriginModelName))
 

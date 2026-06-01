@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
@@ -14,6 +15,39 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+// TestModelPriceHelperNilChannelMetaNoPanic reproduces the production panic at
+// price.go (nil pointer dereference): ModelPriceHelper runs at pre-consume time
+// (controller/relay.go) BEFORE InitChannelMeta is called, so info.ChannelMeta is
+// nil. ChannelSetting is a field promoted from the embedded *ChannelMeta, so the
+// per-channel override read `info.ChannelSetting` dereferences a nil pointer for
+// non-tiered (ratio/price) models. Tiered models return early and never hit it,
+// which is why this was not caught earlier.
+func TestModelPriceHelperNilChannelMetaNoPanic(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	ctx.Request = req
+	ctx.Set("group", "default")
+
+	// Mirrors the state right after GenRelayInfo and before InitChannelMeta:
+	// ChannelMeta is nil. AcceptUnsetRatioModel avoids the "price not configured"
+	// error path so execution reaches the override read.
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "unpriced-test-model",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+		UserSetting:     dto.UserSetting{AcceptUnsetRatioModel: true},
+	}
+	require.Nil(t, info.ChannelMeta)
+
+	require.NotPanics(t, func() {
+		_, err := ModelPriceHelper(ctx, info, 100, &types.TokenCountMeta{})
+		require.NoError(t, err)
+	})
+}
 
 func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	gin.SetMode(gin.TestMode)

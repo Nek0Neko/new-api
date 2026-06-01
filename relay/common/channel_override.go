@@ -1,4 +1,4 @@
-package helper
+package common
 
 import "github.com/QuantumNous/new-api/dto"
 
@@ -16,6 +16,9 @@ type ChannelOverrideResult struct {
 // channel's settings. A present entry replaces the corresponding global rate; an
 // absent entry leaves it unchanged. The group ratio is applied by the caller, so
 // this function never touches it. Pure and side-effect free for easy testing.
+//
+// Replacement (not multiplication) makes it idempotent: applying it twice yields
+// the same result, which is relied on by RelayInfo.refreshChannelBillingOverride.
 func ApplyChannelModelOverride(cs dto.ChannelSettings, modelName string, modelRatio, completionRatio, modelPrice float64) ChannelOverrideResult {
 	out := ChannelOverrideResult{ModelRatio: modelRatio, CompletionRatio: completionRatio, ModelPrice: modelPrice}
 	if v, ok := cs.ModelRatioOverride[modelName]; ok {
