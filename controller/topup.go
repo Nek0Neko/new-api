@@ -154,12 +154,12 @@ func GetTopUpInfo(c *gin.Context) {
 // eligible to reach, or nil when there is none. Cents are passed/returned as
 // platform billing currency cents (typically RMB分).
 func pickNextTopupTier(currentGroup string, currentTotalCent int64) gin.H {
-	currentMeta, currentKnown := setting.GetUserUsableGroupMeta(currentGroup)
+	currentMeta, currentKnown := setting.GetRechargeGroupMeta(currentGroup)
 	currentThreshold := int64(0)
 	if currentKnown {
 		currentThreshold = currentMeta.UpgradeThreshold
 	}
-	metas := setting.GetUserUsableGroupMetaCopy()
+	metas := setting.GetRechargeGroupMetaCopy()
 	bestName := ""
 	bestThreshold := int64(0)
 	for name, m := range metas {
@@ -183,7 +183,7 @@ func pickNextTopupTier(currentGroup string, currentTotalCent int64) gin.H {
 	}
 	return gin.H{
 		"group":           bestName,
-		"description":     setting.GetUsableGroupDescription(bestName),
+		"description":     setting.GetRechargeGroupDescription(bestName),
 		"threshold_cent":  bestThreshold,
 		"remaining_cent":  remaining,
 		"topup_ratio":     common.GetTopupGroupRatio(bestName),

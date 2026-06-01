@@ -55,7 +55,7 @@ func GetPricing(c *gin.Context) {
 		if err == nil {
 			userTier = user.Group
 			topupRatio = common.GetTopupGroupRatio(userTier)
-			if meta, ok := setting.GetUserUsableGroupMeta(userTier); ok {
+			if meta, ok := setting.GetRechargeGroupMeta(userTier); ok {
 				tierDesc = meta.Description
 			}
 		}

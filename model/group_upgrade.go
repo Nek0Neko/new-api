@@ -43,7 +43,7 @@ func MaybeUpgradeUserGroup(tx *gorm.DB, userId int, rmbCent int64) error {
 
 	newTotal := user.TotalTopupAmount + rmbCent
 
-	currentMeta, currentKnown := setting.GetUserUsableGroupMeta(user.Group)
+	currentMeta, currentKnown := setting.GetRechargeGroupMeta(user.Group)
 	target := ""
 	if currentKnown && !currentMeta.AdminOnly {
 		target = pickUpgradeGroup(user.Group, currentMeta.UpgradeThreshold, newTotal)
@@ -64,8 +64,8 @@ func MaybeUpgradeUserGroup(tx *gorm.DB, userId int, rmbCent int64) error {
 	}
 
 	if target != "" && target != user.Group {
-		fromDesc := setting.GetUsableGroupDescription(user.Group)
-		toDesc := setting.GetUsableGroupDescription(target)
+		fromDesc := setting.GetRechargeGroupDescription(user.Group)
+		toDesc := setting.GetRechargeGroupDescription(target)
 		RecordLog(userId, LogTypeSystem,
 			fmt.Sprintf("累计充值达到 %.2f 元，分组从 %s 自动升级为 %s",
 				float64(newTotal)/100.0, fromDesc, toDesc))
@@ -105,7 +105,7 @@ func quotaToCents(quota int) int64 {
 // threshold is at most newTotal AND strictly greater than currentThreshold,
 // or "" if no eligible target exists. admin_only groups are excluded.
 func pickUpgradeGroup(currentGroup string, currentThreshold int64, newTotal int64) string {
-	metas := setting.GetUserUsableGroupMetaCopy()
+	metas := setting.GetRechargeGroupMetaCopy()
 
 	bestName := ""
 	bestThreshold := currentThreshold
