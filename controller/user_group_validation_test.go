@@ -8,6 +8,17 @@ import (
 )
 
 func TestValidateUserGroupAssignment(t *testing.T) {
+	// Snapshot & restore the three global settings maps this test mutates so it
+	// can't leak state into sibling controller tests.
+	origRecharge := setting.RechargeGroupMeta2JSONString()
+	origRatio := ratio_setting.GroupRatio2JSONString()
+	origUsable := setting.UserUsableGroups2JSONString()
+	t.Cleanup(func() {
+		_ = setting.UpdateRechargeGroupMetaByJSONString(origRecharge)
+		_ = ratio_setting.UpdateGroupRatioByJSONString(origRatio)
+		_ = setting.UpdateUserUsableGroupsByJSONString(origUsable)
+	})
+
 	if err := setting.UpdateRechargeGroupMetaByJSONString(`{"default":{}}`); err != nil {
 		t.Fatal(err)
 	}
