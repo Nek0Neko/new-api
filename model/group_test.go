@@ -20,7 +20,7 @@ func setupGroupTestDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&Group{}, &Channel{}, &Ability{}, &RechargeGroup{}); err != nil {
+	if err := db.AutoMigrate(&Group{}, &Channel{}, &Ability{}, &RechargeGroup{}, &ConsumptionGroup{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	// Swap the global DB for this test, restoring the package-wide TestMain DB
