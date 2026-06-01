@@ -42,6 +42,7 @@ func GetConsumptionGroupList(c *gin.Context) {
 		"data": gin.H{
 			"groups":                 items,
 			"default_channel_group":  setting.GetDefaultChannelGroup(),
+			"new_user_default_group": setting.GetNewUserDefaultGroup(),
 			"default_use_auto_group": setting.DefaultUseAutoGroup,
 		},
 	})

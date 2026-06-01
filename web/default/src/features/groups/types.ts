@@ -48,6 +48,7 @@ export type RechargeGroupListData = { groups: RechargeGroup[] }
 export type ConsumptionGroupListData = {
   groups: ConsumptionGroupItem[]
   default_channel_group: string
+  new_user_default_group: string
   default_use_auto_group: boolean
 }
 
