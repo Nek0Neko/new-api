@@ -85,11 +85,11 @@ export function GlobalGroupSettingsCard({ data, onSaved }: Props) {
             onChange={(e) => setNewUser(e.target.value)}
           />
         </div>
-        <label className="flex items-center gap-2">
+        <label className="flex h-9 items-center gap-2">
           <Switch checked={useAuto} onCheckedChange={setUseAuto} />
           <span>{t('New tokens default to auto group')}</span>
         </label>
-        <Button onClick={save} disabled={saving}>
+        <Button className="ml-auto" onClick={save} disabled={saving}>
           {t('Save')}
         </Button>
       </CardContent>

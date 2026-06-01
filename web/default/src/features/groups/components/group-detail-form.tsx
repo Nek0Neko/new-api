@@ -19,7 +19,16 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -32,7 +41,6 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { deleteGroup, updateGroup } from '../api'
 import type { GroupManageItem } from '../types'
-import { GroupChannelsTable } from './group-channels-table'
 
 type Props = { group: GroupManageItem; onChanged: () => void }
 
@@ -86,114 +94,135 @@ export function GroupDetailForm({ group, onChanged }: Props) {
     }
   }
 
+  const toggles = [
+    {
+      key: 'admin_only' as const,
+      label: t('Admin only'),
+      checked: form.admin_only,
+    },
+    {
+      key: 'auto_upgrade' as const,
+      label: t('Auto upgrade'),
+      checked: form.auto_upgrade,
+    },
+    {
+      key: 'in_auto_rotation' as const,
+      label: t('In auto rotation'),
+      checked: form.in_auto_rotation,
+    },
+  ]
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-name">{t('Group name')}</Label>
-          <Input id="group-name" value={form.name} disabled />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-description">{t('Description')}</Label>
-          <Input
-            id="group-description"
-            value={form.description}
-            onChange={(e) => set('description', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-consumption">{t('Consumption ratio')}</Label>
-          <Input
-            id="group-consumption"
-            type="number"
-            step="0.01"
-            value={form.consumption_ratio}
-            onChange={(e) => setNum('consumption_ratio', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-topup">{t('Topup ratio')}</Label>
-          <Input
-            id="group-topup"
-            type="number"
-            step="0.01"
-            value={form.topup_ratio}
-            onChange={(e) => setNum('topup_ratio', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-visibility">{t('Visibility')}</Label>
-          <Select
-            value={form.visibility}
-            onValueChange={(v) =>
-              set('visibility', v as 'public' | 'private')
-            }
-          >
-            <SelectTrigger id="group-visibility">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="public">{t('Public')}</SelectItem>
-              <SelectItem value="private">{t('Private')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-upgrade-threshold">
-            {t('Upgrade threshold')}
-          </Label>
-          <Input
-            id="group-upgrade-threshold"
-            type="number"
-            value={form.upgrade_threshold}
-            onChange={(e) => setNum('upgrade_threshold', e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="group-auto-order">{t('Auto order')}</Label>
-          <Input
-            id="group-auto-order"
-            type="number"
-            value={form.auto_order}
-            onChange={(e) => setNum('auto_order', e.target.value)}
-          />
-        </div>
-      </div>
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle className="flex items-center gap-2">
+          <span className="truncate">{form.name}</span>
+        </CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <Badge variant={form.visibility === 'public' ? 'secondary' : 'outline'}>
+            {form.visibility === 'public' ? t('Public') : t('Private')}
+          </Badge>
+        </CardAction>
+      </CardHeader>
 
-      <div className="flex flex-col gap-3">
-        <label className="flex items-center justify-between gap-2">
-          <span>{t('Admin only')}</span>
-          <Switch
-            checked={form.admin_only}
-            onCheckedChange={(v) => set('admin_only', v)}
-          />
-        </label>
-        <label className="flex items-center justify-between gap-2">
-          <span>{t('Auto upgrade')}</span>
-          <Switch
-            checked={form.auto_upgrade}
-            onCheckedChange={(v) => set('auto_upgrade', v)}
-          />
-        </label>
-        <label className="flex items-center justify-between gap-2">
-          <span>{t('In auto rotation')}</span>
-          <Switch
-            checked={form.in_auto_rotation}
-            onCheckedChange={(v) => set('in_auto_rotation', v)}
-          />
-        </label>
-      </div>
+      <CardContent className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-description">{t('Description')}</Label>
+            <Input
+              id="group-description"
+              value={form.description}
+              onChange={(e) => set('description', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-visibility">{t('Visibility')}</Label>
+            <Select
+              value={form.visibility}
+              onValueChange={(v) =>
+                set('visibility', v as 'public' | 'private')
+              }
+            >
+              <SelectTrigger id="group-visibility">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">{t('Public')}</SelectItem>
+                <SelectItem value="private">{t('Private')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-consumption">{t('Consumption ratio')}</Label>
+            <Input
+              id="group-consumption"
+              type="number"
+              step="0.01"
+              value={form.consumption_ratio}
+              onChange={(e) => setNum('consumption_ratio', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-topup">{t('Topup ratio')}</Label>
+            <Input
+              id="group-topup"
+              type="number"
+              step="0.01"
+              value={form.topup_ratio}
+              onChange={(e) => setNum('topup_ratio', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-upgrade-threshold">
+              {t('Upgrade threshold')}
+            </Label>
+            <Input
+              id="group-upgrade-threshold"
+              type="number"
+              value={form.upgrade_threshold}
+              onChange={(e) => setNum('upgrade_threshold', e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="group-auto-order">{t('Auto order')}</Label>
+            <Input
+              id="group-auto-order"
+              type="number"
+              value={form.auto_order}
+              onChange={(e) => setNum('auto_order', e.target.value)}
+            />
+          </div>
+        </div>
 
-      <div className="flex gap-2">
+        <div className="divide-y rounded-lg border">
+          {toggles.map((tg) => (
+            <label
+              key={tg.key}
+              className="flex cursor-pointer items-center justify-between gap-4 px-3.5 py-3"
+            >
+              <span className="text-sm">{tg.label}</span>
+              <Switch
+                checked={tg.checked}
+                onCheckedChange={(v) => set(tg.key, v)}
+              />
+            </label>
+          ))}
+        </div>
+      </CardContent>
+
+      <CardFooter className="gap-2">
         <Button onClick={save} disabled={saving}>
           {t('Save')}
         </Button>
-        <Button variant="destructive" onClick={remove} disabled={deleting}>
+        <Button
+          variant="destructive"
+          className="ml-auto"
+          onClick={remove}
+          disabled={deleting}
+        >
           {t('Delete group')}
         </Button>
-      </div>
-
-      <GroupChannelsTable groupName={group.name} onChanged={onChanged} />
-    </div>
+      </CardFooter>
+    </Card>
   )
 }

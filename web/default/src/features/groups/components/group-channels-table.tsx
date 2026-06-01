@@ -21,6 +21,13 @@ import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -82,12 +89,17 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-medium">{t('Channels in this group')}</h3>
-        <div className="flex gap-1">
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle className="flex items-center gap-2">
+          {t('Channels in this group')}
+          {channels.length > 0 && (
+            <Badge variant="secondary">{channels.length}</Badge>
+          )}
+        </CardTitle>
+        <CardAction className="flex gap-1.5">
           <Input
-            className="w-28"
+            className="h-8 w-28"
             placeholder={t('Channel ID')}
             value={attachId}
             onChange={(e) => setAttachId(e.target.value)}
@@ -95,66 +107,68 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
           <Button size="sm" onClick={attach} disabled={busy}>
             {t('Attach')}
           </Button>
-        </div>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">ID</TableHead>
-            <TableHead>{t('Name')}</TableHead>
-            <TableHead>{t('Status')}</TableHead>
-            <TableHead className="text-right" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {channels.map((ch) => (
-            <TableRow key={ch.id}>
-              <TableCell>{ch.id}</TableCell>
-              <TableCell>{ch.name}</TableCell>
-              <TableCell>
-                <Badge variant={ch.status === 1 ? 'secondary' : 'outline'}>
-                  {ch.status === 1 ? t('Enabled') : t('Disabled')}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => detach(ch.id)}
-                    disabled={busy}
-                  >
-                    {t('Detach')}
-                  </Button>
-                  {ch.has_override && (
-                    <Badge variant="outline">{t('override')}</Badge>
-                  )}
-                  <Link
-                    to="/channels"
-                    search={{ group: [groupName] }}
-                    className={buttonVariants({
-                      size: 'sm',
-                      variant: 'link',
-                    })}
-                  >
-                    {t('Edit in Channels')}
-                  </Link>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {channels.length === 0 && (
+        </CardAction>
+      </CardHeader>
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className="py-4 text-center text-muted-foreground"
-              >
-                {t('No channels in this group')}
-              </TableCell>
+              <TableHead className="w-16 pl-4">ID</TableHead>
+              <TableHead>{t('Name')}</TableHead>
+              <TableHead>{t('Status')}</TableHead>
+              <TableHead className="pr-4 text-right" />
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {channels.map((ch) => (
+              <TableRow key={ch.id}>
+                <TableCell className="pl-4">{ch.id}</TableCell>
+                <TableCell className="font-medium">{ch.name}</TableCell>
+                <TableCell>
+                  <Badge variant={ch.status === 1 ? 'secondary' : 'outline'}>
+                    {ch.status === 1 ? t('Enabled') : t('Disabled')}
+                  </Badge>
+                </TableCell>
+                <TableCell className="pr-4 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {ch.has_override && (
+                      <Badge variant="outline">{t('override')}</Badge>
+                    )}
+                    <Link
+                      to="/channels"
+                      search={{ group: [groupName] }}
+                      className={buttonVariants({
+                        size: 'sm',
+                        variant: 'link',
+                      })}
+                    >
+                      {t('Edit in Channels')}
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => detach(ch.id)}
+                      disabled={busy}
+                    >
+                      {t('Detach')}
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {channels.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="py-8 text-center text-muted-foreground"
+                >
+                  {t('No channels in this group')}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   )
 }

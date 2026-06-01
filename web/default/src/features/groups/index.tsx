@@ -23,6 +23,7 @@ import { getGroupManageList } from './api'
 import type { GroupManageItem, GroupManageListData } from './types'
 import { GroupsList } from './components/groups-list'
 import { GroupDetailForm } from './components/group-detail-form'
+import { GroupChannelsTable } from './components/group-channels-table'
 import { GlobalGroupSettingsCard } from './components/global-group-settings-card'
 
 export function Groups() {
@@ -57,7 +58,7 @@ export function Groups() {
       <SectionPageLayout.Title>{t('Groups')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         {data && <GlobalGroupSettingsCard data={data} onSaved={reload} />}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[260px_1fr]">
           <GroupsList
             groups={data?.groups ?? []}
             selected={selected}
@@ -65,11 +66,18 @@ export function Groups() {
             onChanged={reload}
           />
           {selectedGroup && (
-            <GroupDetailForm
-              key={selectedGroup.name}
-              group={selectedGroup}
-              onChanged={reload}
-            />
+            <div className="flex min-w-0 flex-col gap-4">
+              <GroupDetailForm
+                key={selectedGroup.name}
+                group={selectedGroup}
+                onChanged={reload}
+              />
+              <GroupChannelsTable
+                key={`${selectedGroup.name}-channels`}
+                groupName={selectedGroup.name}
+                onChanged={reload}
+              />
+            </div>
           )}
         </div>
       </SectionPageLayout.Content>
