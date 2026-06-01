@@ -12,6 +12,10 @@ func TestPickUpgradeGroup_UsesRechargeMeta(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+	// Capture & restore the consumption-meta global so this drain doesn't leak
+	// into sibling tests in the package.
+	origUsable := setting.UserUsableGroups2JSONString()
+	t.Cleanup(func() { _ = setting.UpdateUserUsableGroupsByJSONString(origUsable) })
 	// Drain the consumption-side meta so that, if pickUpgradeGroup still read it,
 	// every assertion below would return "" — proving the repoint to RechargeGroupMeta.
 	if err := setting.UpdateUserUsableGroupsByJSONString(`{}`); err != nil {
