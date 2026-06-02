@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
-import { RatioIcon, Settings2Icon } from 'lucide-react'
+import { RatioIcon, ServerIcon, Settings2Icon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -87,15 +87,15 @@ export function InputToolbar({ config, disabled, onChange }: Props) {
   const compressionDisabled = config.outputFormat === 'png'
 
   // Surface a dot on the gear when any setting differs from its default so the
-  // collapsed controls don't hide active tweaks.
+  // collapsed controls don't hide active tweaks. asyncTask is excluded because
+  // it has its own always-visible toggle in the toolbar.
   const hasCustomSettings =
     config.quality !== 'auto' ||
     config.outputFormat !== 'png' ||
     config.outputCompression != null ||
     config.moderation !== 'auto' ||
     config.n !== 1 ||
-    config.stream ||
-    config.asyncTask
+    config.stream
 
   return (
     <div className='flex flex-wrap items-center gap-2'>
@@ -110,6 +110,40 @@ export function InputToolbar({ config, disabled, onChange }: Props) {
         <RatioIcon className='size-4 shrink-0' />
         {config.size}
       </Button>
+
+      {/* Background task — a server-side async run, surfaced here instead of
+          buried in the settings popover so it's a one-tap toggle. */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type='button'
+                variant={config.asyncTask ? 'default' : 'outline'}
+                className='h-8 gap-1.5'
+                disabled={disabled}
+                aria-pressed={config.asyncTask}
+                onClick={() => {
+                  const next = !config.asyncTask
+                  onChange('asyncTask', next)
+                  // A task cannot stream — turning it on disables streaming.
+                  if (next && config.stream) onChange('stream', false)
+                }}
+              >
+                <ServerIcon className='size-4 shrink-0' />
+                {t('Background task')}
+              </Button>
+            }
+          />
+          <TooltipContent side='top'>
+            <p className='max-w-50 text-xs'>
+              {t(
+                'Run on the server; you can leave this page and come back for the result. Disables streaming.'
+              )}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* All other generation parameters live in the settings popover */}
       <Popover>
@@ -257,24 +291,6 @@ export function InputToolbar({ config, disabled, onChange }: Props) {
           </SettingRow>
 
           <div className='bg-border h-px' />
-
-          <SettingRow label={t('Background task')} htmlFor='img-async'>
-            <Switch
-              id='img-async'
-              checked={config.asyncTask}
-              disabled={disabled}
-              onCheckedChange={(v) => {
-                onChange('asyncTask', v)
-                // A task cannot stream — turning it on disables streaming.
-                if (v && config.stream) onChange('stream', false)
-              }}
-            />
-          </SettingRow>
-          <p className='text-muted-foreground text-xs'>
-            {t(
-              'Run on the server; you can leave this page and come back for the result. Disables streaming.'
-            )}
-          </p>
 
           <SettingRow label={t('Stream')} htmlFor='img-stream'>
             <Switch
