@@ -1,4 +1,3 @@
-// setting/object_storage_setting/cos.go
 package object_storage_setting
 
 import "github.com/QuantumNous/new-api/setting/config"
@@ -28,8 +27,8 @@ func GetCOSConfig() *COSConfig {
 	return &cosConfig
 }
 
-// Enabled reports whether COS image offloading is fully configured.
-func Enabled() bool {
+// IsCOSEnabled reports whether COS image offloading is fully configured.
+func IsCOSEnabled() bool {
 	return cosConfig.Enabled &&
 		cosConfig.SecretID != "" &&
 		cosConfig.SecretKey != "" &&
