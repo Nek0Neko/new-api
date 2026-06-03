@@ -290,6 +290,13 @@ export type OperationsSettings = {
   SMTPToken: string
   SMTPSSLEnabled: boolean
   SMTPForceAuthLogin: boolean
+  'tencent_cos.enabled': boolean
+  'tencent_cos.secret_id': string
+  'tencent_cos.secret_key': string
+  'tencent_cos.region': string
+  'tencent_cos.bucket': string
+  'tencent_cos.custom_domain': string
+  'tencent_cos.path_prefix': string
   WorkerUrl: string
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean

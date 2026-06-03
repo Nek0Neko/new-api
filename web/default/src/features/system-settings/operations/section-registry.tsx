@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { SystemBehaviorSection } from '../general/system-behavior-section'
 import { EmailSettingsSection } from '../integrations/email-settings-section'
 import { MonitoringSettingsSection } from '../integrations/monitoring-settings-section'
+import { TencentCosSection } from '../integrations/tencent-cos-section'
 import { WorkerSettingsSection } from '../integrations/worker-settings-section'
 import { LogSettingsSection } from '../maintenance/log-settings-section'
 import { PerformanceSection } from '../maintenance/performance-section'
@@ -76,6 +77,23 @@ const OPERATIONS_SECTIONS = [
           SMTPToken: settings.SMTPToken,
           SMTPSSLEnabled: settings.SMTPSSLEnabled,
           SMTPForceAuthLogin: settings.SMTPForceAuthLogin,
+        }}
+      />
+    ),
+  },
+  {
+    id: 'tencent-cos',
+    titleKey: 'Tencent COS Storage',
+    build: (settings: OperationsSettings) => (
+      <TencentCosSection
+        defaultValues={{
+          'tencent_cos.enabled': settings['tencent_cos.enabled'],
+          'tencent_cos.secret_id': settings['tencent_cos.secret_id'],
+          'tencent_cos.secret_key': settings['tencent_cos.secret_key'],
+          'tencent_cos.region': settings['tencent_cos.region'],
+          'tencent_cos.bucket': settings['tencent_cos.bucket'],
+          'tencent_cos.custom_domain': settings['tencent_cos.custom_domain'],
+          'tencent_cos.path_prefix': settings['tencent_cos.path_prefix'],
         }}
       />
     ),
