@@ -197,7 +197,7 @@ export async function editImage(
   throw lastError
 }
 
-/** Streaming image edit. Forces b64_json so partial frames render inline. */
+/** Streaming image edit. Resolves with the final ImageDataItem; partial frames are emitted as base64 via onPartial. */
 export async function editImageStream(
   req: ImageEditRequest,
   apiKey: string,
