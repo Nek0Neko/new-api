@@ -14,6 +14,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/mediastore"
 
 	"github.com/QuantumNous/new-api/types"
 
@@ -595,6 +596,10 @@ func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
 
+	if c.GetBool(mediastore.CtxStoreImageCOS) {
+		responseBody = mediastore.RewriteImageResponseBody(c.Request.Context(), responseBody)
+	}
+
 	// 写入新的 response body
 	service.IOCopyBytesGracefully(c, resp, responseBody)
 
@@ -626,7 +631,12 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	usage := &dto.Usage{}
 	var lastData string
 
+	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
+
 	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
+		if storeCOS {
+			data = mediastore.RewriteImageStreamEvent(c.Request.Context(), data)
+		}
 		if err := helper.StringData(c, data); err != nil {
 			logger.LogError(c, "error sending image stream data: "+err.Error())
 			sr.Error(err)
