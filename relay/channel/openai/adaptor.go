@@ -27,7 +27,9 @@ import (
 	"github.com/QuantumNous/new-api/relay/common_handler"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/mediastore"
 	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/setting/object_storage_setting"
 	"github.com/QuantumNous/new-api/setting/reasoning"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/samber/lo"
@@ -445,8 +447,23 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 
 		// 写入所有非文件字段
 		if mf != nil {
+			isStream := false
+			if vs := mf.Value["stream"]; len(vs) > 0 {
+				isStream = vs[0] == "true"
+			}
+			storeCOS := object_storage_setting.IsCOSEnabled() &&
+				len(mf.Value["response_format"]) > 0 &&
+				mf.Value["response_format"][0] == "url"
+			if storeCOS {
+				c.Set(mediastore.CtxStoreImageCOS, true)
+			}
 			for key, values := range mf.Value {
 				if key == "model" {
+					continue
+				}
+				if key == "response_format" && storeCOS && isStream {
+					// Streaming needs b64 frames upstream; final image -> COS.
+					writer.WriteField("response_format", "b64_json")
 					continue
 				}
 				for _, value := range values {
@@ -550,6 +567,17 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		return &requestBody, nil
 
 	default:
+		if object_storage_setting.IsCOSEnabled() && request.ResponseFormat == "url" {
+			// Client wants a url and COS is configured: signal the response
+			// handler to upload b64 -> COS. `request` is a by-value copy, so
+			// mutating ResponseFormat here does not affect info.Request.
+			c.Set(mediastore.CtxStoreImageCOS, true)
+			if request.Stream != nil && *request.Stream {
+				// Streaming must yield b64 frames; the final image is uploaded
+				// to COS by the stream handler.
+				request.ResponseFormat = "b64_json"
+			}
+		}
 		return request, nil
 	}
 }
