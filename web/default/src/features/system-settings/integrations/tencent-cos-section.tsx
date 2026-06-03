@@ -16,8 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useMemo, useRef } from 'react'
-import type React from 'react'
+import { useMemo, useRef } from 'react'
 import * as z from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -114,6 +113,8 @@ const normalizeForm = (v: CosFormValues): NormalizedCos => ({
   'tencent_cos.path_prefix': v.tencent_cos.path_prefix.trim(),
 })
 
+const SECRET_KEYS = new Set(['tencent_cos.secret_id', 'tencent_cos.secret_key'])
+
 export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
@@ -131,47 +132,40 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
 
   useResetForm(form, formDefaults)
 
-  const onSubmit = useCallback(
-    async (values: CosFormValues) => {
-      const normalized = normalizeForm(values)
-      const secretKeys = new Set([
-        'tencent_cos.secret_id',
-        'tencent_cos.secret_key',
-      ])
-      const updates = (
-        Object.keys(normalized) as Array<keyof NormalizedCos>
-      ).filter((key) => {
-        const value = normalized[key]
-        if (secretKeys.has(key) && value === '') return false
-        return value !== baselineRef.current[key]
+  const cosEnabled = form.watch('tencent_cos.enabled')
+
+  const onSubmit = async (values: CosFormValues) => {
+    const normalized = normalizeForm(values)
+    const updates = (
+      Object.keys(normalized) as Array<keyof NormalizedCos>
+    ).filter(
+      (key) =>
+        !(SECRET_KEYS.has(key) && normalized[key] === '') &&
+        normalized[key] !== baselineRef.current[key]
+    )
+
+    if (updates.length === 0) {
+      toast.info(t('No changes to save'))
+      return
+    }
+
+    for (const key of updates) {
+      const value = normalized[key]
+      await updateOption.mutateAsync({
+        key,
+        value,
       })
+    }
 
-      if (updates.length === 0) {
-        toast.info(t('No changes to save'))
-        return
-      }
-
-      for (const key of updates) {
-        await updateOption.mutateAsync({ key, value: normalized[key] })
-      }
-
-      baselineRef.current = { ...baselineRef.current, ...normalized }
-    },
-    [t, updateOption]
-  )
-
-  const handleSubmit = useCallback(
-    (e?: React.BaseSyntheticEvent) => form.handleSubmit(onSubmit)(e),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [form.handleSubmit, onSubmit]
-  )
+    baselineRef.current = normalized
+  }
 
   return (
     <SettingsSection title={t('Tencent COS Storage')}>
       <Form {...form}>
-        <SettingsForm onSubmit={handleSubmit} autoComplete='off'>
+        <SettingsForm onSubmit={form.handleSubmit(onSubmit)} autoComplete='off'>
           <SettingsPageFormActions
-            onSave={handleSubmit}
+            onSave={form.handleSubmit(onSubmit)}
             isSaving={updateOption.isPending}
             saveLabel='Save COS settings'
           />
@@ -252,6 +246,7 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
                   <Input
                     autoComplete='off'
                     type='password'
+                    disabled={!cosEnabled}
                     placeholder={t('Enter new value to update')}
                     {...field}
                     onChange={(e) => field.onChange(e.target.value)}
@@ -275,6 +270,7 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
                   <Input
                     autoComplete='off'
                     type='password'
+                    disabled={!cosEnabled}
                     placeholder={t('Enter new value to update')}
                     {...field}
                     onChange={(e) => field.onChange(e.target.value)}
