@@ -34,6 +34,7 @@ interface SSEUsage {
 
 interface SSEEvent {
   type?: string
+  url?: string
   b64_json?: string
   partial_image_index?: number
   revised_prompt?: string
@@ -108,8 +109,9 @@ export async function consumeImageStream(
       callbacks.onPartial?.(event.b64_json, idx)
       return
     }
-    if (type.endsWith('completed') && event.b64_json) {
+    if (type.endsWith('completed') && (event.url || event.b64_json)) {
       finalImage = {
+        url: event.url,
         b64_json: event.b64_json,
         revised_prompt: event.revised_prompt ?? latestRevisedPrompt,
       }

@@ -153,7 +153,7 @@ export async function generateImageStream(
   const body: ImageGenerationRequest = {
     ...payload,
     stream: true,
-    response_format: 'b64_json',
+    response_format: 'url',
   }
 
   const response = await fetch(IMAGE_GEN_ENDPOINT, {
@@ -206,7 +206,7 @@ export async function editImageStream(
   const formData = buildEditFormData({
     ...req,
     stream: true,
-    response_format: 'b64_json',
+    response_format: 'url',
   })
 
   const response = await fetch(IMAGE_EDIT_ENDPOINT, {

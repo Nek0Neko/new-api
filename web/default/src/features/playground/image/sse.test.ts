@@ -49,4 +49,19 @@ describe('consumeImageStream', () => {
       /without a completed image/
     )
   })
+
+  test('prefers url over b64_json on the completed image', async () => {
+    const res = sseResponse([
+      JSON.stringify({
+        type: 'image_generation.completed',
+        url: 'https://cdn.test/final.png',
+        revised_prompt: 'rp',
+      }),
+      '[DONE]',
+    ])
+    const final = await consumeImageStream(res, {})
+    assert.equal(final.url, 'https://cdn.test/final.png')
+    assert.equal(final.b64_json, undefined)
+    assert.equal(final.revised_prompt, 'rp')
+  })
 })
