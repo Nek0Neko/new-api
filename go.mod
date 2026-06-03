@@ -60,7 +60,16 @@ require (
 	gorm.io/gorm v1.25.2
 )
 
-require github.com/waffo-com/waffo-pancake-sdk-go v0.3.1
+require (
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.73
+	github.com/waffo-com/waffo-pancake-sdk-go v0.3.1
+)
+
+require (
+	github.com/clbanning/mxj v1.8.4 // indirect
+	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/mozillazg/go-httpheader v0.2.1 // indirect
+)
 
 require (
 	github.com/DmitriyVTitov/size v1.5.0 // indirect
