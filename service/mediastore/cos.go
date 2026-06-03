@@ -18,6 +18,9 @@ import (
 type cosUploader struct{}
 
 func (u *cosUploader) Upload(ctx context.Context, data []byte, mime string) (string, error) {
+	if !object_storage_setting.IsCOSEnabled() {
+		return "", fmt.Errorf("tencent cos is not configured")
+	}
 	cfg := object_storage_setting.GetCOSConfig()
 	bucketURL := fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region)
 	bu, err := url.Parse(bucketURL)
