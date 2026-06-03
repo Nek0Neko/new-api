@@ -291,14 +291,14 @@ export function ImagePlayground() {
   const handleRegenerate = useCallback(
     (item: ImageGenerationItem) => {
       if (isGenerating || !hasKey || !isHydrated) return
-      if (item.mode === 'edit' && item.inputImages?.length) {
-        void submit(item.prompt, {
-          inputImages: item.inputImages,
-          maskImage: item.maskImage ?? null,
-        })
-        return
-      }
-      void submit(item.prompt)
+      // Retry the original message in place (reusing its id) instead of
+      // prepending a new one. An empty image list keeps generation-mode items
+      // as text-to-image.
+      void submit(item.prompt, {
+        inputImages: item.inputImages ?? [],
+        maskImage: item.maskImage ?? null,
+        retryId: item.id,
+      })
     },
     [isGenerating, hasKey, isHydrated, submit]
   )

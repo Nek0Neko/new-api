@@ -82,6 +82,15 @@ export interface ImageGenerationItem {
   createdAt: number
   status: ImageGenerationStatus
   /**
+   * Full config snapshot taken when this item was first submitted. Lets the
+   * "Regenerate" action retry the original message in place with its original
+   * parameters (n / moderation / format / stream / async / partial images),
+   * not just whatever the config panel currently shows. Optional for backward
+   * compatibility with items persisted before this field existed — retry falls
+   * back to the current config when absent.
+   */
+  config?: ImageConfig
+  /**
    * Server-side async task id (when this item was submitted as a task). Used to
    * resume polling after a reload and to keep a `loading` item alive instead of
    * surfacing it as interrupted.

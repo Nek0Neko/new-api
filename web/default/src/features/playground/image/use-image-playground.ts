@@ -296,36 +296,70 @@ export function useImagePlayground(apiKey: string | null) {
       override?: {
         inputImages: ImageInputFile[]
         maskImage: ImageInputFile | null
+        /**
+         * When set, retry the existing item with this id *in place* instead of
+         * prepending a new one. The item is reset to a loading/streaming state
+         * and regenerated using its original config snapshot.
+         */
+        retryId?: string
       }
     ) => {
+      // For a retry, reuse the original item's saved config so the regeneration
+      // reproduces its original parameters, not the current config panel. Older
+      // items lack the snapshot — fall back to the live config.
+      const retryItem = override?.retryId
+        ? itemsRef.current.find((it) => it.id === override.retryId)
+        : undefined
+      const cfg = retryItem?.config ?? config
+
       const visiblePrompt = stripImageMentionMarkers(prompt).trim()
       const key = apiKeyRef.current
-      if (!visiblePrompt || isGenerating || !config.model || !key) return
+      if (!visiblePrompt || isGenerating || !cfg.model || !key) return
 
       const images = override ? override.inputImages : inputImages
       const mask = override ? override.maskImage : maskImage
       const apiPrompt = replaceImageMentionsForApi(prompt, images.length)
       const isEdit = images.length > 0
-      const id = generateId()
-      const useAsync = !!config.asyncTask
+      const id = retryItem ? retryItem.id : generateId()
+      const useAsync = !!cfg.asyncTask
       // A task cannot stream — async mode ignores the stream toggle.
-      const useStream = !useAsync && !!config.stream
+      const useStream = !useAsync && !!cfg.stream
 
-      const placeholder: ImageGenerationItem = {
-        id,
-        prompt: visiblePrompt,
-        model: config.model,
-        size: config.size,
-        quality: config.quality,
-        mode: isEdit ? 'edit' : 'generation',
-        inputImages: isEdit ? images : undefined,
-        maskImage: isEdit ? (mask ?? undefined) : undefined,
-        createdAt: Date.now(),
-        status: useStream ? 'streaming' : 'loading',
-        images: [],
+      if (retryItem) {
+        // Retry in place: stop any stale polling and reset the existing card
+        // back to its in-flight state, clearing the previous result/error.
+        stopPolling(id)
+        updateItems((prev) =>
+          prev.map((it) =>
+            it.id === id
+              ? {
+                  ...it,
+                  status: useStream ? 'streaming' : 'loading',
+                  images: [],
+                  partialImage: undefined,
+                  errorMessage: undefined,
+                  taskId: undefined,
+                }
+              : it
+          )
+        )
+      } else {
+        const placeholder: ImageGenerationItem = {
+          id,
+          prompt: visiblePrompt,
+          model: cfg.model,
+          size: cfg.size,
+          quality: cfg.quality,
+          mode: isEdit ? 'edit' : 'generation',
+          inputImages: isEdit ? images : undefined,
+          maskImage: isEdit ? (mask ?? undefined) : undefined,
+          createdAt: Date.now(),
+          status: useStream ? 'streaming' : 'loading',
+          images: [],
+          config: cfg,
+        }
+        updateItems((prev) => [placeholder, ...prev])
       }
-
-      updateItems((prev) => [placeholder, ...prev])
       setIsGenerating(true)
       // Clear the tray immediately for a fresh (non-regenerate) edit submit.
       if (!override && isEdit) clearInputs()
@@ -351,41 +385,41 @@ export function useImagePlayground(apiKey: string | null) {
           let taskId: string
           if (isEdit) {
             const editReq: ImageEditRequest = {
-              model: config.model,
+              model: cfg.model,
               prompt: apiPrompt,
-              n: config.n,
-              size: config.size,
-              quality: config.quality,
-              moderation: config.moderation,
-              output_format: config.outputFormat,
+              n: cfg.n,
+              size: cfg.size,
+              quality: cfg.quality,
+              moderation: cfg.moderation,
+              output_format: cfg.outputFormat,
               response_format: 'url',
               images,
               mask: mask ?? undefined,
             }
             if (
-              config.outputFormat !== 'png' &&
-              config.outputCompression != null
+              cfg.outputFormat !== 'png' &&
+              cfg.outputCompression != null
             ) {
-              editReq.output_compression = config.outputCompression
+              editReq.output_compression = cfg.outputCompression
             }
             const resp = await submitImageEditTask(editReq, key)
             taskId = resp.task_id
           } else {
             const payload: ImageGenerationRequest = {
-              model: config.model,
+              model: cfg.model,
               prompt: apiPrompt,
-              n: config.n,
-              size: config.size,
-              quality: config.quality,
-              moderation: config.moderation,
-              output_format: config.outputFormat,
+              n: cfg.n,
+              size: cfg.size,
+              quality: cfg.quality,
+              moderation: cfg.moderation,
+              output_format: cfg.outputFormat,
               response_format: 'url',
             }
             if (
-              config.outputFormat !== 'png' &&
-              config.outputCompression != null
+              cfg.outputFormat !== 'png' &&
+              cfg.outputCompression != null
             ) {
-              payload.output_compression = config.outputCompression
+              payload.output_compression = cfg.outputCompression
             }
             const resp = await submitImageGenerationTask(payload, key)
             taskId = resp.task_id
@@ -399,27 +433,27 @@ export function useImagePlayground(apiKey: string | null) {
 
         if (isEdit) {
           const editReq: ImageEditRequest = {
-            model: config.model,
+            model: cfg.model,
             prompt: apiPrompt,
             // Streaming only ever yields a single image upstream; force n=1 so a
             // stale count (set before enabling stream) can't trigger a 400.
-            n: useStream ? 1 : config.n,
-            size: config.size,
-            quality: config.quality,
-            moderation: config.moderation,
-            output_format: config.outputFormat,
+            n: useStream ? 1 : cfg.n,
+            size: cfg.size,
+            quality: cfg.quality,
+            moderation: cfg.moderation,
+            output_format: cfg.outputFormat,
             response_format: useStream ? 'b64_json' : 'url',
             images,
             mask: mask ?? undefined,
           }
           if (
-            config.outputFormat !== 'png' &&
-            config.outputCompression != null
+            cfg.outputFormat !== 'png' &&
+            cfg.outputCompression != null
           ) {
-            editReq.output_compression = config.outputCompression
+            editReq.output_compression = cfg.outputCompression
           }
-          if (useStream && config.partialImages > 0) {
-            editReq.partial_images = config.partialImages
+          if (useStream && cfg.partialImages > 0) {
+            editReq.partial_images = cfg.partialImages
           }
           if (useStream) {
             const finalImage = await editImageStream(editReq, key, {
@@ -437,27 +471,27 @@ export function useImagePlayground(apiKey: string | null) {
           }
         } else {
           const payload: ImageGenerationRequest = {
-            model: config.model,
+            model: cfg.model,
             prompt: apiPrompt,
             // Streaming only ever yields a single image upstream; force n=1 so a
             // stale count (set before enabling stream) can't trigger a 400.
-            n: useStream ? 1 : config.n,
-            size: config.size,
-            quality: config.quality,
-            moderation: config.moderation,
-            output_format: config.outputFormat,
+            n: useStream ? 1 : cfg.n,
+            size: cfg.size,
+            quality: cfg.quality,
+            moderation: cfg.moderation,
+            output_format: cfg.outputFormat,
             response_format: useStream ? 'b64_json' : 'url',
           }
           if (
-            config.outputFormat !== 'png' &&
-            config.outputCompression != null
+            cfg.outputFormat !== 'png' &&
+            cfg.outputCompression != null
           ) {
-            payload.output_compression = config.outputCompression
+            payload.output_compression = cfg.outputCompression
           }
           if (useStream) {
             payload.stream = true
-            if (config.partialImages > 0) {
-              payload.partial_images = config.partialImages
+            if (cfg.partialImages > 0) {
+              payload.partial_images = cfg.partialImages
             }
           }
           if (useStream) {
@@ -496,7 +530,16 @@ export function useImagePlayground(apiKey: string | null) {
         setIsGenerating(false)
       }
     },
-    [config, isGenerating, inputImages, maskImage, updateItems, clearInputs, ensurePolling]
+    [
+      config,
+      isGenerating,
+      inputImages,
+      maskImage,
+      updateItems,
+      clearInputs,
+      ensurePolling,
+      stopPolling,
+    ]
   )
 
   return {
