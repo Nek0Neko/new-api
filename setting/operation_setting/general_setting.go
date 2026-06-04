@@ -25,8 +25,12 @@ type GeneralSetting struct {
 // 默认配置
 var generalSetting = GeneralSetting{
 	DocsLink:                   "https://docs.newapi.pro",
-	PingIntervalEnabled:        false,
-	PingIntervalSeconds:        60,
+	// Keepalive pings are on by default so slow streaming responses (notably
+	// image generation, which can stay silent >20s before the first frame)
+	// don't get cut by reverse-proxy / gateway idle-read timeouts. The interval
+	// must stay below common proxy idle timeouts; 10s matches DefaultPingInterval.
+	PingIntervalEnabled:        true,
+	PingIntervalSeconds:        10,
 	QuotaDisplayType:           QuotaDisplayTypeUSD,
 	CustomCurrencySymbol:       "¤",
 	CustomCurrencyExchangeRate: 1.0,

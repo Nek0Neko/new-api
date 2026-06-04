@@ -630,6 +630,8 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 
 	usage := &dto.Usage{}
 	var lastData string
+	var lastPartial string
+	var sawCompleted bool
 
 	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
 
@@ -637,13 +639,46 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 		if storeCOS {
 			data = mediastore.RewriteImageStreamEvent(c.Request.Context(), data)
 		}
+		isCompleted := false
+		switch typ := mediastore.ImageStreamEventType(data); {
+		case strings.HasSuffix(typ, "completed"):
+			sawCompleted = true
+			isCompleted = true
+		case strings.HasSuffix(typ, "partial_image"):
+			lastPartial = data
+		}
 		if err := helper.StringData(c, data); err != nil {
 			logger.LogError(c, "error sending image stream data: "+err.Error())
 			sr.Error(err)
 			return
 		}
 		lastData = data
+		// The image stream is complete once the terminal `completed` event has
+		// been delivered. Some upstreams emit it but then hold the connection
+		// open (no [DONE]/close) — and because every scanned line resets the
+		// streaming timeout, that would leave the client waiting indefinitely.
+		// Stop now so the client finalizes promptly; usage lives in this event.
+		if isCompleted {
+			sr.Done()
+		}
 	})
+
+	// Some upstreams stream only partial_image frames and end with [DONE]
+	// without ever emitting a completed event, which leaves clients that require
+	// a terminal completed frame waiting forever. Promote the last partial to a
+	// synthesized completed event so the final image is always delivered.
+	if !sawCompleted && lastPartial != "" {
+		if completed, ok := mediastore.SynthesizeCompletedImageEvent(lastPartial); ok {
+			if storeCOS {
+				completed = mediastore.RewriteImageStreamEvent(c.Request.Context(), completed)
+			}
+			if err := helper.StringData(c, completed); err != nil {
+				logger.LogError(c, "error sending synthesized completed image event: "+err.Error())
+			} else {
+				lastData = completed
+			}
+		}
+	}
 
 	if lastData != "" {
 		var payload struct {

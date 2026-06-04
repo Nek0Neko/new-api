@@ -81,7 +81,14 @@ export async function consumeImageStream(
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
   let finalImage: ImageDataItem | null = null
+  let lastPartialB64: string | undefined
+  let lastPartialRevisedPrompt: string | undefined
   let latestRevisedPrompt: string | undefined
+  // Set once a terminal `completed` event has been seen. Some upstreams emit it
+  // but then keep the SSE connection open (kept alive by server pings) without
+  // ever sending [DONE] or closing, which would otherwise hang this loop until
+  // the connection eventually drops. Resolve as soon as the image is final.
+  let completedReceived = false
 
   const handleEvent = (raw: string) => {
     const trimmed = raw.trim()
@@ -106,6 +113,8 @@ export async function consumeImageStream(
     const type = event.type ?? ''
     if (type.endsWith('partial_image') && event.b64_json) {
       const idx = event.partial_image_index ?? 0
+      lastPartialB64 = event.b64_json
+      lastPartialRevisedPrompt = event.revised_prompt ?? latestRevisedPrompt
       callbacks.onPartial?.(event.b64_json, idx)
       return
     }
@@ -115,25 +124,39 @@ export async function consumeImageStream(
         b64_json: event.b64_json,
         revised_prompt: event.revised_prompt ?? latestRevisedPrompt,
       }
+      completedReceived = true
       callbacks.onCompleted?.(finalImage)
     }
   }
 
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
 
-    let newlineIdx = buffer.indexOf('\n')
-    while (newlineIdx !== -1) {
-      const line = buffer.slice(0, newlineIdx)
-      buffer = buffer.slice(newlineIdx + 1)
-      const stripped = line.replace(/\r$/, '')
-      if (stripped.startsWith('data:')) {
-        handleEvent(stripped.slice(5).trimStart())
+      let newlineIdx = buffer.indexOf('\n')
+      while (newlineIdx !== -1) {
+        const line = buffer.slice(0, newlineIdx)
+        buffer = buffer.slice(newlineIdx + 1)
+        const stripped = line.replace(/\r$/, '')
+        if (stripped.startsWith('data:')) {
+          handleEvent(stripped.slice(5).trimStart())
+        }
+        newlineIdx = buffer.indexOf('\n')
       }
-      newlineIdx = buffer.indexOf('\n')
+
+      // The image is final once the completed event arrives — stop reading
+      // instead of waiting for an upstream that may hold the connection open.
+      if (completedReceived) break
     }
+  } finally {
+    // Release the connection; harmless if the stream already ended.
+    void reader.cancel().catch(() => {})
+  }
+
+  if (completedReceived && finalImage) {
+    return finalImage
   }
 
   const tail = buffer.replace(/\r$/, '')
@@ -142,6 +165,17 @@ export async function consumeImageStream(
   }
 
   if (!finalImage) {
+    // Some upstreams stream only partial_image frames and end with [DONE]
+    // without ever emitting a completed event. Fall back to the last partial
+    // so a fully-rendered image still resolves instead of erroring out.
+    if (lastPartialB64) {
+      finalImage = {
+        b64_json: lastPartialB64,
+        revised_prompt: lastPartialRevisedPrompt ?? latestRevisedPrompt,
+      }
+      callbacks.onCompleted?.(finalImage)
+      return finalImage
+    }
     throw new Error('Stream ended without a completed image event')
   }
   return finalImage
