@@ -596,7 +596,9 @@ func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
 
-	if c.GetBool(mediastore.CtxStoreImageCOS) {
+	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
+	logger.LogInfo(c, fmt.Sprintf("[cos-diag] non-stream handler: storeCOS=%v bodyLen=%d", storeCOS, len(responseBody)))
+	if storeCOS {
 		responseBody = mediastore.RewriteImageResponseBody(c.Request.Context(), responseBody)
 	}
 
@@ -634,6 +636,7 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	var sawCompleted bool
 
 	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
+	logger.LogInfo(c, fmt.Sprintf("[cos-diag] stream handler: storeCOS=%v", storeCOS))
 
 	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
 		if storeCOS {
