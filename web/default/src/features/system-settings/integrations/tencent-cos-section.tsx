@@ -52,6 +52,7 @@ const cosSchema = z.object({
     bucket: z.string(),
     custom_domain: z.string(),
     path_prefix: z.string(),
+    accelerate: z.boolean(),
   }),
 })
 
@@ -66,6 +67,7 @@ type TencentCosSectionProps = {
     'tencent_cos.bucket': string
     'tencent_cos.custom_domain': string
     'tencent_cos.path_prefix': string
+    'tencent_cos.accelerate': boolean
   }
 }
 
@@ -77,6 +79,7 @@ type NormalizedCos = {
   'tencent_cos.bucket': string
   'tencent_cos.custom_domain': string
   'tencent_cos.path_prefix': string
+  'tencent_cos.accelerate': boolean
 }
 
 const buildFormDefaults = (
@@ -90,6 +93,7 @@ const buildFormDefaults = (
     bucket: d['tencent_cos.bucket'] ?? '',
     custom_domain: d['tencent_cos.custom_domain'] ?? '',
     path_prefix: d['tencent_cos.path_prefix'] ?? '',
+    accelerate: d['tencent_cos.accelerate'],
   },
 })
 
@@ -101,6 +105,7 @@ const normalize = (d: TencentCosSectionProps['defaultValues']): NormalizedCos =>
   'tencent_cos.bucket': (d['tencent_cos.bucket'] ?? '').trim(),
   'tencent_cos.custom_domain': (d['tencent_cos.custom_domain'] ?? '').trim(),
   'tencent_cos.path_prefix': (d['tencent_cos.path_prefix'] ?? '').trim(),
+  'tencent_cos.accelerate': d['tencent_cos.accelerate'],
 })
 
 const normalizeForm = (v: CosFormValues): NormalizedCos => ({
@@ -111,6 +116,7 @@ const normalizeForm = (v: CosFormValues): NormalizedCos => ({
   'tencent_cos.bucket': v.tencent_cos.bucket.trim(),
   'tencent_cos.custom_domain': v.tencent_cos.custom_domain.trim(),
   'tencent_cos.path_prefix': v.tencent_cos.path_prefix.trim(),
+  'tencent_cos.accelerate': v.tencent_cos.accelerate,
 })
 
 const SECRET_KEYS = new Set(['tencent_cos.secret_id', 'tencent_cos.secret_key'])
@@ -326,6 +332,30 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name='tencent_cos.accelerate'
+            render={({ field }) => (
+              <SettingsSwitchItem>
+                <SettingsSwitchContent>
+                  <FormLabel>{t('Upload via Global Acceleration')}</FormLabel>
+                  <FormDescription>
+                    {t(
+                      'Route uploads through <bucket>.cos.accelerate.myqcloud.com. Enable "Global Acceleration" on the bucket in the COS console first. Use this when uploads to the bucket region are slow or time out.'
+                    )}
+                  </FormDescription>
+                </SettingsSwitchContent>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={!cosEnabled}
+                  />
+                </FormControl>
+              </SettingsSwitchItem>
+            )}
+          />
         </SettingsForm>
       </Form>
     </SettingsSection>

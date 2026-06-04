@@ -22,12 +22,22 @@ func (u *cosUploader) Upload(ctx context.Context, data []byte, mime string) (str
 		return "", fmt.Errorf("tencent cos is not configured")
 	}
 	cfg := object_storage_setting.GetCOSConfig()
-	bucketURL := fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region)
-	bu, err := url.Parse(bucketURL)
+	// Upload endpoint: the regional bucket host, or the global-acceleration host
+	// when enabled. Acceleration uses the nearest edge POP + optimized backbone,
+	// which is the fix for slow cross-region/cross-border upload throughput that
+	// otherwise makes multi-MB image PUTs exceed the client timeout.
+	uploadURL := fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region)
+	if cfg.Accelerate {
+		uploadURL = fmt.Sprintf("https://%s.cos.accelerate.myqcloud.com", cfg.Bucket)
+	}
+	bu, err := url.Parse(uploadURL)
 	if err != nil {
 		return "", err
 	}
 	client := cos.NewClient(&cos.BaseURL{BucketURL: bu}, &http.Client{
+		// Bound the upload: it runs synchronously inside the image stream
+		// handler, so an unreachable/slow COS must not hang stream completion.
+		Timeout: 60 * time.Second,
 		Transport: &cos.AuthorizationTransport{
 			SecretID:  cfg.SecretID,
 			SecretKey: cfg.SecretKey,
@@ -41,9 +51,11 @@ func (u *cosUploader) Upload(ctx context.Context, data []byte, mime string) (str
 	if err != nil {
 		return "", err
 	}
+	// Download base: prefer the custom/CDN domain; otherwise fall back to the
+	// regional bucket host (not the acceleration host, which is upload-oriented).
 	base := strings.TrimRight(cfg.CustomDomain, "/")
 	if base == "" {
-		base = bucketURL
+		base = fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region)
 	}
 	return base + "/" + key, nil
 }

@@ -54,6 +54,7 @@ const defaultOperationsSettings: OperationsSettings = {
   'tencent_cos.bucket': '',
   'tencent_cos.custom_domain': '',
   'tencent_cos.path_prefix': 'images',
+  'tencent_cos.accelerate': false,
   WorkerUrl: '',
   WorkerValidKey: '',
   WorkerAllowHttpImageRequestEnabled: false,

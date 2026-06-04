@@ -297,6 +297,7 @@ export type OperationsSettings = {
   'tencent_cos.bucket': string
   'tencent_cos.custom_domain': string
   'tencent_cos.path_prefix': string
+  'tencent_cos.accelerate': boolean
   WorkerUrl: string
   WorkerValidKey: string
   WorkerAllowHttpImageRequestEnabled: boolean

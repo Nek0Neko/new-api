@@ -12,6 +12,12 @@ type COSConfig struct {
 	Bucket       string `json:"bucket"`        // bucket name incl. appid, e.g. mybucket-1250000000
 	CustomDomain string `json:"custom_domain"` // optional CDN / custom domain, no trailing slash
 	PathPrefix   string `json:"path_prefix"`   // object key prefix, default "images"
+	// Accelerate routes uploads through COS Global Acceleration
+	// (<bucket>.cos.accelerate.myqcloud.com) instead of the regional endpoint.
+	// Requires "全球加速" to be enabled on the bucket in the COS console. Use this
+	// when the server's upload throughput to the bucket's region is poor (cross
+	// region / cross border), which otherwise makes large image PUTs time out.
+	Accelerate bool `json:"accelerate"`
 }
 
 var cosConfig = COSConfig{

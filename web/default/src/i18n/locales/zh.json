@@ -4082,6 +4082,8 @@
     "Custom Domain / CDN": "自定义域名 / CDN",
     "Optional. Leave blank to use the default bucket domain": "可选。留空则使用默认桶域名",
     "Path Prefix": "路径前缀",
+    "Upload via Global Acceleration": "上传走全球加速",
+    "Route uploads through <bucket>.cos.accelerate.myqcloud.com. Enable \"Global Acceleration\" on the bucket in the COS console first. Use this when uploads to the bucket region are slow or time out.": "上传走 <bucket>.cos.accelerate.myqcloud.com。请先在 COS 控制台对该存储桶启用「全球加速」。当上传到存储桶所在地域较慢或超时时使用。",
     "Save COS settings": "保存 COS 设置",
     "Termination requested": "终止请求",
     "Test All Channels": "测试所有渠道",

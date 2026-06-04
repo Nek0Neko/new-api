@@ -94,6 +94,7 @@ const OPERATIONS_SECTIONS = [
           'tencent_cos.bucket': settings['tencent_cos.bucket'],
           'tencent_cos.custom_domain': settings['tencent_cos.custom_domain'],
           'tencent_cos.path_prefix': settings['tencent_cos.path_prefix'],
+          'tencent_cos.accelerate': settings['tencent_cos.accelerate'],
         }}
       />
     ),
