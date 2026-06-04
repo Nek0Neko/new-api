@@ -3,20 +3,11 @@ package mediastore
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
 )
-
-// head returns the first up-to-200 bytes of b as a string, for diagnostic logs.
-func head(b []byte) string {
-	if len(b) > 200 {
-		return string(b[:200])
-	}
-	return string(b)
-}
 
 // RewriteImageResponseBody parses a non-streaming image response body, uploads
 // every base64 image that has no url yet to object storage, and replaces the
@@ -26,15 +17,12 @@ func head(b []byte) string {
 func RewriteImageResponseBody(ctx context.Context, body []byte) []byte {
 	var resp dto.ImageResponse
 	if err := common.Unmarshal(body, &resp); err != nil {
-		common.SysLog(fmt.Sprintf("[cos-diag] RewriteImageResponseBody: unmarshal failed (%v), bodyLen=%d, head=%q", err, len(body), head(body)))
 		return body
 	}
-	common.SysLog(fmt.Sprintf("[cos-diag] RewriteImageResponseBody: dataLen=%d", len(resp.Data)))
 	changed := false
 	for i := range resp.Data {
 		d := &resp.Data[i]
 		if d.B64Json == "" || d.Url != "" {
-			common.SysLog(fmt.Sprintf("[cos-diag] image[%d] skipped: b64Len=%d urlPresent=%v", i, len(d.B64Json), d.Url != ""))
 			continue
 		}
 		url, err := uploadBase64(ctx, d.B64Json)
@@ -42,7 +30,6 @@ func RewriteImageResponseBody(ctx context.Context, body []byte) []byte {
 			common.SysError("cos upload image failed: " + err.Error())
 			continue
 		}
-		common.SysLog(fmt.Sprintf("[cos-diag] image[%d] uploaded -> %s", i, url))
 		d.Url = url
 		d.B64Json = ""
 		changed = true
@@ -82,8 +69,6 @@ func RewriteImageStreamEvent(ctx context.Context, data string) string {
 	if raw, ok := m["b64_json"]; ok {
 		_ = common.Unmarshal(raw, &b64)
 	}
-	_, hasURL := m["url"]
-	common.SysLog(fmt.Sprintf("[cos-diag] stream completed event: type=%q b64Len=%d hasURL=%v", typ, len(b64), hasURL))
 	if b64 == "" {
 		return data
 	}
@@ -92,7 +77,6 @@ func RewriteImageStreamEvent(ctx context.Context, data string) string {
 		common.SysError("cos upload stream image failed: " + err.Error())
 		return data
 	}
-	common.SysLog(fmt.Sprintf("[cos-diag] stream completed uploaded -> %s", url))
 	urlRaw, err := common.Marshal(url)
 	if err != nil {
 		return data

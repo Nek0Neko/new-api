@@ -66,4 +66,10 @@ const (
 	// ContextKeyLanguage stores the user's language preference for i18n
 	ContextKeyLanguage ContextKey = "language"
 	ContextKeyIsStream ContextKey = "is_stream"
+
+	// ContextKeyImageNoContent marks that an image relay response (typically a
+	// streaming one) delivered no usable image. The relay layer uses it to skip
+	// billing and refund the pre-consumed quota, since failed image generations
+	// must not be charged.
+	ContextKeyImageNoContent ContextKey = "image_no_content"
 )

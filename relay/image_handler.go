@@ -118,6 +118,18 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 		return newAPIError
 	}
 
+	// A streaming image response may have delivered no image (e.g. the upstream
+	// streamed only an error). The SSE response is already sent, so the handler
+	// can't return an error; instead it flags this. Skip billing and refund the
+	// pre-consumed quota so failed image generations are not charged.
+	if common.GetContextKeyBool(c, constant.ContextKeyImageNoContent) {
+		if info.Billing != nil {
+			info.Billing.Refund(c)
+		}
+		logger.LogError(c, "image relay produced no image, skip billing and refund pre-consumed quota")
+		return nil
+	}
+
 	imageN := uint(1)
 	if request.N != nil {
 		imageN = *request.N

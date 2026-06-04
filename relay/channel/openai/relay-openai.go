@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relay/channel/openrouter"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/mediastore"
@@ -582,6 +583,26 @@ func preConsumeUsage(ctx *gin.Context, info *relaycommon.RelayInfo, usage *dto.R
 	return err
 }
 
+func isImageRelayMode(mode int) bool {
+	return mode == relayconstant.RelayModeImagesGenerations || mode == relayconstant.RelayModeImagesEdits
+}
+
+// imageResponseHasImage reports whether an OpenAI-style image response body
+// contains at least one usable image (a non-empty url or b64_json). It is used
+// to decide whether an image request actually succeeded before billing.
+func imageResponseHasImage(body []byte) bool {
+	var imgResp dto.ImageResponse
+	if err := common.Unmarshal(body, &imgResp); err != nil {
+		return false
+	}
+	for _, d := range imgResp.Data {
+		if d.B64Json != "" || d.Url != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	defer service.CloseResponseBodyGracefully(resp)
 
@@ -596,8 +617,21 @@ func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
 
+	// Image generations/edits: bill only when the upstream actually returned an
+	// image. Some providers reply HTTP 200 with an empty data array or an error
+	// embedded in the body — the user must not be charged in that case. Validate
+	// before writing to the client so we can surface a clean error and let the
+	// relay layer refund the pre-consumed quota (see controller/relay.go defer).
+	if isImageRelayMode(info.RelayMode) && !imageResponseHasImage(responseBody) {
+		msg := "upstream returned no image content"
+		if oaiErr := usageResp.GetOpenAIError(); oaiErr != nil && oaiErr.Message != "" {
+			msg = oaiErr.Message
+		}
+		logger.LogError(c, fmt.Sprintf("image response has no image, skip billing: %s", msg))
+		return nil, types.NewOpenAIError(fmt.Errorf("%s", msg), types.ErrorCodeBadResponseBody, http.StatusBadGateway, types.ErrOptionWithSkipRetry())
+	}
+
 	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
-	logger.LogInfo(c, fmt.Sprintf("[cos-diag] non-stream handler: storeCOS=%v bodyLen=%d", storeCOS, len(responseBody)))
 	if storeCOS {
 		responseBody = mediastore.RewriteImageResponseBody(c.Request.Context(), responseBody)
 	}
@@ -636,7 +670,6 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	var sawCompleted bool
 
 	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
-	logger.LogInfo(c, fmt.Sprintf("[cos-diag] stream handler: storeCOS=%v", storeCOS))
 
 	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
 		if storeCOS {
@@ -683,6 +716,15 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 		}
 	}
 
+	// Image stream produced no image: neither a completed event nor a partial image
+	// frame was delivered (e.g. upstream streamed only an error). The SSE response was
+	// already started so we can't return an error here; flag it so ImageHelper skips
+	// billing and refunds the pre-consumed quota.
+	if !sawCompleted && lastPartial == "" {
+		common.SetContextKey(c, constant.ContextKeyImageNoContent, true)
+		logger.LogError(c, "image stream produced no image content; skipping billing")
+	}
+
 	if lastData != "" {
 		var payload struct {
 			Type  string `json:"type"`
@@ -693,8 +735,8 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 				PromptTokens       int `json:"prompt_tokens"`
 				CompletionTokens   int `json:"completion_tokens"`
 				InputTokensDetails *struct {
-					ImageTokens int `json:"image_tokens"`
-					TextTokens  int `json:"text_tokens"`
+					ImageTokens  int `json:"image_tokens"`
+					TextTokens   int `json:"text_tokens"`
 					CachedTokens int `json:"cached_tokens"`
 				} `json:"input_tokens_details"`
 			} `json:"usage"`

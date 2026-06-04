@@ -457,7 +457,6 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 				reqFmt = mf.Value["response_format"][0]
 			}
 			storeCOS := cosEnabled && reqFmt == "url"
-			logger.LogInfo(c.Request.Context(), fmt.Sprintf("[cos-diag] edits convert: cosEnabled=%v response_format=%q storeCOS=%v stream=%v", cosEnabled, reqFmt, storeCOS, isStream))
 			if storeCOS {
 				c.Set(mediastore.CtxStoreImageCOS, true)
 			}
@@ -574,7 +573,6 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		cosEnabled := object_storage_setting.IsCOSEnabled()
 		storeCOS := cosEnabled && request.ResponseFormat == "url"
 		isStream := request.Stream != nil && *request.Stream
-		logger.LogInfo(c.Request.Context(), fmt.Sprintf("[cos-diag] generations convert: cosEnabled=%v response_format=%q storeCOS=%v stream=%v", cosEnabled, request.ResponseFormat, storeCOS, isStream))
 		if storeCOS {
 			// Client wants a url and COS is configured: signal the response
 			// handler to upload b64 -> COS. `request` is a by-value copy, so
