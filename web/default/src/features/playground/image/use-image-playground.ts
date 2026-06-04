@@ -286,7 +286,17 @@ export function useImagePlayground(apiKey: string | null) {
       }
       if (cancelled) return
       setItems((current) => {
-        const next = current.length === 0 ? loaded : [...current, ...loaded]
+        // Server is authoritative: keep any in-flight items the user added
+        // during the hydrate window, but let the server copy win for any
+        // overlapping id (dedup) so a card can't appear twice.
+        let next: ImageGenerationItem[]
+        if (current.length === 0) {
+          next = loaded
+        } else {
+          const loadedIds = new Set(loaded.map((it) => it.id))
+          const localOnly = current.filter((it) => !loadedIds.has(it.id))
+          next = [...localOnly, ...loaded]
+        }
         itemsRef.current = next
         return next
       })
