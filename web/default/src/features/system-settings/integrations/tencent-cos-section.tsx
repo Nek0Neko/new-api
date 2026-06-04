@@ -251,7 +251,9 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
                 <FormControl>
                   <Input
                     autoComplete='off'
-                    type='password'
+                    data-1p-ignore
+                    data-lpignore='true'
+                    type='text'
                     disabled={!cosEnabled}
                     placeholder={t('Enter new value to update')}
                     {...field}
@@ -275,7 +277,9 @@ export function TencentCosSection({ defaultValues }: TencentCosSectionProps) {
                 <FormControl>
                   <Input
                     autoComplete='off'
-                    type='password'
+                    data-1p-ignore
+                    data-lpignore='true'
+                    type='text'
                     disabled={!cosEnabled}
                     placeholder={t('Enter new value to update')}
                     {...field}
