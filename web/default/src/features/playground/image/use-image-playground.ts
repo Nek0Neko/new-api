@@ -38,6 +38,13 @@ import {
   saveImageConfig,
   saveImageItems,
 } from './storage'
+import {
+  clearRemoteHistory,
+  deleteRemoteHistoryItem,
+  fetchRemoteHistory,
+  isSyncableItem,
+  pushRemoteHistoryItem,
+} from './remote-history'
 import type {
   ImageConfig,
   ImageEditRequest,
@@ -150,6 +157,17 @@ export function useImagePlayground(apiKey: string | null) {
     []
   )
 
+  // Push a successful, URL-backed item to the server (write-through). Never
+  // throws — sync failures must not disrupt local generation. Upsert is
+  // idempotent, so an occasional double-push (e.g. React StrictMode) is safe.
+  const pushItemRemote = useCallback((item: ImageGenerationItem) => {
+    if (!isSyncableItem(item)) return
+    void pushRemoteHistoryItem(item).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn('[playground/image] failed to sync item to server', err)
+    })
+  }, [])
+
   const stopPolling = useCallback((id: string) => {
     const timer = pollTimersRef.current[id]
     if (timer) {
@@ -200,6 +218,10 @@ export function useImagePlayground(apiKey: string | null) {
               it.id === id ? { ...it, status: 'success', images } : it
             )
           )
+          const base = itemsRef.current.find((it) => it.id === id)
+          if (base) {
+            pushItemRemote({ ...base, status: 'success', images })
+          }
           stopPolling(id)
           return
         }
@@ -231,7 +253,7 @@ export function useImagePlayground(apiKey: string | null) {
         POLL_INTERVAL_MS
       )
     },
-    [updateItems, stopPolling]
+    [updateItems, stopPolling, pushItemRemote]
   )
 
   const ensurePolling = useCallback(
@@ -251,7 +273,17 @@ export function useImagePlayground(apiKey: string | null) {
   useEffect(() => {
     stoppedRef.current = false
     let cancelled = false
-    void loadImageItems().then((loaded) => {
+    const hydrate = async () => {
+      let loaded: ImageGenerationItem[]
+      try {
+        // Server is the source of truth; an empty list means "no history".
+        loaded = await fetchRemoteHistory()
+        // Refresh the offline cache so a later offline load is warm.
+        void saveImageItems(loaded)
+      } catch {
+        // Offline / server error — fall back to the local IndexedDB cache.
+        loaded = await loadImageItems()
+      }
       if (cancelled) return
       setItems((current) => {
         const next = current.length === 0 ? loaded : [...current, ...loaded]
@@ -262,7 +294,8 @@ export function useImagePlayground(apiKey: string | null) {
         if (it.taskId && it.status === 'loading') ensurePolling(it.id)
       })
       setIsHydrated(true)
-    })
+    }
+    void hydrate()
     const timers = pollTimersRef.current
     return () => {
       cancelled = true
@@ -280,12 +313,20 @@ export function useImagePlayground(apiKey: string | null) {
     itemsRef.current = []
     setItems([])
     void clearImageItems()
+    void clearRemoteHistory().catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn('[playground/image] failed to clear server history', err)
+    })
   }, [stopPolling])
 
   const removeItem = useCallback(
     (id: string) => {
       stopPolling(id)
       updateItems((prev) => prev.filter((it) => it.id !== id))
+      void deleteRemoteHistoryItem(id).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn('[playground/image] failed to delete server item', err)
+      })
     },
     [updateItems, stopPolling]
   )
@@ -364,7 +405,7 @@ export function useImagePlayground(apiKey: string | null) {
       // Clear the tray immediately for a fresh (non-regenerate) edit submit.
       if (!override && isEdit) clearInputs()
 
-      const markSuccess = (resultImages: ImageGenerationItem['images']) =>
+      const markSuccess = (resultImages: ImageGenerationItem['images']) => {
         updateItems((prev) =>
           prev.map((it) =>
             it.id === id
@@ -377,6 +418,16 @@ export function useImagePlayground(apiKey: string | null) {
               : it
           )
         )
+        const base = itemsRef.current.find((it) => it.id === id)
+        if (base) {
+          pushItemRemote({
+            ...base,
+            status: 'success',
+            images: resultImages,
+            partialImage: undefined,
+          })
+        }
+      }
 
       try {
         if (useAsync) {
@@ -539,6 +590,7 @@ export function useImagePlayground(apiKey: string | null) {
       clearInputs,
       ensurePolling,
       stopPolling,
+      pushItemRemote,
     ]
   )
 
