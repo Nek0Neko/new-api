@@ -191,11 +191,29 @@ func runImageTask(cc *gin.Context, body []byte, canonicalPath, taskID string, us
 
 	Relay(ctx, types.RelayFormatOpenAIImage)
 
-	if w.Code == http.StatusOK {
+	// A streaming upstream that delivers no image flags ContextKeyImageNoContent
+	// and returns success (the SSE response is already a 200), leaving an SSE
+	// body — not an image — in the recorder. Treat that (and any non-JSON body)
+	// as a failure so the card surfaces an error instead of spinning forever,
+	// and so invalid JSON never poisons task.Data.
+	noImageContent := common.GetContextKeyBool(ctx, constant.ContextKeyImageNoContent)
+	if isImageTaskSuccess(w.Code, noImageContent, w.Body.Bytes()) {
 		finishImageTask(taskID, userId, model.TaskStatusSuccess, "", w.Body.Bytes())
+	} else if noImageContent {
+		finishImageTask(taskID, userId, model.TaskStatusFailure, "upstream returned no image content", nil)
 	} else {
 		finishImageTask(taskID, userId, model.TaskStatusFailure, extractImageTaskError(w.Body.Bytes(), w.Code), nil)
 	}
+}
+
+// isImageTaskSuccess reports whether a finished async image-task replay actually
+// produced an image. The only success is HTTP 200 with the no-image-content flag
+// unset AND a valid-JSON body: a streaming "no image" response (flagged, body is
+// SSE text) or any non-JSON/empty body is a failure. Requiring valid JSON also
+// guarantees a non-JSON body never lands in task.Data (which would break the
+// poll response on SQLite or the row update on MySQL/PostgreSQL json columns).
+func isImageTaskSuccess(code int, noImageContent bool, body []byte) bool {
+	return code == http.StatusOK && !noImageContent && json.Valid(body)
 }
 
 func markImageTaskInProgress(taskID string, userId int) {
@@ -222,7 +240,10 @@ func finishImageTask(taskID string, userId int, status model.TaskStatus, failRea
 	if failReason != "" {
 		task.FailReason = failReason
 	}
-	if len(data) > 0 {
+	// Only persist a valid-JSON payload: task.Data is a json column, so storing
+	// non-JSON bytes would make this Update fail on MySQL/PostgreSQL (leaving the
+	// task stuck) or break FetchImageTask's JSON serialization on SQLite.
+	if len(data) > 0 && json.Valid(data) {
 		task.Data = json.RawMessage(data)
 	}
 	if e := task.Update(); e != nil {
