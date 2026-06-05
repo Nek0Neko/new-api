@@ -52,34 +52,59 @@ describe('isSyncableItem', () => {
     )
   })
 
-  test('false when not yet successful', () => {
+  test('false when not yet successful (in-flight)', () => {
     assert.equal(isSyncableItem(baseItem({ status: 'loading', images: [] })), false)
+    assert.equal(
+      isSyncableItem(baseItem({ status: 'streaming', images: [] })),
+      false
+    )
   })
 
   test('false when success but no images', () => {
     assert.equal(isSyncableItem(baseItem({ images: [] })), false)
   })
+
+  test('true for terminal error items (so the failure persists)', () => {
+    assert.equal(
+      isSyncableItem(
+        baseItem({ status: 'error', images: [], errorMessage: 'boom' })
+      ),
+      true
+    )
+  })
+
+  test('false for an error item that still carries base64', () => {
+    assert.equal(
+      isSyncableItem(
+        baseItem({ status: 'error', images: [{ b64_json: 'AAAA' }] })
+      ),
+      false
+    )
+  })
 })
 
 describe('toRemoteHistoryItem', () => {
-  test('strips heavy/ephemeral fields, keeps params + image URLs', () => {
+  test('strips heavy/ephemeral fields but keeps the failure reason', () => {
     const item = baseItem({
       mode: 'edit',
       inputImages: [{ id: 'r1', name: 'r.png', mime: 'image/png', b64: 'BIG' }],
       maskImage: { id: 'm1', name: 'm.png', mime: 'image/png', b64: 'BIG' },
       partialImage: 'PARTIAL',
       taskId: 'task-123',
-      errorMessage: 'should be dropped',
+      status: 'error',
+      images: [],
+      errorMessage: 'boom',
     })
     const slim = toRemoteHistoryItem(item)
     assert.equal('inputImages' in slim, false)
     assert.equal('maskImage' in slim, false)
     assert.equal('partialImage' in slim, false)
     assert.equal('taskId' in slim, false)
-    assert.equal('errorMessage' in slim, false)
+    // errorMessage is kept so a synced failure shows its reason on every device.
+    assert.equal(slim.errorMessage, 'boom')
+    assert.equal(slim.status, 'error')
     assert.equal(slim.prompt, 'a cat')
     assert.equal(slim.mode, 'edit')
-    assert.deepEqual(slim.images, [{ url: 'https://cos.example.com/a.png' }])
   })
 })
 

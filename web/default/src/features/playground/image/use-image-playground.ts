@@ -169,6 +169,21 @@ export function useImagePlayground(apiKey: string | null) {
     })
   }, [])
 
+  // Move an item to its terminal state (success or error) and write it through
+  // to the server. The pushed copy is built from the current base item plus the
+  // patch so it doesn't depend on async state-update timing; pushItemRemote
+  // ignores anything not worth syncing (in-flight / base64).
+  const finalizeItem = useCallback(
+    (id: string, patch: Partial<ImageGenerationItem>) => {
+      updateItems((prev) =>
+        prev.map((it) => (it.id === id ? { ...it, ...patch } : it))
+      )
+      const base = itemsRef.current.find((it) => it.id === id)
+      if (base) pushItemRemote({ ...base, ...patch })
+    },
+    [updateItems, pushItemRemote]
+  )
+
   const stopPolling = useCallback((id: string) => {
     const timer = pollTimersRef.current[id]
     if (timer) {
@@ -198,13 +213,7 @@ export function useImagePlayground(apiKey: string | null) {
       const attempts = (pollAttemptsRef.current[id] ?? 0) + 1
       pollAttemptsRef.current[id] = attempts
       if (attempts > MAX_POLL_ATTEMPTS) {
-        updateItems((prev) =>
-          prev.map((it) =>
-            it.id === id
-              ? { ...it, status: 'error', errorMessage: 'Polling timeout' }
-              : it
-          )
-        )
+        finalizeItem(id, { status: 'error', errorMessage: 'Polling timeout' })
         stopPolling(id)
         return
       }
@@ -213,31 +222,15 @@ export function useImagePlayground(apiKey: string | null) {
         const resp = await fetchImageTask(item.taskId, key)
         const status = taskStatusToItemStatus(resp.status)
         if (status === 'success') {
-          const images = resp.data?.data ?? []
-          updateItems((prev) =>
-            prev.map((it) =>
-              it.id === id ? { ...it, status: 'success', images } : it
-            )
-          )
-          const base = itemsRef.current.find((it) => it.id === id)
-          if (base) {
-            pushItemRemote({ ...base, status: 'success', images })
-          }
+          finalizeItem(id, { status: 'success', images: resp.data?.data ?? [] })
           stopPolling(id)
           return
         }
         if (status === 'error') {
-          updateItems((prev) =>
-            prev.map((it) =>
-              it.id === id
-                ? {
-                    ...it,
-                    status: 'error',
-                    errorMessage: resp.fail_reason || 'Task failed',
-                  }
-                : it
-            )
-          )
+          finalizeItem(id, {
+            status: 'error',
+            errorMessage: resp.fail_reason || 'Task failed',
+          })
           stopPolling(id)
           return
         }
@@ -254,7 +247,7 @@ export function useImagePlayground(apiKey: string | null) {
         POLL_INTERVAL_MS
       )
     },
-    [updateItems, stopPolling, pushItemRemote]
+    [finalizeItem, stopPolling]
   )
 
   const ensurePolling = useCallback(
@@ -422,29 +415,12 @@ export function useImagePlayground(apiKey: string | null) {
       // Clear the tray immediately for a fresh (non-regenerate) edit submit.
       if (!override && isEdit) clearInputs()
 
-      const markSuccess = (resultImages: ImageGenerationItem['images']) => {
-        updateItems((prev) =>
-          prev.map((it) =>
-            it.id === id
-              ? {
-                  ...it,
-                  status: 'success',
-                  images: resultImages,
-                  partialImage: undefined,
-                }
-              : it
-          )
-        )
-        const base = itemsRef.current.find((it) => it.id === id)
-        if (base) {
-          pushItemRemote({
-            ...base,
-            status: 'success',
-            images: resultImages,
-            partialImage: undefined,
-          })
-        }
-      }
+      const markSuccess = (resultImages: ImageGenerationItem['images']) =>
+        finalizeItem(id, {
+          status: 'success',
+          images: resultImages,
+          partialImage: undefined,
+        })
 
       try {
         if (useAsync) {
@@ -578,19 +554,11 @@ export function useImagePlayground(apiKey: string | null) {
           }
         }
       } catch (error) {
-        const message = extractErrorMessage(error)
-        updateItems((prev) =>
-          prev.map((it) =>
-            it.id === id
-              ? {
-                  ...it,
-                  status: 'error',
-                  errorMessage: message,
-                  partialImage: undefined,
-                }
-              : it
-          )
-        )
+        finalizeItem(id, {
+          status: 'error',
+          errorMessage: extractErrorMessage(error),
+          partialImage: undefined,
+        })
       } finally {
         // For async tasks the work continues in the background; unlock the UI
         // as soon as the task is submitted. For sync/stream this runs after the
@@ -604,10 +572,10 @@ export function useImagePlayground(apiKey: string | null) {
       inputImages,
       maskImage,
       updateItems,
+      finalizeItem,
       clearInputs,
       ensurePolling,
       stopPolling,
-      pushItemRemote,
     ]
   )
 

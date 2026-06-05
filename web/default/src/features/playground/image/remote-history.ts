@@ -21,20 +21,25 @@ import type { ImageGenerationItem } from './types'
 
 const HISTORY_ENDPOINT = '/api/playground/image/history'
 
-// An item is safe to sync only when it has succeeded and every output is a COS
-// URL (no base64). When COS is disabled the outputs are base64 — those stay
-// local-only so the database never holds multi-MB blobs.
+// Which items get persisted server-side. Two terminal states sync:
+//   - a success whose every output is a COS URL (never base64 — those stay
+//     local-only so the database holds no multi-MB blobs), and
+//   - a failure, so the user sees the task's error status on every device.
+// In-flight items (loading/streaming) and base64 payloads are never synced.
 export function isSyncableItem(item: ImageGenerationItem): boolean {
+  // Base64 (COS-disabled) outputs must never reach the database.
+  if (item.images.some((img) => !!img.b64_json)) return false
+  if (item.status === 'error') return true
   return (
     item.status === 'success' &&
     item.images.length > 0 &&
-    item.images.every((img) => !!img.url && !img.b64_json)
+    item.images.every((img) => !!img.url)
   )
 }
 
 // Strip heavy/ephemeral fields before sending to the server: edit reference
-// images and masks (raw base64), the streaming partial, the async task id, and
-// any error message. What remains is params + COS image URLs.
+// images and masks (raw base64), the streaming partial, and the async task id.
+// `errorMessage` is kept so a synced failure shows its reason on every device.
 export function toRemoteHistoryItem(
   item: ImageGenerationItem
 ): ImageGenerationItem {
@@ -43,14 +48,12 @@ export function toRemoteHistoryItem(
     maskImage: _maskImage,
     partialImage: _partialImage,
     taskId: _taskId,
-    errorMessage: _errorMessage,
     ...rest
   } = item
   void _inputImages
   void _maskImage
   void _partialImage
   void _taskId
-  void _errorMessage
   return rest
 }
 
