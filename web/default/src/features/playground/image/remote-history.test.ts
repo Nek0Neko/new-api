@@ -18,7 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { isSyncableItem, toRemoteHistoryItem } from './remote-history'
+import {
+  carryOverInFlightItems,
+  isSyncableItem,
+  toRemoteHistoryItem,
+} from './remote-history'
 import type { ImageGenerationItem } from './types'
 
 function baseItem(overrides: Partial<ImageGenerationItem>): ImageGenerationItem {
@@ -76,5 +80,54 @@ describe('toRemoteHistoryItem', () => {
     assert.equal(slim.prompt, 'a cat')
     assert.equal(slim.mode, 'edit')
     assert.deepEqual(slim.images, [{ url: 'https://cos.example.com/a.png' }])
+  })
+})
+
+describe('carryOverInFlightItems', () => {
+  test('carries over local in-flight async-task items not on the server', () => {
+    const remote = [baseItem({ id: 'done-1', status: 'success' })]
+    const local = [
+      {
+        ...baseItem({ id: 'task-1', status: 'loading', images: [] }),
+        taskId: 'srv-1',
+      },
+      baseItem({ id: 'done-1', status: 'success' }),
+    ]
+    const merged = carryOverInFlightItems(remote, local)
+    // In-flight task item is prepended (newest), server history follows.
+    assert.deepEqual(
+      merged.map((it) => it.id),
+      ['task-1', 'done-1']
+    )
+    assert.equal(merged[0].taskId, 'srv-1')
+    assert.equal(merged[0].status, 'loading')
+  })
+
+  test('drops local loading items without a taskId (cannot resume)', () => {
+    const remote: ImageGenerationItem[] = []
+    const local = [baseItem({ id: 'x', status: 'loading', images: [] })]
+    assert.deepEqual(carryOverInFlightItems(remote, local), [])
+  })
+
+  test('does not carry over already-finished local items', () => {
+    const remote: ImageGenerationItem[] = []
+    const local = [
+      baseItem({ id: 'ok', status: 'success' }),
+      baseItem({ id: 'err', status: 'error', images: [] }),
+    ]
+    assert.deepEqual(carryOverInFlightItems(remote, local), [])
+  })
+
+  test('server copy wins when the same id is in-flight locally but done on server', () => {
+    const remote = [baseItem({ id: 'task-1', status: 'success' })]
+    const local = [
+      {
+        ...baseItem({ id: 'task-1', status: 'loading', images: [] }),
+        taskId: 'srv-1',
+      },
+    ]
+    const merged = carryOverInFlightItems(remote, local)
+    assert.equal(merged.length, 1)
+    assert.equal(merged[0].status, 'success')
   })
 })

@@ -54,6 +54,24 @@ export function toRemoteHistoryItem(
   return rest
 }
 
+// Reconcile the authoritative server history with the local cache at hydrate.
+// The server only stores completed (success) items, so an async-task item that
+// is still running was never synced. Carry those local in-flight items
+// (status 'loading' with a resumable taskId) over — prepended as the newest —
+// so their polling can resume after a page refresh instead of being lost.
+// Items the server already knows about win (dedup by id), so a task that
+// finished and synced elsewhere shows its completed server copy.
+export function carryOverInFlightItems(
+  remote: ImageGenerationItem[],
+  local: ImageGenerationItem[]
+): ImageGenerationItem[] {
+  const remoteIds = new Set(remote.map((it) => it.id))
+  const inFlight = local.filter(
+    (it) => it.status === 'loading' && !!it.taskId && !remoteIds.has(it.id)
+  )
+  return [...inFlight, ...remote]
+}
+
 // Fetch the user's server-side history (newest first). Each entry is a slimmed
 // item document. Uses the session-auth axios instance (New-Api-User header).
 export async function fetchRemoteHistory(): Promise<ImageGenerationItem[]> {

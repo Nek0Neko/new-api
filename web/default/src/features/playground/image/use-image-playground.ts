@@ -39,6 +39,7 @@ import {
   saveImageItems,
 } from './storage'
 import {
+  carryOverInFlightItems,
   clearRemoteHistory,
   deleteRemoteHistoryItem,
   fetchRemoteHistory,
@@ -276,9 +277,15 @@ export function useImagePlayground(apiKey: string | null) {
     const hydrate = async () => {
       let loaded: ImageGenerationItem[]
       try {
-        // Server is the source of truth; an empty list means "no history".
-        loaded = await fetchRemoteHistory()
-        // Refresh the offline cache so a later offline load is warm.
+        // Server is the source of truth for completed history, but it only
+        // stores successes — an async task still in flight was never synced.
+        // Carry those local in-flight task items over so polling can resume
+        // after a refresh instead of being lost.
+        const remote = await fetchRemoteHistory()
+        const local = await loadImageItems()
+        loaded = carryOverInFlightItems(remote, local)
+        // Refresh the offline cache with the reconciled set (server history +
+        // any carried-over in-flight items) so a later offline load is warm.
         void saveImageItems(loaded)
       } catch {
         // Offline / server error — fall back to the local IndexedDB cache.
