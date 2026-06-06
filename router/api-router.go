@@ -152,7 +152,6 @@ func SetApiRouter(router *gin.Engine) {
 		playgroundRoute.Use(middleware.UserAuth())
 		{
 			playgroundRoute.GET("/image/history", controller.GetImageHistoryList)
-			playgroundRoute.PUT("/image/history", controller.UpsertImageHistoryItem)
 			playgroundRoute.DELETE("/image/history/:itemId", controller.DeleteImageHistoryItem)
 			playgroundRoute.DELETE("/image/history", controller.ClearImageHistoryList)
 		}
