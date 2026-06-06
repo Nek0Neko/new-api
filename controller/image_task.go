@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/mediastore"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -265,6 +266,16 @@ func finishImageTask(taskID string, userId int, historyItemId string, status mod
 	if failReason != "" {
 		task.FailReason = failReason
 	}
+	// Offload images to COS before persisting so BOTH the poll payload (task.Data,
+	// returned by FetchImageTask) and the history row store durable COS urls — not
+	// base64 or expiring upstream urls. This runs regardless of channel
+	// pass-through / response_format, which the relay-time offload depends on.
+	// Anything that can't be offloaded (COS disabled / error) is left as-is.
+	if status == model.TaskStatusSuccess && len(data) > 0 && json.Valid(data) {
+		if offloaded, changed := mediastore.OffloadImageResponseBody(context.Background(), data); changed {
+			data = offloaded
+		}
+	}
 	// Only persist a valid-JSON payload: task.Data is a json column, so storing
 	// non-JSON bytes would make this Update fail on MySQL/PostgreSQL (leaving the
 	// task stuck) or break FetchImageTask's JSON serialization on SQLite.
@@ -293,11 +304,10 @@ func finishImageTask(taskID string, userId int, historyItemId string, status mod
 		CreatedAt: task.SubmitTime * 1000,
 	}
 	if status == model.TaskStatusSuccess {
-		// Offload images to COS before persisting so the history row stores durable
-		// COS urls (not expiring upstream urls or heavy base64). Anything that can't
-		// be offloaded keeps its base64/url fallback for the lazy read-path retry.
-		images, _ := offloadHistoryImages(context.Background(), extractHistoryImages(data))
-		writeTerminalHistory(userId, historyItemId, fb, "success", images, "")
+		// data was already offloaded to COS above, so the history row inherits the
+		// same durable urls (base64 is kept only when COS couldn't run, for the
+		// lazy read-path retry in GetImageHistoryList).
+		writeTerminalHistory(userId, historyItemId, fb, "success", extractHistoryImages(data), "")
 	} else {
 		writeTerminalHistory(userId, historyItemId, fb, "error", nil, failReason)
 	}

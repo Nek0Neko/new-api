@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/setting/object_storage_setting"
 )
 
@@ -58,6 +60,54 @@ func EnsureCOSURL(ctx context.Context, b64, rawURL string) (string, bool, error)
 		return url, true, nil
 	}
 	return rawURL, false, nil
+}
+
+// OffloadImageResponseBody rewrites a full image response so every image is hosted
+// on COS: base64 payloads are uploaded and expiring/non-COS upstream urls are
+// re-hosted, each replaced with the COS url (and the base64 cleared). Unlike
+// RewriteImageResponseBody (relay path, base64-only, gated on response_format),
+// this runs unconditionally at task finish so the stored result is durable
+// regardless of channel pass-through / response_format. Returns (body, changed);
+// the original body is returned unchanged when nothing was offloaded.
+func OffloadImageResponseBody(ctx context.Context, body []byte) ([]byte, bool) {
+	var resp dto.ImageResponse
+	if err := common.Unmarshal(body, &resp); err != nil {
+		return body, false
+	}
+	if !object_storage_setting.IsCOSEnabled() {
+		for i := range resp.Data {
+			if resp.Data[i].B64Json != "" || resp.Data[i].Url != "" {
+				common.SysLog("cos disabled: generated image not offloaded (configure 腾讯云 COS to store urls instead of base64)")
+				break
+			}
+		}
+		return body, false
+	}
+	changed := false
+	for i := range resp.Data {
+		d := &resp.Data[i]
+		if d.B64Json == "" && d.Url == "" {
+			continue
+		}
+		url, did, err := EnsureCOSURL(ctx, d.B64Json, d.Url)
+		if err != nil {
+			common.SysError("offload image to cos failed: " + err.Error())
+			continue
+		}
+		if did {
+			d.Url = url
+			d.B64Json = ""
+			changed = true
+		}
+	}
+	if !changed {
+		return body, false
+	}
+	out, err := common.Marshal(resp)
+	if err != nil {
+		return body, false
+	}
+	return out, true
 }
 
 // fetchRemoteImage downloads an image url, capped at maxRehostBytes, returning the

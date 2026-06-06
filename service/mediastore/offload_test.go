@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/setting/object_storage_setting"
@@ -80,6 +81,28 @@ func TestEnsureCOSURL_RehostsRemoteURL(t *testing.T) {
 	}
 	if !changed || url != "https://cdn.test/rehosted.png" {
 		t.Fatalf("remote url should be re-hosted, got url=%q changed=%v", url, changed)
+	}
+}
+
+func TestOffloadImageResponseBody_UploadsB64(t *testing.T) {
+	enableCOS(t, "https://cdn.test")
+	swapUploader(t, &fakeUploader{url: "https://cdn.test/x.png"})
+
+	body := []byte(`{"created":1,"data":[{"b64_json":"` + onePxPNG + `"}]}`)
+	out, changed := OffloadImageResponseBody(context.Background(), body)
+	if !changed {
+		t.Fatalf("expected body to change")
+	}
+	if !strings.Contains(string(out), "https://cdn.test/x.png") || strings.Contains(string(out), onePxPNG) {
+		t.Fatalf("b64 should be replaced by url, got: %s", out)
+	}
+}
+
+func TestOffloadImageResponseBody_DisabledUnchanged(t *testing.T) {
+	body := []byte(`{"created":1,"data":[{"b64_json":"` + onePxPNG + `"}]}`)
+	out, changed := OffloadImageResponseBody(context.Background(), body)
+	if changed || string(out) != string(body) {
+		t.Fatalf("disabled COS must return body unchanged")
 	}
 }
 
