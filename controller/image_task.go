@@ -94,7 +94,7 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 
 	isJSON := strings.HasPrefix(c.ContentType(), "application/json")
 
-	var modelName, prompt string
+	var modelName, prompt, size, quality string
 	workBody := bodyBytes
 	if isJSON {
 		var m map[string]json.RawMessage
@@ -104,6 +104,8 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 			delete(m, "partial_images")
 			_ = json.Unmarshal(m["model"], &modelName)
 			_ = json.Unmarshal(m["prompt"], &prompt)
+			_ = json.Unmarshal(m["size"], &size)
+			_ = json.Unmarshal(m["quality"], &quality)
 			if nb, e2 := common.Marshal(m); e2 == nil {
 				workBody = nb
 			}
@@ -112,6 +114,17 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 		// multipart（图生图）：原样透传 body，仅尽力提取元信息用于展示/日志。
 		modelName = c.PostForm("model")
 		prompt = c.PostForm("prompt")
+		size = c.PostForm("size")
+		quality = c.PostForm("quality")
+	}
+
+	// The frontend sends a stable client item id so the history row matches the
+	// playground card across submit/retry/devices. It is resolved to the task id
+	// below (after the task id is generated) when the header is absent.
+	historyItemId := c.GetHeader("X-Playground-Item-Id")
+	mode := "generation"
+	if canonicalPath == imageTaskEditsPath {
+		mode = "edit"
 	}
 
 	channelId := common.GetContextKeyInt(c, constant.ContextKeyChannelId)
@@ -140,10 +153,18 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 		return
 	}
 
+	if historyItemId == "" {
+		historyItemId = taskID
+	}
+	createdAtMs := now * 1000
+	// Server owns the history: record a loading row now so every device (and a
+	// refresh) sees the in-flight generation, not just the submitting tab.
+	writeLoadingHistory(userId, historyItemId, taskID, prompt, modelName, size, quality, mode, createdAtMs)
+
 	// c.Copy() 返回可在 goroutine 中安全使用的上下文副本（脱离原请求生命周期）。
 	cc := c.Copy()
 	gopool.Go(func() {
-		runImageTask(cc, workBody, canonicalPath, taskID, userId)
+		runImageTask(cc, workBody, canonicalPath, taskID, userId, historyItemId)
 	})
 
 	c.JSON(http.StatusOK, gin.H{
@@ -156,14 +177,14 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 // runImageTask 在后台执行一次"同步"图片生成：用一个全新的、脱离原请求的 gin.Context
 // （httptest.ResponseRecorder 作为 writer + 拷贝原请求的 context keys + 重放请求体）
 // 调用现有 Relay()，复用全部 relay/adaptor/计费/重试逻辑，再把响应体落库。
-func runImageTask(cc *gin.Context, body []byte, canonicalPath, taskID string, userId int) {
+func runImageTask(cc *gin.Context, body []byte, canonicalPath, taskID string, userId int, historyItemId string) {
 	acquireImageTaskSlot()
 	defer releaseImageTaskSlot()
 
 	defer func() {
 		if r := recover(); r != nil {
 			common.SysError(fmt.Sprintf("image task %s panic: %v", taskID, r))
-			finishImageTask(taskID, userId, model.TaskStatusFailure, "internal error", nil)
+			finishImageTask(taskID, userId, historyItemId, model.TaskStatusFailure, "internal error", nil)
 		}
 	}()
 
@@ -198,11 +219,11 @@ func runImageTask(cc *gin.Context, body []byte, canonicalPath, taskID string, us
 	// and so invalid JSON never poisons task.Data.
 	noImageContent := common.GetContextKeyBool(ctx, constant.ContextKeyImageNoContent)
 	if isImageTaskSuccess(w.Code, noImageContent, w.Body.Bytes()) {
-		finishImageTask(taskID, userId, model.TaskStatusSuccess, "", w.Body.Bytes())
+		finishImageTask(taskID, userId, historyItemId, model.TaskStatusSuccess, "", w.Body.Bytes())
 	} else if noImageContent {
-		finishImageTask(taskID, userId, model.TaskStatusFailure, "upstream returned no image content", nil)
+		finishImageTask(taskID, userId, historyItemId, model.TaskStatusFailure, "upstream returned no image content", nil)
 	} else {
-		finishImageTask(taskID, userId, model.TaskStatusFailure, extractImageTaskError(w.Body.Bytes(), w.Code), nil)
+		finishImageTask(taskID, userId, historyItemId, model.TaskStatusFailure, extractImageTaskError(w.Body.Bytes(), w.Code), nil)
 	}
 }
 
@@ -229,7 +250,7 @@ func markImageTaskInProgress(taskID string, userId int) {
 	}
 }
 
-func finishImageTask(taskID string, userId int, status model.TaskStatus, failReason string, data []byte) {
+func finishImageTask(taskID string, userId int, historyItemId string, status model.TaskStatus, failReason string, data []byte) {
 	task, exist, err := model.GetByTaskId(userId, taskID)
 	if err != nil || !exist || task == nil {
 		return
@@ -248,6 +269,25 @@ func finishImageTask(taskID string, userId int, status model.TaskStatus, failRea
 	}
 	if e := task.Update(); e != nil {
 		common.SysError("update image task error: " + e.Error())
+	}
+
+	// Mirror the terminal state into the playground history so every device sees
+	// the result/failure without polling. Fallback fields cover a trimmed row.
+	if historyItemId == "" {
+		historyItemId = taskID
+	}
+	fb := fallbackHistoryFields{
+		Id:        historyItemId,
+		TaskId:    taskID,
+		Prompt:    task.Properties.Input,
+		Model:     task.Properties.OriginModelName,
+		Mode:      "generation",
+		CreatedAt: task.SubmitTime * 1000,
+	}
+	if status == model.TaskStatusSuccess {
+		writeTerminalHistory(userId, historyItemId, fb, "success", extractHistoryImages(data), "")
+	} else {
+		writeTerminalHistory(userId, historyItemId, fb, "error", nil, failReason)
 	}
 }
 
