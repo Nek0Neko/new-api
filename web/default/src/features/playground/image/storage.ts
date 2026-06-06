@@ -30,9 +30,6 @@ export const DEFAULT_IMAGE_CONFIG: ImageConfig = {
   outputCompression: null,
   moderation: 'auto',
   n: 1,
-  stream: false,
-  partialImages: 1,
-  asyncTask: false,
 }
 
 const QUALITY_VALUES = ['auto', 'low', 'medium', 'high'] as const
@@ -66,12 +63,6 @@ export function normalizeImageConfig(raw: unknown): ImageConfig {
     outputCompression: outputFormat === 'png' ? null : compression,
     moderation,
     n: typeof r.n === 'number' && r.n >= 1 ? Math.floor(r.n) : 1,
-    stream: typeof r.stream === 'boolean' ? r.stream : false,
-    partialImages:
-      typeof r.partialImages === 'number' && r.partialImages >= 0
-        ? Math.floor(r.partialImages)
-        : 1,
-    asyncTask: typeof r.asyncTask === 'boolean' ? r.asyncTask : false,
   }
 }
 
@@ -120,25 +111,20 @@ export function saveImageConfig(config: ImageConfig): void {
   }
 }
 
-// Stream placeholders left over from a previous session can never complete —
-// the SSE connection died with the page. Surface them as errors so the UI
-// doesn't show a forever-spinning card.
+// A `loading` item with a server-side task id keeps spinning — the server is
+// still working and polling resumes from the persisted taskId. A `loading` item
+// without one can never complete after a reload, so surface it as an error.
 function reviveLoadedItem(item: ImageGenerationItem): ImageGenerationItem {
-  // Async-task items keep their `loading` status across reloads — the server
-  // is still working and polling resumes from the persisted taskId.
   if (item.status === 'loading' && item.taskId) {
     return item
   }
-  // Streaming/loading items with no server-side task can never complete after a
-  // reload (the connection died with the page) — surface them as errors.
-  if (item.status === 'streaming' || item.status === 'loading') {
+  if (item.status === 'loading') {
     return {
       ...item,
-      status: 'error',
-      partialImage: undefined,
       errorMessage:
         item.errorMessage ??
         'Image generation was interrupted before completion.',
+      status: 'error',
     }
   }
   return item
@@ -187,12 +173,10 @@ export async function loadImageItems(): Promise<ImageGenerationItem[]> {
 // - Keep `inputImages`/`maskImage` (carried by the spread) so edit items can
 //   be regenerated after a reload.
 function toPersistable(item: ImageGenerationItem): ImageGenerationItem {
-  const { partialImage: _partial, ...rest } = item
-  void _partial
-  if (rest.status !== 'success') {
-    return { ...rest, images: [] }
+  if (item.status !== 'success') {
+    return { ...item, images: [] }
   }
-  return rest
+  return item
 }
 
 export async function saveImageItems(

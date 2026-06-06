@@ -26,8 +26,6 @@ export interface ImageGenerationRequest {
   output_compression?: number
   moderation?: 'auto' | 'low'
   response_format?: 'url' | 'b64_json'
-  stream?: boolean
-  partial_images?: number
 }
 
 export interface ImageDataItem {
@@ -50,22 +48,9 @@ export interface ImageConfig {
   outputCompression: number | null
   moderation: 'auto' | 'low'
   n: number
-  stream: boolean
-  partialImages: number
-  /**
-   * Run generation as a server-side async task: submit returns immediately and
-   * the result is polled, so the user can leave the page / refresh / close the
-   * browser and still retrieve it. Mutually exclusive with `stream` (a task
-   * cannot stream); when true, streaming is ignored.
-   */
-  asyncTask: boolean
 }
 
-export type ImageGenerationStatus =
-  | 'loading'
-  | 'streaming'
-  | 'success'
-  | 'error'
+export type ImageGenerationStatus = 'loading' | 'success' | 'error'
 
 export interface ImageGenerationItem {
   id: string
@@ -97,11 +82,6 @@ export interface ImageGenerationItem {
    */
   taskId?: string
   images: ImageDataItem[]
-  /**
-   * Latest partial image (base64) received while streaming. Cleared when the
-   * final completed image is rendered.
-   */
-  partialImage?: string
   errorMessage?: string
 }
 
@@ -124,8 +104,6 @@ export interface ImageEditRequest {
   output_compression?: number
   moderation?: 'auto' | 'low'
   response_format?: 'url' | 'b64_json'
-  stream?: boolean
-  partial_images?: number
   /** One or more reference images to edit. */
   images: ImageInputFile[]
   /** Optional mask: transparent areas mark where to edit. */

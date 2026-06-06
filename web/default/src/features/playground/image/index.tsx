@@ -110,27 +110,6 @@ function ImageGenItemCard({
         </div>
       )}
 
-      {item.status === 'streaming' && (
-        <div className='border-border bg-muted/30 relative overflow-hidden rounded-lg border border-dashed'>
-          {item.partialImage ? (
-            <img
-              alt={item.prompt}
-              src={`data:image/png;base64,${item.partialImage}`}
-              className='block h-full w-full object-cover opacity-90'
-              loading='lazy'
-            />
-          ) : (
-            <div className='flex h-40 items-center justify-center'>
-              <Loader2Icon className='text-muted-foreground size-6 animate-spin' />
-            </div>
-          )}
-          <div className='bg-background/80 text-foreground absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs backdrop-blur'>
-            <Loader2Icon className='size-3 animate-spin' />
-            {t('Streaming…')}
-          </div>
-        </div>
-      )}
-
       {item.status === 'error' && (
         <div className='border-destructive/50 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-sm'>
           <AlertCircleIcon className='size-4 shrink-0' />
@@ -211,8 +190,7 @@ function ImageGenItemCard({
           onRegenerate={() => onRegenerate(item)}
           disableRegenerate={
             disableRegenerate ||
-            item.status === 'loading' ||
-            item.status === 'streaming'
+            item.status === 'loading'
           }
           onDelete={() => onDelete(item.id)}
         />
