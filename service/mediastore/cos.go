@@ -53,11 +53,9 @@ func (u *cosUploader) Upload(ctx context.Context, data []byte, mime string) (str
 	}
 	// Download base: prefer the custom/CDN domain; otherwise fall back to the
 	// regional bucket host (not the acceleration host, which is upload-oriented).
-	base := strings.TrimRight(cfg.CustomDomain, "/")
-	if base == "" {
-		base = fmt.Sprintf("https://%s.cos.%s.myqcloud.com", cfg.Bucket, cfg.Region)
-	}
-	return base + "/" + key, nil
+	downloadURL := cfg.PublicBase() + "/" + key
+	common.SysLog(fmt.Sprintf("cos upload image success: %s (%d bytes, %s)", downloadURL, len(data), mime))
+	return downloadURL, nil
 }
 
 func buildObjectKey(prefix, mime string) string {

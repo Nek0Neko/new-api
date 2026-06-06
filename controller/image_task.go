@@ -293,7 +293,11 @@ func finishImageTask(taskID string, userId int, historyItemId string, status mod
 		CreatedAt: task.SubmitTime * 1000,
 	}
 	if status == model.TaskStatusSuccess {
-		writeTerminalHistory(userId, historyItemId, fb, "success", extractHistoryImages(data), "")
+		// Offload images to COS before persisting so the history row stores durable
+		// COS urls (not expiring upstream urls or heavy base64). Anything that can't
+		// be offloaded keeps its base64/url fallback for the lazy read-path retry.
+		images, _ := offloadHistoryImages(context.Background(), extractHistoryImages(data))
+		writeTerminalHistory(userId, historyItemId, fb, "success", images, "")
 	} else {
 		writeTerminalHistory(userId, historyItemId, fb, "error", nil, failReason)
 	}

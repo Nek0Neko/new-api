@@ -19,9 +19,13 @@ func GetImageHistoryList(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	ctx := c.Request.Context()
 	items := make([]json.RawMessage, 0, len(rows))
 	for _, r := range rows {
-		items = append(items, json.RawMessage(r.Data))
+		// Fallback: migrate any base64 / expiring upstream urls left in this row to
+		// COS, persisting the row so the migration is one-time. Returns the original
+		// data unchanged when there's nothing to offload (or COS is disabled).
+		items = append(items, json.RawMessage(migrateHistoryRowImages(ctx, userId, r)))
 	}
 	common.ApiSuccess(c, items)
 }

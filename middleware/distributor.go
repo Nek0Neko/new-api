@@ -332,6 +332,11 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 			modelRequest.Model = modelName
 		}
 		c.Set("relay_mode", relayMode)
+	} else if strings.HasPrefix(relayPath, "/v1/images/") && strings.Contains(relayPath, "/tasks") && c.Request.Method == http.MethodGet {
+		// 异步图片任务轮询 GET /v1/images/generations/tasks/:task_id：FetchImageTask
+		// 仅查本地 Task 表、不调用上游，故无需选渠道。否则会按 path 默认成 dall-e
+		// 去找渠道，分组无 dall-e 渠道时轮询全部 503（与 suno/video 的 fetch 一致）。
+		shouldSelectChannel = false
 	} else if !strings.HasPrefix(relayPath, "/v1/audio/transcriptions") && !strings.Contains(c.Request.Header.Get("Content-Type"), "multipart/form-data") {
 		req, err := getModelFromRequest(c)
 		if err != nil {
