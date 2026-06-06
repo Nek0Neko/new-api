@@ -57,30 +57,25 @@ export interface ImageTaskFetchResponse {
 /** Submit a text→image generation as a server-side async task. */
 export async function submitImageGenerationTask(
   payload: ImageGenerationRequest,
-  apiKey: string
+  apiKey: string,
+  itemId: string
 ): Promise<ImageTaskSubmitResponse> {
-  const body: ImageGenerationRequest = { ...payload }
-  // Async tasks cannot stream — results are polled.
-  delete body.stream
-  delete body.partial_images
-  const res = await api.post(
-    IMAGE_GEN_TASK_ENDPOINT,
-    body,
-    bearerConfig(apiKey)
-  )
+  const config = bearerConfig(apiKey)
+  // Stable client id so the server keys this task's history row to the card.
+  config.headers = { ...config.headers, 'X-Playground-Item-Id': itemId }
+  const res = await api.post(IMAGE_GEN_TASK_ENDPOINT, payload, config)
   return res.data
 }
 
 /** Submit an image→image edit (multipart) as a server-side async task. */
 export async function submitImageEditTask(
   req: ImageEditRequest,
-  apiKey: string
+  apiKey: string,
+  itemId: string
 ): Promise<ImageTaskSubmitResponse> {
-  const res = await api.post(
-    IMAGE_EDIT_TASK_ENDPOINT,
-    buildEditFormData({ ...req, stream: false }),
-    bearerConfig(apiKey)
-  )
+  const config = bearerConfig(apiKey)
+  config.headers = { ...config.headers, 'X-Playground-Item-Id': itemId }
+  const res = await api.post(IMAGE_EDIT_TASK_ENDPOINT, buildEditFormData(req), config)
   return res.data
 }
 

@@ -19,11 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
 import {
-  editImage,
-  editImageStream,
   fetchImageTask,
-  generateImage,
-  generateImageStream,
   submitImageEditTask,
   submitImageGenerationTask,
 } from './api'
@@ -39,12 +35,10 @@ import {
   saveImageItems,
 } from './storage'
 import {
-  carryOverInFlightItems,
   clearRemoteHistory,
   deleteRemoteHistoryItem,
   fetchRemoteHistory,
-  isSyncableItem,
-  pushRemoteHistoryItem,
+  reconcileHistory,
 } from './remote-history'
 import type {
   ImageConfig,
@@ -158,30 +152,16 @@ export function useImagePlayground(apiKey: string | null) {
     []
   )
 
-  // Push a successful, URL-backed item to the server (write-through). Never
-  // throws — sync failures must not disrupt local generation. Upsert is
-  // idempotent, so an occasional double-push (e.g. React StrictMode) is safe.
-  const pushItemRemote = useCallback((item: ImageGenerationItem) => {
-    if (!isSyncableItem(item)) return
-    void pushRemoteHistoryItem(item).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.warn('[playground/image] failed to sync item to server', err)
-    })
-  }, [])
-
-  // Move an item to its terminal state (success or error) and write it through
-  // to the server. The pushed copy is built from the current base item plus the
-  // patch so it doesn't depend on async state-update timing; pushItemRemote
-  // ignores anything not worth syncing (in-flight / base64).
+  // Move an item to its terminal state. The server already owns the durable
+  // record (the backend patches the history row when the task finishes); this
+  // only updates the local view / offline cache.
   const finalizeItem = useCallback(
     (id: string, patch: Partial<ImageGenerationItem>) => {
       updateItems((prev) =>
         prev.map((it) => (it.id === id ? { ...it, ...patch } : it))
       )
-      const base = itemsRef.current.find((it) => it.id === id)
-      if (base) pushItemRemote({ ...base, ...patch })
     },
-    [updateItems, pushItemRemote]
+    [updateItems]
   )
 
   const stopPolling = useCallback((id: string) => {
@@ -270,15 +250,13 @@ export function useImagePlayground(apiKey: string | null) {
     const hydrate = async () => {
       let loaded: ImageGenerationItem[]
       try {
-        // Server is the source of truth for completed history, but it only
-        // stores successes — an async task still in flight was never synced.
-        // Carry those local in-flight task items over so polling can resume
-        // after a refresh instead of being lost.
+        // Server is the authoritative source of truth for the full set of items
+        // and their status (loading / success / error). Graft device-local-only
+        // fields (base64 images when COS is off, config snapshot, edit inputs)
+        // from the cache onto matching server rows.
         const remote = await fetchRemoteHistory()
         const local = await loadImageItems()
-        loaded = carryOverInFlightItems(remote, local)
-        // Refresh the offline cache with the reconciled set (server history +
-        // any carried-over in-flight items) so a later offline load is warm.
+        loaded = reconcileHistory(remote, local)
         void saveImageItems(loaded)
       } catch {
         // Offline / server error — fall back to the local IndexedDB cache.
@@ -372,10 +350,6 @@ export function useImagePlayground(apiKey: string | null) {
       const apiPrompt = replaceImageMentionsForApi(prompt, images.length)
       const isEdit = images.length > 0
       const id = retryItem ? retryItem.id : generateId()
-      const useAsync = !!cfg.asyncTask
-      // A task cannot stream — async mode ignores the stream toggle.
-      const useStream = !useAsync && !!cfg.stream
-
       if (retryItem) {
         // Retry in place: stop any stale polling and reset the existing card
         // back to its in-flight state, clearing the previous result/error.
@@ -385,9 +359,8 @@ export function useImagePlayground(apiKey: string | null) {
             it.id === id
               ? {
                   ...it,
-                  status: useStream ? 'streaming' : 'loading',
+                  status: 'loading',
                   images: [],
-                  partialImage: undefined,
                   errorMessage: undefined,
                   taskId: undefined,
                 }
@@ -405,7 +378,7 @@ export function useImagePlayground(apiKey: string | null) {
           inputImages: isEdit ? images : undefined,
           maskImage: isEdit ? (mask ?? undefined) : undefined,
           createdAt: Date.now(),
-          status: useStream ? 'streaming' : 'loading',
+          status: 'loading',
           images: [],
           config: cfg,
         }
@@ -415,154 +388,59 @@ export function useImagePlayground(apiKey: string | null) {
       // Clear the tray immediately for a fresh (non-regenerate) edit submit.
       if (!override && isEdit) clearInputs()
 
-      const markSuccess = (resultImages: ImageGenerationItem['images']) =>
-        finalizeItem(id, {
-          status: 'success',
-          images: resultImages,
-          partialImage: undefined,
-        })
-
       try {
-        if (useAsync) {
-          // Submit as a server-side task and start polling. The actual upstream
-          // generation runs on the server, so the user may leave/refresh/close.
-          let taskId: string
-          if (isEdit) {
-            const editReq: ImageEditRequest = {
-              model: cfg.model,
-              prompt: apiPrompt,
-              n: cfg.n,
-              size: cfg.size,
-              quality: cfg.quality,
-              moderation: cfg.moderation,
-              output_format: cfg.outputFormat,
-              response_format: 'url',
-              images,
-              mask: mask ?? undefined,
-            }
-            if (
-              cfg.outputFormat !== 'png' &&
-              cfg.outputCompression != null
-            ) {
-              editReq.output_compression = cfg.outputCompression
-            }
-            const resp = await submitImageEditTask(editReq, key)
-            taskId = resp.task_id
-          } else {
-            const payload: ImageGenerationRequest = {
-              model: cfg.model,
-              prompt: apiPrompt,
-              n: cfg.n,
-              size: cfg.size,
-              quality: cfg.quality,
-              moderation: cfg.moderation,
-              output_format: cfg.outputFormat,
-              response_format: 'url',
-            }
-            if (
-              cfg.outputFormat !== 'png' &&
-              cfg.outputCompression != null
-            ) {
-              payload.output_compression = cfg.outputCompression
-            }
-            const resp = await submitImageGenerationTask(payload, key)
-            taskId = resp.task_id
-          }
-          updateItems((prev) =>
-            prev.map((it) => (it.id === id ? { ...it, taskId } : it))
-          )
-          ensurePolling(id)
-          return
-        }
-
+        // Generation always runs as a server-side task: the upstream call
+        // executes on the server, so the user can leave / refresh / switch
+        // devices and the backend keeps the authoritative state (loading →
+        // success/error), which every device polls and renders.
+        let taskId: string
         if (isEdit) {
           const editReq: ImageEditRequest = {
             model: cfg.model,
             prompt: apiPrompt,
-            // Streaming only ever yields a single image upstream; force n=1 so a
-            // stale count (set before enabling stream) can't trigger a 400.
-            n: useStream ? 1 : cfg.n,
+            n: cfg.n,
             size: cfg.size,
             quality: cfg.quality,
             moderation: cfg.moderation,
             output_format: cfg.outputFormat,
-            response_format: useStream ? 'b64_json' : 'url',
+            response_format: 'url',
             images,
             mask: mask ?? undefined,
           }
-          if (
-            cfg.outputFormat !== 'png' &&
-            cfg.outputCompression != null
-          ) {
+          if (cfg.outputFormat !== 'png' && cfg.outputCompression != null) {
             editReq.output_compression = cfg.outputCompression
           }
-          if (useStream && cfg.partialImages > 0) {
-            editReq.partial_images = cfg.partialImages
-          }
-          if (useStream) {
-            const finalImage = await editImageStream(editReq, key, {
-              onPartial: (b64) =>
-                updateItems((prev) =>
-                  prev.map((it) =>
-                    it.id === id ? { ...it, partialImage: b64 } : it
-                  )
-                ),
-            })
-            markSuccess([finalImage])
-          } else {
-            const response = await editImage(editReq, key)
-            markSuccess(response.data ?? [])
-          }
+          const resp = await submitImageEditTask(editReq, key, id)
+          taskId = resp.task_id
         } else {
           const payload: ImageGenerationRequest = {
             model: cfg.model,
             prompt: apiPrompt,
-            // Streaming only ever yields a single image upstream; force n=1 so a
-            // stale count (set before enabling stream) can't trigger a 400.
-            n: useStream ? 1 : cfg.n,
+            n: cfg.n,
             size: cfg.size,
             quality: cfg.quality,
             moderation: cfg.moderation,
             output_format: cfg.outputFormat,
-            response_format: useStream ? 'b64_json' : 'url',
+            response_format: 'url',
           }
-          if (
-            cfg.outputFormat !== 'png' &&
-            cfg.outputCompression != null
-          ) {
+          if (cfg.outputFormat !== 'png' && cfg.outputCompression != null) {
             payload.output_compression = cfg.outputCompression
           }
-          if (useStream) {
-            payload.stream = true
-            if (cfg.partialImages > 0) {
-              payload.partial_images = cfg.partialImages
-            }
-          }
-          if (useStream) {
-            const finalImage = await generateImageStream(payload, key, {
-              onPartial: (b64) =>
-                updateItems((prev) =>
-                  prev.map((it) =>
-                    it.id === id ? { ...it, partialImage: b64 } : it
-                  )
-                ),
-            })
-            markSuccess([finalImage])
-          } else {
-            const response = await generateImage(payload, key)
-            markSuccess(response.data ?? [])
-          }
+          const resp = await submitImageGenerationTask(payload, key, id)
+          taskId = resp.task_id
         }
+        updateItems((prev) =>
+          prev.map((it) => (it.id === id ? { ...it, taskId } : it))
+        )
+        ensurePolling(id)
       } catch (error) {
         finalizeItem(id, {
           status: 'error',
           errorMessage: extractErrorMessage(error),
-          partialImage: undefined,
         })
       } finally {
-        // For async tasks the work continues in the background; unlock the UI
-        // as soon as the task is submitted. For sync/stream this runs after the
-        // full result arrives.
+        // The work continues server-side; unlock the UI once the task is
+        // submitted (polling drives the card to its terminal state).
         setIsGenerating(false)
       }
     },
