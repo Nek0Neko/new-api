@@ -18,141 +18,63 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import {
-  carryOverInFlightItems,
-  isSyncableItem,
-  toRemoteHistoryItem,
-} from './remote-history'
+import { reconcileHistory } from './remote-history'
 import type { ImageGenerationItem } from './types'
 
-function baseItem(overrides: Partial<ImageGenerationItem>): ImageGenerationItem {
+function item(partial: Partial<ImageGenerationItem>): ImageGenerationItem {
   return {
-    id: 'img-1',
-    prompt: 'a cat',
-    model: 'gpt-image-1',
+    id: 'x',
+    prompt: 'p',
+    model: 'm',
     size: 'auto',
     quality: 'auto',
     mode: 'generation',
-    createdAt: 1,
+    createdAt: 0,
     status: 'success',
-    images: [{ url: 'https://cos.example.com/a.png' }],
-    ...overrides,
+    images: [],
+    ...partial,
   }
 }
 
-describe('isSyncableItem', () => {
-  test('true when success with COS URL outputs', () => {
-    assert.equal(isSyncableItem(baseItem({})), true)
-  })
-
-  test('false when an output is base64 (COS disabled)', () => {
-    assert.equal(
-      isSyncableItem(baseItem({ images: [{ b64_json: 'AAAA' }] })),
-      false
-    )
-  })
-
-  test('false when not yet successful (in-flight)', () => {
-    assert.equal(isSyncableItem(baseItem({ status: 'loading', images: [] })), false)
-    assert.equal(
-      isSyncableItem(baseItem({ status: 'streaming', images: [] })),
-      false
-    )
-  })
-
-  test('false when success but no images', () => {
-    assert.equal(isSyncableItem(baseItem({ images: [] })), false)
-  })
-
-  test('true for terminal error items (so the failure persists)', () => {
-    assert.equal(
-      isSyncableItem(
-        baseItem({ status: 'error', images: [], errorMessage: 'boom' })
-      ),
-      true
-    )
-  })
-
-  test('false for an error item that still carries base64', () => {
-    assert.equal(
-      isSyncableItem(
-        baseItem({ status: 'error', images: [{ b64_json: 'AAAA' }] })
-      ),
-      false
-    )
-  })
-})
-
-describe('toRemoteHistoryItem', () => {
-  test('strips heavy/ephemeral fields but keeps the failure reason', () => {
-    const item = baseItem({
-      mode: 'edit',
-      inputImages: [{ id: 'r1', name: 'r.png', mime: 'image/png', b64: 'BIG' }],
-      maskImage: { id: 'm1', name: 'm.png', mime: 'image/png', b64: 'BIG' },
-      partialImage: 'PARTIAL',
-      taskId: 'task-123',
-      status: 'error',
-      images: [],
-      errorMessage: 'boom',
-    })
-    const slim = toRemoteHistoryItem(item)
-    assert.equal('inputImages' in slim, false)
-    assert.equal('maskImage' in slim, false)
-    assert.equal('partialImage' in slim, false)
-    assert.equal('taskId' in slim, false)
-    // errorMessage is kept so a synced failure shows its reason on every device.
-    assert.equal(slim.errorMessage, 'boom')
-    assert.equal(slim.status, 'error')
-    assert.equal(slim.prompt, 'a cat')
-    assert.equal(slim.mode, 'edit')
-  })
-})
-
-describe('carryOverInFlightItems', () => {
-  test('carries over local in-flight async-task items not on the server', () => {
-    const remote = [baseItem({ id: 'done-1', status: 'success' })]
-    const local = [
-      {
-        ...baseItem({ id: 'task-1', status: 'loading', images: [] }),
-        taskId: 'srv-1',
-      },
-      baseItem({ id: 'done-1', status: 'success' }),
-    ]
-    const merged = carryOverInFlightItems(remote, local)
-    // In-flight task item is prepended (newest), server history follows.
+describe('reconcileHistory', () => {
+  test('returns server items in order', () => {
+    const remote = [item({ id: 'a' }), item({ id: 'b' })]
+    const out = reconcileHistory(remote, [])
     assert.deepEqual(
-      merged.map((it) => it.id),
-      ['task-1', 'done-1']
+      out.map((i) => i.id),
+      ['a', 'b']
     )
-    assert.equal(merged[0].taskId, 'srv-1')
-    assert.equal(merged[0].status, 'loading')
   })
 
-  test('drops local loading items without a taskId (cannot resume)', () => {
-    const remote: ImageGenerationItem[] = []
-    const local = [baseItem({ id: 'x', status: 'loading', images: [] })]
-    assert.deepEqual(carryOverInFlightItems(remote, local), [])
+  test('grafts local images when the server row has none', () => {
+    const remote = [item({ id: 'a', status: 'success', images: [] })]
+    const local = [item({ id: 'a', images: [{ b64_json: 'AAAA' }] })]
+    const out = reconcileHistory(remote, local)
+    assert.deepEqual(out[0].images, [{ b64_json: 'AAAA' }])
   })
 
-  test('does not carry over already-finished local items', () => {
-    const remote: ImageGenerationItem[] = []
-    const local = [
-      baseItem({ id: 'ok', status: 'success' }),
-      baseItem({ id: 'err', status: 'error', images: [] }),
-    ]
-    assert.deepEqual(carryOverInFlightItems(remote, local), [])
+  test('keeps server images when present', () => {
+    const remote = [item({ id: 'a', images: [{ url: 'https://s/x.png' }] })]
+    const local = [item({ id: 'a', images: [{ b64_json: 'AAAA' }] })]
+    const out = reconcileHistory(remote, local)
+    assert.deepEqual(out[0].images, [{ url: 'https://s/x.png' }])
   })
 
-  test('server copy wins when the same id is in-flight locally but done on server', () => {
-    const remote = [baseItem({ id: 'task-1', status: 'success' })]
-    const local = [
-      {
-        ...baseItem({ id: 'task-1', status: 'loading', images: [] }),
-        taskId: 'srv-1',
-      },
-    ]
-    const merged = carryOverInFlightItems(remote, local)
-    assert.equal(merged.length, 1)
-    assert.equal(merged[0].status, 'success')
+  test('grafts local config when the server row lacks it', () => {
+    const cfg = { model: 'm' } as ImageGenerationItem['config']
+    const remote = [item({ id: 'a', config: undefined })]
+    const local = [item({ id: 'a', config: cfg })]
+    const out = reconcileHistory(remote, local)
+    assert.equal(out[0].config, cfg)
+  })
+
+  test('drops local-only items (server is authoritative)', () => {
+    const remote = [item({ id: 'a' })]
+    const local = [item({ id: 'a' }), item({ id: 'ghost' })]
+    const out = reconcileHistory(remote, local)
+    assert.deepEqual(
+      out.map((i) => i.id),
+      ['a']
+    )
   })
 })
