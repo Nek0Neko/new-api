@@ -141,6 +141,9 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 			if c.Request != nil && c.Request.URL != nil {
 				other["request_path"] = c.Request.URL.Path
 			}
+			other["channel_id"] = c.GetInt("channel_id")
+			other["channel_name"] = c.GetString("channel_name")
+			other["channel_type"] = c.GetInt("channel_type")
 			model.RecordErrorLog(
 				c,
 				c.GetInt("id"),
