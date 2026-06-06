@@ -39,6 +39,12 @@ func EnsureCOSURL(ctx context.Context, b64, rawURL string) (string, bool, error)
 	if cfg.OwnsURL(rawURL) {
 		return rawURL, false, nil
 	}
+	// Some providers honor response_format=url by returning the image as an inline
+	// "data:image/...;base64,...." data-URI in the url field. Treat that as base64
+	// (uploadBase64 strips the data-URL prefix) rather than trying to fetch it.
+	if b64 == "" && strings.HasPrefix(rawURL, "data:") {
+		b64 = rawURL
+	}
 	// Prefer the inline base64 payload (no extra round trip).
 	if b64 != "" {
 		url, err := uploadBase64(ctx, b64)

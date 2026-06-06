@@ -334,6 +334,25 @@ func extractImageTaskError(body []byte, code int) string {
 	return fmt.Sprintf("image generation failed (status %d)", code)
 }
 
+// migrateImageTaskData is the task-log read-path fallback: if a finished image
+// task still holds base64 / data-URI / expiring upstream urls in its Data (e.g.
+// rows created before COS offload, or while COS was down), it offloads them to COS
+// and persists, so the task list returns durable urls instead of multi-MB blobs.
+// No-op for non-image tasks, empty data, or when COS can't run.
+func migrateImageTaskData(task *model.Task) {
+	if task == nil || task.Platform != constant.TaskPlatformImage || len(task.Data) == 0 {
+		return
+	}
+	offloaded, changed := mediastore.OffloadImageResponseBody(context.Background(), task.Data)
+	if !changed {
+		return
+	}
+	task.Data = offloaded
+	if err := task.Update(); err != nil {
+		common.SysError("persist migrated image task data error: " + err.Error())
+	}
+}
+
 // FetchImageTask 查询图片任务的状态与结果。
 func FetchImageTask(c *gin.Context) {
 	userId := imageTaskUserId(c)

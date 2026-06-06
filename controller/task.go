@@ -88,6 +88,9 @@ func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 				task.Username = user.Username
 			}
 		}
+		// Offload any inline base64/data-URI image left in Data to COS (one-time,
+		// persisted) so the task list isn't bloated with multi-MB blobs.
+		migrateImageTaskData(task)
 		result[i] = relay.TaskModel2Dto(task)
 	}
 	return result

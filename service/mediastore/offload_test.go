@@ -39,6 +39,21 @@ func TestEnsureCOSURL_UploadsB64(t *testing.T) {
 	}
 }
 
+func TestEnsureCOSURL_UploadsDataURI(t *testing.T) {
+	// Some providers return the image as a data:image/...;base64,... URI in the url
+	// field (not b64_json, not an http url). It must be uploaded, not fetched.
+	enableCOS(t, "https://cdn.test")
+	swapUploader(t, &fakeUploader{url: "https://cdn.test/x.png"})
+
+	url, changed, err := EnsureCOSURL(context.Background(), "", "data:image/png;base64,"+onePxPNG)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !changed || url != "https://cdn.test/x.png" {
+		t.Fatalf("data uri should be uploaded, got url=%q changed=%v", url, changed)
+	}
+}
+
 func TestEnsureCOSURL_SkipsOwnURL(t *testing.T) {
 	enableCOS(t, "https://cdn.test")
 	swapUploader(t, &fakeUploader{url: "https://should-not-be-called"})
