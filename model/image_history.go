@@ -35,6 +35,18 @@ func GetImageHistory(userId int, limit int) ([]ImageHistory, error) {
 	return rows, err
 }
 
+// GetImageHistoryItem returns the stored item JSON for one (user, item) row.
+// found is false when the user has no such item (e.g. it was trimmed).
+func GetImageHistoryItem(userId int, itemId string) (data string, found bool, err error) {
+	var row ImageHistory
+	err = DB.Where("user_id = ? AND item_id = ?", userId, itemId).First(&row).Error
+	exist, err := RecordExist(err)
+	if err != nil || !exist {
+		return "", exist, err
+	}
+	return row.Data, true, nil
+}
+
 // UpsertImageHistory inserts or updates one item keyed on (user_id, item_id),
 // then trims the user's history back down to MaxImageHistory. The OnConflict
 // clause is translated per-dialect by GORM (SQLite/MySQL/Postgres).
