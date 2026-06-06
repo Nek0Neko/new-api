@@ -327,8 +327,8 @@ export function useImagePlayground(apiKey: string | null) {
         maskImage: ImageInputFile | null
         /**
          * When set, retry the existing item with this id *in place* instead of
-         * prepending a new one. The item is reset to a loading/streaming state
-         * and regenerated using its original config snapshot.
+         * prepending a new one. The item is reset to a loading state and
+         * regenerated using its original config snapshot.
          */
         retryId?: string
       }
