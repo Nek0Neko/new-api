@@ -21,6 +21,7 @@
 3. **在途/失败与成功一视同仁**：均计入每用户 100 条上限，按时间裁剪，用户可手动删除任意项。
 4. **流式代码直接移除**：删除 `generateImageStream`/`editImageStream`/`sse.ts`/`streaming` 状态/partial 预览。
 5. **发起设备成功渲染**：继续用轮询 `FetchImageTask` 返回的 `data` 在前端本地解析出图片立即渲染；后端另存一份到 history 供晚加载/跨端设备读取（前后端各解析一次，轻微重复，换取最快显示）。
+6. **失败请求记日志**：失败请求要写入 `logs` 表（`LogTypeError`, type=5, quota=0），只是不扣费。范围是**所有 relay 失败**，不限图片。
 
 ## 架构：反转控制权
 
@@ -114,9 +115,27 @@ item JSON 形状沿用前端 `ImageGenerationItem`，后端构造时只含轻量
 - **图生图输入参考图/mask**：base64 重数据不跨端。其他设备只见 prompt + 结果，不见输入图（与现状一致）。
 - **裁剪与在途**：见上「裁剪边界」。
 
+## 失败请求日志（独立但同批交付）
+
+诉求：**失败请求要进 `logs` 表，只是不扣费**。当前「退费」与「记日志」是两回事——退费总会发生，但日志被 `ERROR_LOG_ENABLED`（默认 `false`）门着，导致失败默认什么都不记，与预期相反。
+
+现状两条失败路径：
+1. **上游报错**：`controller/relay.go` 的 `processChannelError`（约 line 366）调 `model.RecordErrorLog`（`LogTypeError`, quota=0），但被 `constant.ErrorLogEnabled && types.IsRecordErrorLog(err)` 双重门控，默认关。
+2. **图片 200 但无图**（`ContextKeyImageNoContent`）：`relay/image_handler.go`（约 line 125-131）直接退费 + 返回 `nil`（成功），`Relay()` 视为成功，**这种失败即使开了开关也永远不记**。
+
+改动：
+- **`common/init.go`**：`ERROR_LOG_ENABLED` 默认值由 `false` 改为 `true`。保留环境变量作为运营方 opt-out。继续尊重 `types.IsRecordErrorLog(err)`——被 `ErrOptionWithNoRecordErrorLog()` 显式标记的客户端拒绝（如配额不足）仍不记。
+- **`relay/image_handler.go`**：no-content 退费分支在退费 + 返回前补记一条 `model.RecordErrorLog`（`LogTypeError`, quota=0, content=「upstream returned no image content」），用当前 `relayInfo`/`c` 归属到用户/渠道。覆盖同步流式与异步任务两种触发场景。
+
+双重记录规避：默认开关下，模式 1 走 `processChannelError` 记一条；模式 2 走新增分支记一条；两者互斥，无重复。
+
+异步图片任务路径天然受益：`runImageTask` 内的 `Relay()` 失败时（模式 1）经标准错误日志路径记录，归属由复制过去的 context keys（user/channel/token/group）保证。
+
+测试见下「测试」节失败日志条目。
+
 ## 计费
 
-不变。异步任务路径的计费完全由 `Relay()` 完成（预扣 + 结算 + 失败退款）。写 `ImageHistory` 与计费无关。
+不变。异步任务路径的计费完全由 `Relay()` 完成（预扣 + 结算 + 失败退款）。写 `ImageHistory` 与失败日志均与计费无关——失败仍退费，只是额外留一条 quota=0 的日志。
 
 ## 测试
 
@@ -128,6 +147,11 @@ item JSON 形状沿用前端 `ImageGenerationItem`，后端构造时只含轻量
   - hydrate 渲染 loading/error/success 三态；对 loading 行恢复轮询。
   - submit 后 id 对齐 taskId、与服务器行去重。
 - **手动跨端验证**：设备 A 提交 → 设备 B 立刻看到 loading → A 关闭 → B 轮询到终态；刷新 A 恢复状态。
+- **失败日志**：
+  - 上游报错的图片任务 → `logs` 表出现一条 `LogTypeError`、quota=0、归属正确用户/渠道的记录。
+  - no-content（200 无图）→ 同样出现一条 `LogTypeError` 记录（同步流式与异步任务各验一次）。
+  - 配额不足等被 `ErrOptionWithNoRecordErrorLog` 标记的错误 → 仍不记。
+  - 失败仍正常退费（日志与退费并存、互不影响）。
 
 ## 不做（YAGNI）
 
