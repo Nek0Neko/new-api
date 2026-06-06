@@ -343,7 +343,29 @@ func FetchImageTask(c *gin.Context) {
 // RecoverInterruptedImageTasks 在（主节点）启动时把所有未完成的图片任务标记为失败。
 // 因为后台 worker 随进程一起消失，重启后无法续跑——直接置为失败，由用户重新提交。
 func RecoverInterruptedImageTasks() {
-	n, err := model.FailUnfinishedImageTasks("服务重启，图片任务已中断，请重新提交")
+	const reason = "服务重启，图片任务已中断，请重新提交"
+	// Patch each task's playground history row to error first (the task record's
+	// item-id link is the task id; client-id rows that were trimmed fall back),
+	// then flip the task records in bulk.
+	if tasks, err := model.GetUnfinishedImageTasks(); err != nil {
+		common.SysError("list interrupted image tasks error: " + err.Error())
+	} else {
+		for _, t := range tasks {
+			if t == nil {
+				continue
+			}
+			fb := fallbackHistoryFields{
+				Id:        t.TaskID,
+				TaskId:    t.TaskID,
+				Prompt:    t.Properties.Input,
+				Model:     t.Properties.OriginModelName,
+				Mode:      "generation",
+				CreatedAt: t.SubmitTime * 1000,
+			}
+			writeTerminalHistory(t.UserId, t.TaskID, fb, "error", nil, reason)
+		}
+	}
+	n, err := model.FailUnfinishedImageTasks(reason)
 	if err != nil {
 		common.SysError("recover interrupted image tasks error: " + err.Error())
 		return
