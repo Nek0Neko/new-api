@@ -7,8 +7,6 @@ import (
 
 // historyImage is one slimmed output image. base64 is never stored — only
 // a COS URL (and the upstream's revised prompt) reaches the database.
-// (Named historyImage, not imageHistoryImage, to avoid colliding with the
-// existing imageHistoryImage type in image_history.go in this same package.)
 type historyImage struct {
 	Url           string `json:"url,omitempty"`
 	RevisedPrompt string `json:"revised_prompt,omitempty"`

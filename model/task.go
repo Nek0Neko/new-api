@@ -78,6 +78,12 @@ type Properties struct {
 	Input             string `json:"input"`
 	UpstreamModelName string `json:"upstream_model_name,omitempty"`
 	OriginModelName   string `json:"origin_model_name,omitempty"`
+	// HistoryItemId is the client playground item id (X-Playground-Item-Id header)
+	// this task's history row is keyed on, so startup recovery can patch the right
+	// row instead of creating a duplicate. HistoryMode ("generation"/"edit") lets
+	// the recovery/finish fallback rebuild a trimmed row with the correct mode.
+	HistoryItemId string `json:"history_item_id,omitempty"`
+	HistoryMode   string `json:"history_mode,omitempty"`
 }
 
 func (m *Properties) Scan(val interface{}) error {

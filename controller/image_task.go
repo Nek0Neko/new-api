@@ -102,10 +102,10 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 			// 异步任务无法流式（结果走轮询），强制去掉 stream 相关字段。
 			delete(m, "stream")
 			delete(m, "partial_images")
-			_ = json.Unmarshal(m["model"], &modelName)
-			_ = json.Unmarshal(m["prompt"], &prompt)
-			_ = json.Unmarshal(m["size"], &size)
-			_ = json.Unmarshal(m["quality"], &quality)
+			_ = common.Unmarshal(m["model"], &modelName)
+			_ = common.Unmarshal(m["prompt"], &prompt)
+			_ = common.Unmarshal(m["size"], &size)
+			_ = common.Unmarshal(m["quality"], &quality)
 			if nb, e2 := common.Marshal(m); e2 == nil {
 				workBody = nb
 			}
@@ -132,6 +132,11 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 
 	taskID := model.GenerateTaskID()
 	now := time.Now().Unix()
+	// Resolve the history item id before building the task so it can be persisted
+	// on the task record — startup recovery needs it to patch the correct row.
+	if historyItemId == "" {
+		historyItemId = taskID
+	}
 	task := &model.Task{
 		TaskID:     taskID,
 		Platform:   constant.TaskPlatformImage,
@@ -145,6 +150,8 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 		Properties: model.Properties{
 			Input:           prompt,
 			OriginModelName: modelName,
+			HistoryItemId:   historyItemId,
+			HistoryMode:     mode,
 		},
 	}
 	if err := task.Insert(); err != nil {
@@ -153,9 +160,6 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 		return
 	}
 
-	if historyItemId == "" {
-		historyItemId = taskID
-	}
 	createdAtMs := now * 1000
 	// Server owns the history: record a loading row now so every device (and a
 	// refresh) sees the in-flight generation, not just the submitting tab.
@@ -276,12 +280,16 @@ func finishImageTask(taskID string, userId int, historyItemId string, status mod
 	if historyItemId == "" {
 		historyItemId = taskID
 	}
+	fbMode := task.Properties.HistoryMode
+	if fbMode == "" {
+		fbMode = "generation"
+	}
 	fb := fallbackHistoryFields{
 		Id:        historyItemId,
 		TaskId:    taskID,
 		Prompt:    task.Properties.Input,
 		Model:     task.Properties.OriginModelName,
-		Mode:      "generation",
+		Mode:      fbMode,
 		CreatedAt: task.SubmitTime * 1000,
 	}
 	if status == model.TaskStatusSuccess {
@@ -354,15 +362,23 @@ func RecoverInterruptedImageTasks() {
 			if t == nil {
 				continue
 			}
+			histItemId := t.Properties.HistoryItemId
+			if histItemId == "" {
+				histItemId = t.TaskID
+			}
+			histMode := t.Properties.HistoryMode
+			if histMode == "" {
+				histMode = "generation"
+			}
 			fb := fallbackHistoryFields{
-				Id:        t.TaskID,
+				Id:        histItemId,
 				TaskId:    t.TaskID,
 				Prompt:    t.Properties.Input,
 				Model:     t.Properties.OriginModelName,
-				Mode:      "generation",
+				Mode:      histMode,
 				CreatedAt: t.SubmitTime * 1000,
 			}
-			writeTerminalHistory(t.UserId, t.TaskID, fb, "error", nil, reason)
+			writeTerminalHistory(t.UserId, histItemId, fb, "error", nil, reason)
 		}
 	}
 	n, err := model.FailUnfinishedImageTasks(reason)
