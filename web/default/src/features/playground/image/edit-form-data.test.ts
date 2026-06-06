@@ -45,18 +45,14 @@ describe('buildEditFormData', () => {
     assert.equal(fd.getAll('image').length, 0)
   })
 
-  test('stream adds stream + partial_images; mask is appended', () => {
+  test('mask is appended', () => {
     const req: ImageEditRequest = {
       model: 'gpt-image-1',
       prompt: 'inpaint',
-      stream: true,
-      partial_images: 2,
       images: [img('a')],
       mask: img('m'),
     }
     const fd = buildEditFormData(req)
-    assert.equal(fd.get('stream'), 'true')
-    assert.equal(fd.get('partial_images'), '2')
     assert.ok(fd.get('mask') instanceof Blob)
   })
 

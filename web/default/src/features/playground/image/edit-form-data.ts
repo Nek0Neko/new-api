@@ -37,12 +37,6 @@ export function buildEditFormData(req: ImageEditRequest): FormData {
   }
   if (req.moderation) fd.append('moderation', req.moderation)
   if (req.response_format) fd.append('response_format', req.response_format)
-  if (req.stream) {
-    fd.append('stream', 'true')
-    if (req.partial_images != null) {
-      fd.append('partial_images', String(req.partial_images))
-    }
-  }
 
   const field = req.images.length > 1 ? 'image[]' : 'image'
   for (const image of req.images) {
