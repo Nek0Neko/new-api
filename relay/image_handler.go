@@ -6,11 +6,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
@@ -127,6 +129,32 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 			info.Billing.Refund(c)
 		}
 		logger.LogError(c, "image relay produced no image, skip billing and refund pre-consumed quota")
+		// This failure mode returns a 200 SSE body, so the standard error-log
+		// path in Relay never sees it. Record it here (refund already done) so a
+		// "no image" failure is logged like any other — without being charged.
+		if constant.ErrorLogEnabled {
+			startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)
+			if startTime.IsZero() {
+				startTime = time.Now()
+			}
+			other := map[string]interface{}{"error_type": "image_no_content"}
+			if c.Request != nil && c.Request.URL != nil {
+				other["request_path"] = c.Request.URL.Path
+			}
+			model.RecordErrorLog(
+				c,
+				c.GetInt("id"),
+				c.GetInt("channel_id"),
+				c.GetString("original_model"),
+				c.GetString("token_name"),
+				"image relay produced no image content",
+				c.GetInt("token_id"),
+				int(time.Since(startTime).Seconds()),
+				true,
+				c.GetString("group"),
+				other,
+			)
+		}
 		return nil
 	}
 
