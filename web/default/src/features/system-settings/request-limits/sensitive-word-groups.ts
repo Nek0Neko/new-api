@@ -31,11 +31,8 @@ function normalizeWords(words: unknown): string[] {
 }
 
 function isGroupLike(value: unknown): value is Record<string, unknown> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as Record<string, unknown>).name === 'string'
-  )
+  if (typeof value !== 'object' || value === null) return false
+  return typeof (value as Record<string, unknown>).name === 'string'
 }
 
 /** 解析 option 值:JSON 分组格式,或 legacy 换行格式(转为单个默认分组) */
@@ -49,6 +46,7 @@ export function parseSensitiveWordGroups(value: string): SensitiveWordGroup[] {
       if (Array.isArray(parsed) && parsed.every(isGroupLike)) {
         return parsed.map((g) => ({
           name: String(g.name),
+          // 缺失 "enabled" 视为 false,与后端 Go 零值语义一致
           enabled: Boolean(g.enabled),
           words: normalizeWords(g.words),
         }))
@@ -83,6 +81,7 @@ export function serializeSensitiveWordGroups(
 /** 解析 .txt / textarea 内容:每行一词,trim、去空行,兼容 CRLF */
 export function parseTxtWords(content: string): string[] {
   return content
+    .replace(/^﻿/, '')
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== '')

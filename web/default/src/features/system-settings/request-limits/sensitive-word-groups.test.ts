@@ -63,3 +63,26 @@ test('serialize trims and drops empty words', () => {
 test('parseTxtWords handles CRLF, trims, drops empties', () => {
   assert.deepEqual(parseTxtWords('a\r\n b \n\nc\n'), ['a', 'b', 'c'])
 })
+
+test('mixed valid/invalid JSON array elements falls back to legacy', () => {
+  const groups = parseSensitiveWordGroups(
+    '[{"name":"A","enabled":true,"words":[]},"not-a-group"]'
+  )
+  assert.equal(groups.length, 1)
+  assert.equal(groups[0].name, LEGACY_GROUP_NAME)
+})
+
+test('non-string name in JSON group falls back to legacy', () => {
+  const groups = parseSensitiveWordGroups('[{"name":42,"words":["a"]}]')
+  assert.equal(groups.length, 1)
+  assert.equal(groups[0].name, LEGACY_GROUP_NAME)
+})
+
+test('empty JSON array round-trips to empty groups', () => {
+  assert.deepEqual(parseSensitiveWordGroups('[]'), [])
+  assert.deepEqual(parseSensitiveWordGroups(serializeSensitiveWordGroups([])), [])
+})
+
+test('parseTxtWords strips UTF-8 BOM', () => {
+  assert.deepEqual(parseTxtWords('﻿first\nsecond'), ['first', 'second'])
+})
