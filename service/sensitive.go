@@ -49,7 +49,7 @@ func getSensitiveSnapshot() *sensitiveSnapshot {
 func buildSensitiveSnapshot(version int64) *sensitiveSnapshot {
 	wordGroup := make(map[string]string)
 	dict := make([]string, 0)
-	for _, group := range setting.SensitiveWordGroups {
+	for _, group := range setting.GetSensitiveWordGroups() {
 		if !group.Enabled {
 			continue
 		}

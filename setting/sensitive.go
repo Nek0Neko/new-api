@@ -28,9 +28,28 @@ type SensitiveWordGroup struct {
 	Words   []string `json:"words"`
 }
 
-// SensitiveWordGroups 敏感词分组词库
-var SensitiveWordGroups = []SensitiveWordGroup{
-	{Name: LegacySensitiveGroupName, Enabled: true, Words: []string{"test_sensitive"}},
+// sensitiveWordGroupsValue 持有 []SensitiveWordGroup,原子发布;
+// 取出的 slice 视为只读,不得原地修改
+var sensitiveWordGroupsValue atomic.Value
+
+func init() {
+	sensitiveWordGroupsValue.Store([]SensitiveWordGroup{
+		{Name: LegacySensitiveGroupName, Enabled: true, Words: []string{"test_sensitive"}},
+	})
+}
+
+// GetSensitiveWordGroups 返回当前敏感词分组(只读快照,调用方不得修改)
+func GetSensitiveWordGroups() []SensitiveWordGroup {
+	return sensitiveWordGroupsValue.Load().([]SensitiveWordGroup)
+}
+
+func setSensitiveWordGroups(groups []SensitiveWordGroup) {
+	// 先 Store 词库再自增版本号:atomic.Value 的 Store 为词库及其 Words
+	// 内容提供 happens-before 边(所有写入在 Store 前完成)。
+	// 注意:读者可能先看到旧版本号 + 新词库 → 用新数据构建带旧版本号的快照,
+	// 下一次请求会再重建一次;此种情况无害。
+	sensitiveWordGroupsValue.Store(groups)
+	sensitiveWordsVersion.Add(1)
 }
 
 // sensitiveWordsVersion 词库版本号，每次更新自增；service 层用其判断快照是否过期
@@ -41,7 +60,7 @@ func SensitiveWordsVersion() int64 {
 }
 
 func SensitiveWordsToString() string {
-	data, err := common.Marshal(SensitiveWordGroups)
+	data, err := common.Marshal(GetSensitiveWordGroups())
 	if err != nil {
 		return "[]"
 	}
@@ -49,12 +68,9 @@ func SensitiveWordsToString() string {
 }
 
 func SensitiveWordsFromString(s string) {
-	// 先更新词库再自增版本号，保证读到新版本号时词库已就绪
-	defer sensitiveWordsVersion.Add(1)
-
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" {
-		SensitiveWordGroups = []SensitiveWordGroup{}
+		setSensitiveWordGroups([]SensitiveWordGroup{})
 		return
 	}
 
@@ -64,17 +80,17 @@ func SensitiveWordsFromString(s string) {
 			for i := range groups {
 				groups[i].Words = normalizeSensitiveWords(groups[i].Words)
 			}
-			SensitiveWordGroups = groups
+			setSensitiveWordGroups(groups)
 			return
 		}
 	}
 
 	// legacy 换行格式 → 单个默认分组
-	SensitiveWordGroups = []SensitiveWordGroup{{
+	setSensitiveWordGroups([]SensitiveWordGroup{{
 		Name:    LegacySensitiveGroupName,
 		Enabled: true,
 		Words:   normalizeSensitiveWords(strings.Split(s, "\n")),
-	}}
+	}})
 }
 
 func normalizeSensitiveWords(words []string) []string {

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/QuantumNous/new-api/setting"
@@ -76,5 +78,37 @@ func TestFormatSensitiveHits(t *testing.T) {
 	})
 	if s != "[政治类型]xxx, yyy" {
 		t.Fatalf("unexpected format: %s", s)
+	}
+}
+
+func TestSnapshotConcurrentReadDuringUpdate(t *testing.T) {
+	setGroups(t, `[{"name":"A","enabled":true,"words":["word0"]}]`)
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+					SensitiveWordContains("some text with word3 inside")
+				}
+			}
+		}()
+	}
+	for i := 0; i < 50; i++ {
+		setGroups(t, fmt.Sprintf(`[{"name":"A","enabled":true,"words":["word%d"]}]`, i))
+	}
+	close(stop)
+	wg.Wait()
+	// 收敛性:最终词库为 word49,旧词不再命中
+	if c, _ := SensitiveWordContains("has word49"); !c {
+		t.Fatal("final word should match after updates settle")
+	}
+	if c, _ := SensitiveWordContains("has word0"); c {
+		t.Fatal("stale word should not match after updates settle")
 	}
 }
