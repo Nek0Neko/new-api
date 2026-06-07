@@ -34,7 +34,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -45,6 +44,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import {
   SettingsForm,
   SettingsSwitchContent,
@@ -128,6 +128,7 @@ export function SensitiveWordsSection({
     toEditableGroups(defaultValues.SensitiveWords)
   )
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
   useEffect(() => {
     form.reset({
@@ -136,7 +137,12 @@ export function SensitiveWordsSection({
     })
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setGroups(toEditableGroups(defaultValues.SensitiveWords))
+    setSelectedIndex(0)
   }, [defaultValues, form])
+
+  // derived clamp so a stale index never points past the array
+  const selectedIdx = groups.length === 0 ? -1 : Math.min(selectedIndex, groups.length - 1)
+  const selectedGroup = selectedIdx === -1 ? undefined : groups[selectedIdx]
 
   const updateGroup = (index: number, patch: Partial<EditableGroup>) => {
     setGroups((prev) =>
@@ -145,11 +151,15 @@ export function SensitiveWordsSection({
   }
 
   const addGroup = () => {
-    setGroups((prev) => [...prev, { name: '', enabled: true, wordsText: '' }])
+    setGroups((prev) => {
+      setSelectedIndex(prev.length)
+      return [...prev, { name: '', enabled: true, wordsText: '' }]
+    })
   }
 
   const deleteGroup = (index: number) => {
     setGroups((prev) => prev.filter((_, i) => i !== index))
+    setSelectedIndex((prev) => Math.max(0, prev - 1))
   }
 
   const triggerUpload = () => {
@@ -180,17 +190,24 @@ export function SensitiveWordsSection({
       return
     }
 
-    setGroups((prev) => [
-      ...prev,
-      { name: groupName, enabled: true, wordsText: words.join('\n') },
-    ])
+    setGroups((prev) => {
+      setSelectedIndex(prev.length)
+      return [
+        ...prev,
+        { name: groupName, enabled: true, wordsText: words.join('\n') },
+      ]
+    })
   }
 
   const applyImport = (mode: 'merge' | 'overwrite') => {
     if (!pendingImport) return
     const { name, words } = pendingImport
-    setGroups((prev) =>
-      prev.map((group) => {
+    setGroups((prev) => {
+      const targetIndex = prev.findIndex(
+        (group) => group.name.trim() === name
+      )
+      if (targetIndex !== -1) setSelectedIndex(targetIndex)
+      return prev.map((group) => {
         if (group.name.trim() !== name) return group
         if (mode === 'overwrite') {
           return { ...group, wordsText: words.join('\n') }
@@ -199,7 +216,7 @@ export function SensitiveWordsSection({
         const merged = Array.from(new Set([...existing, ...words]))
         return { ...group, wordsText: merged.join('\n') }
       })
-    )
+    })
     setPendingImport(null)
   }
 
@@ -331,55 +348,112 @@ export function SensitiveWordsSection({
               )}
             </FormDescription>
 
-            {groups.map((group, index) => (
-              <Card key={index}>
-                <CardContent className='space-y-3 pt-4'>
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <Input
-                      className='min-w-40 flex-1'
-                      placeholder={t('Group name')}
-                      value={group.name}
+            {groups.length === 0 ? (
+              <div className='rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground'>
+                {t('No groups yet. Add a group or upload a .txt file.')}
+              </div>
+            ) : (
+              <div className='flex flex-col gap-4 md:flex-row'>
+                {/* Left: group list */}
+                <div className='w-full shrink-0 overflow-hidden rounded-md border md:w-56 lg:w-64'>
+                  <ul className='divide-y'>
+                    {groups.map((group, index) => {
+                      const name = group.name.trim()
+                      const count = parseTxtWords(group.wordsText).length
+                      const isSelected = index === selectedIdx
+                      return (
+                        <li key={index}>
+                          <button
+                            type='button'
+                            onClick={() => setSelectedIndex(index)}
+                            className={cn(
+                              'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/50',
+                              isSelected && 'bg-muted'
+                            )}
+                          >
+                            <span className='flex min-w-0 flex-1 flex-col'>
+                              <span
+                                className={cn(
+                                  'truncate',
+                                  name === '' &&
+                                    'italic text-muted-foreground'
+                                )}
+                              >
+                                {name === ''
+                                  ? t('Unnamed group')
+                                  : name}
+                              </span>
+                              <span className='text-xs text-muted-foreground'>
+                                {count} {t('words')}
+                              </span>
+                            </span>
+                            <span
+                              role='presentation'
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <Switch
+                                checked={group.enabled}
+                                onCheckedChange={(checked) =>
+                                  updateGroup(index, { enabled: checked })
+                                }
+                              />
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+
+                {/* Right: selected group details */}
+                {selectedGroup ? (
+                  <div className='flex flex-1 flex-col gap-3'>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <Input
+                        className='min-w-40 flex-1'
+                        placeholder={t('Group name')}
+                        value={selectedGroup.name}
+                        onChange={(event) =>
+                          updateGroup(selectedIdx, {
+                            name: event.target.value,
+                          })
+                        }
+                      />
+                      <Badge variant='secondary'>
+                        {parseTxtWords(selectedGroup.wordsText).length}{' '}
+                        {t('words')}
+                      </Badge>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={() => exportGroup(selectedGroup)}
+                      >
+                        {t('Export')}
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='destructive'
+                        size='sm'
+                        onClick={() => deleteGroup(selectedIdx)}
+                      >
+                        {t('Delete group')}
+                      </Button>
+                    </div>
+                    <Textarea
+                      rows={12}
+                      placeholder={t('Enter one keyword per line')}
+                      value={selectedGroup.wordsText}
                       onChange={(event) =>
-                        updateGroup(index, { name: event.target.value })
+                        updateGroup(selectedIdx, {
+                          wordsText: event.target.value,
+                        })
                       }
                     />
-                    <Badge variant='secondary'>
-                      {parseTxtWords(group.wordsText).length} {t('words')}
-                    </Badge>
-                    <Switch
-                      checked={group.enabled}
-                      onCheckedChange={(checked) =>
-                        updateGroup(index, { enabled: checked })
-                      }
-                    />
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      onClick={() => exportGroup(group)}
-                    >
-                      {t('Export')}
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='destructive'
-                      size='sm'
-                      onClick={() => deleteGroup(index)}
-                    >
-                      {t('Delete group')}
-                    </Button>
                   </div>
-                  <Textarea
-                    rows={6}
-                    placeholder={t('Enter one keyword per line')}
-                    value={group.wordsText}
-                    onChange={(event) =>
-                      updateGroup(index, { wordsText: event.target.value })
-                    }
-                  />
-                </CardContent>
-              </Card>
-            ))}
+                ) : null}
+              </div>
+            )}
           </div>
         </SettingsForm>
       </Form>
