@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -96,6 +97,9 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 	isJSON := strings.HasPrefix(c.ContentType(), "application/json")
 
 	var modelName, prompt, size, quality string
+	// cfg captures the full request parameter snapshot so the playground can
+	// "Regenerate" with the original settings on any device (see imageHistoryConfig).
+	cfg := &imageHistoryConfig{N: 1}
 	workBody := bodyBytes
 	if isJSON {
 		var m map[string]json.RawMessage
@@ -107,6 +111,20 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 			_ = common.Unmarshal(m["prompt"], &prompt)
 			_ = common.Unmarshal(m["size"], &size)
 			_ = common.Unmarshal(m["quality"], &quality)
+			_ = common.Unmarshal(m["output_format"], &cfg.OutputFormat)
+			_ = common.Unmarshal(m["moderation"], &cfg.Moderation)
+			if raw, ok := m["n"]; ok {
+				var n int
+				if common.Unmarshal(raw, &n) == nil && n > 0 {
+					cfg.N = n
+				}
+			}
+			if raw, ok := m["output_compression"]; ok {
+				var oc int
+				if common.Unmarshal(raw, &oc) == nil {
+					cfg.OutputCompression = &oc
+				}
+			}
 			if nb, e2 := common.Marshal(m); e2 == nil {
 				workBody = nb
 			}
@@ -117,7 +135,18 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 		prompt = c.PostForm("prompt")
 		size = c.PostForm("size")
 		quality = c.PostForm("quality")
+		cfg.OutputFormat = c.PostForm("output_format")
+		cfg.Moderation = c.PostForm("moderation")
+		if n, e := strconv.Atoi(c.PostForm("n")); e == nil && n > 0 {
+			cfg.N = n
+		}
+		if oc, e := strconv.Atoi(c.PostForm("output_compression")); e == nil {
+			cfg.OutputCompression = &oc
+		}
 	}
+	cfg.Model = modelName
+	cfg.Size = size
+	cfg.Quality = quality
 
 	// The frontend sends a stable client item id so the history row matches the
 	// playground card across submit/retry/devices. It is resolved to the task id
@@ -164,7 +193,7 @@ func submitImageTask(c *gin.Context, canonicalPath string) {
 	createdAtMs := now * 1000
 	// Server owns the history: record a loading row now so every device (and a
 	// refresh) sees the in-flight generation, not just the submitting tab.
-	writeLoadingHistory(userId, historyItemId, taskID, prompt, modelName, size, quality, mode, createdAtMs)
+	writeLoadingHistory(userId, historyItemId, taskID, prompt, modelName, size, quality, mode, cfg, createdAtMs)
 
 	// c.Copy() 返回可在 goroutine 中安全使用的上下文副本（脱离原请求生命周期）。
 	cc := c.Copy()

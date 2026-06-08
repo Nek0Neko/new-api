@@ -7,7 +7,8 @@ import (
 )
 
 func TestBuildLoadingHistoryItem(t *testing.T) {
-	data := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", 1700)
+	cfg := &imageHistoryConfig{Model: "dall-e-3", Size: "1024x1024", Quality: "high", OutputFormat: "png", Moderation: "auto", N: 4}
+	data := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", cfg, 1700)
 	var got imageHistoryItem
 	if err := common.UnmarshalJsonStr(data, &got); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -20,6 +21,9 @@ func TestBuildLoadingHistoryItem(t *testing.T) {
 	}
 	if got.CreatedAt != 1700 {
 		t.Fatalf("createdAt = %d", got.CreatedAt)
+	}
+	if got.Config == nil || got.Config.N != 4 || got.Config.OutputFormat != "png" || got.Config.Moderation != "auto" {
+		t.Fatalf("config not recorded: %+v", got.Config)
 	}
 	if got.Images == nil || len(got.Images) != 0 {
 		t.Fatalf("images should be empty non-nil slice, got %#v", got.Images)
@@ -47,7 +51,8 @@ func TestExtractHistoryImagesEmptyOnGarbage(t *testing.T) {
 }
 
 func TestApplyTerminalSuccessPreservesParams(t *testing.T) {
-	existing := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", 1700)
+	cfg := &imageHistoryConfig{Model: "dall-e-3", Size: "1024x1024", Quality: "high", N: 4}
+	existing := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", cfg, 1700)
 	out, createdAt := applyTerminalHistoryItem(existing, fallbackHistoryFields{}, "success",
 		[]historyImage{{Url: "https://cos/x.png"}}, "")
 	if createdAt != 1700 {
@@ -58,10 +63,14 @@ func TestApplyTerminalSuccessPreservesParams(t *testing.T) {
 	if got.Status != "success" || got.Prompt != "a cat" || len(got.Images) != 1 || got.ErrorMessage != "" {
 		t.Fatalf("unexpected success item: %+v", got)
 	}
+	// The config snapshot recorded at submit time must survive the terminal patch.
+	if got.Config == nil || got.Config.N != 4 {
+		t.Fatalf("config not preserved through terminal patch: %+v", got.Config)
+	}
 }
 
 func TestApplyTerminalErrorSetsMessage(t *testing.T) {
-	existing := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", 1700)
+	existing := buildLoadingHistoryItem("item-1", "task-9", "a cat", "dall-e-3", "1024x1024", "high", "generation", nil, 1700)
 	out, _ := applyTerminalHistoryItem(existing, fallbackHistoryFields{}, "error", nil, "boom")
 	var got imageHistoryItem
 	_ = common.UnmarshalJsonStr(out, &got)

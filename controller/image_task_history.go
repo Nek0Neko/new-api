@@ -18,21 +18,41 @@ type historyImage struct {
 	RevisedPrompt string `json:"revised_prompt,omitempty"`
 }
 
+// imageHistoryConfig mirrors the frontend ImageConfig: the full parameter
+// snapshot taken at submit time so "Regenerate" can reproduce the original
+// request (n / moderation / format / compression) on any device, not just the
+// one that created the item. Stored server-side so it survives a cache clear or
+// a cross-device load (the snapshot was previously device-local only). JSON keys
+// match the frontend ImageConfig field names so the stored doc passes straight
+// through to ImageGenerationItem.config.
+type imageHistoryConfig struct {
+	Model   string `json:"model"`
+	Size    string `json:"size,omitempty"`
+	Quality string `json:"quality,omitempty"`
+	// OutputCompression is a pointer so it serializes to null (not 0) when the
+	// request omitted it, matching the frontend's `number | null` semantics.
+	OutputFormat      string `json:"outputFormat,omitempty"`
+	OutputCompression *int   `json:"outputCompression"`
+	Moderation        string `json:"moderation,omitempty"`
+	N                 int    `json:"n"`
+}
+
 // imageHistoryItem is the server-owned, slimmed playground history document.
 // Its shape mirrors the frontend ImageGenerationItem (minus heavy/base64
 // fields) so GetImageHistoryList can pass the stored JSON straight through.
 type imageHistoryItem struct {
-	Id           string         `json:"id"`
-	Prompt       string         `json:"prompt"`
-	Model        string         `json:"model"`
-	Size         string         `json:"size,omitempty"`
-	Quality      string         `json:"quality,omitempty"`
-	Mode         string         `json:"mode"`
-	CreatedAt    int64          `json:"createdAt"`
-	Status       string         `json:"status"`
-	TaskId       string         `json:"taskId,omitempty"`
-	Images       []historyImage `json:"images"`
-	ErrorMessage string         `json:"errorMessage,omitempty"`
+	Id           string              `json:"id"`
+	Prompt       string              `json:"prompt"`
+	Model        string              `json:"model"`
+	Size         string              `json:"size,omitempty"`
+	Quality      string              `json:"quality,omitempty"`
+	Mode         string              `json:"mode"`
+	CreatedAt    int64               `json:"createdAt"`
+	Status       string              `json:"status"`
+	TaskId       string              `json:"taskId,omitempty"`
+	Config       *imageHistoryConfig `json:"config,omitempty"`
+	Images       []historyImage      `json:"images"`
+	ErrorMessage string              `json:"errorMessage,omitempty"`
 }
 
 // fallbackHistoryFields rebuilds a terminal item when the loading row was
@@ -48,7 +68,7 @@ type fallbackHistoryFields struct {
 
 // buildLoadingHistoryItem produces the JSON document written when a task is
 // submitted: status "loading", empty (non-nil) images, params for display.
-func buildLoadingHistoryItem(itemId, taskId, prompt, modelName, size, quality, mode string, createdAt int64) string {
+func buildLoadingHistoryItem(itemId, taskId, prompt, modelName, size, quality, mode string, cfg *imageHistoryConfig, createdAt int64) string {
 	item := imageHistoryItem{
 		Id:        itemId,
 		Prompt:    prompt,
@@ -59,6 +79,7 @@ func buildLoadingHistoryItem(itemId, taskId, prompt, modelName, size, quality, m
 		CreatedAt: createdAt,
 		Status:    "loading",
 		TaskId:    taskId,
+		Config:    cfg,
 		Images:    []historyImage{},
 	}
 	b, err := common.Marshal(item)
@@ -175,8 +196,8 @@ func migrateHistoryRowImages(ctx context.Context, userId int, r model.ImageHisto
 
 // writeLoadingHistory records the loading row for a submitted task. Best-effort:
 // a history failure must not abort the task, so errors are only logged.
-func writeLoadingHistory(userId int, itemId, taskId, prompt, modelName, size, quality, mode string, createdAt int64) {
-	data := buildLoadingHistoryItem(itemId, taskId, prompt, modelName, size, quality, mode, createdAt)
+func writeLoadingHistory(userId int, itemId, taskId, prompt, modelName, size, quality, mode string, cfg *imageHistoryConfig, createdAt int64) {
+	data := buildLoadingHistoryItem(itemId, taskId, prompt, modelName, size, quality, mode, cfg, createdAt)
 	if data == "" {
 		return
 	}
