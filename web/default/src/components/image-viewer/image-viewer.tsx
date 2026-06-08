@@ -136,8 +136,11 @@ export function ImageViewer({
       else if (e.key === '+' || e.key === '=') zoomIn()
       else if (e.key === '-' || e.key === '_') zoomOut()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // Capture phase: Base UI's Dialog popup stops propagation of arrow keys
+    // (COMPOSITE_KEYS) during the bubble phase, so a default window listener
+    // never sees them. Capturing intercepts before the popup swallows them.
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [open, hasMultiple, goPrev, goNext, zoomIn, zoomOut])
 
   // Cursor-anchored wheel zoom (non-passive so preventDefault works).
