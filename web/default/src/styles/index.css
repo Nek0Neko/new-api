@@ -718,6 +718,21 @@ For commercial licensing, please contact support@quantumnous.com
     .dark [data-slot='card']:hover {
       box-shadow: 0 4px 12px rgb(0 0 0 / 0.3);
     }
+
+    /* Groups page: keep the card's ring (ring-foreground/10) in the shadow
+       stack so the border doesn't vanish on hover. The plain box-shadow above
+       would otherwise override the ring. */
+    .groups-page [data-slot='card']:hover {
+      box-shadow:
+        0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+        0 4px 12px rgb(0 0 0 / 0.06);
+    }
+
+    .dark .groups-page [data-slot='card']:hover {
+      box-shadow:
+        0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+        0 4px 12px rgb(0 0 0 / 0.3);
+    }
   }
 
   button:not(:disabled):active,

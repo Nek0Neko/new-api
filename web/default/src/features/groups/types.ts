@@ -58,6 +58,7 @@ export type GroupChannel = {
   status: number
   group: string
   type: number
+  tag?: string
   has_override?: boolean
 }
 

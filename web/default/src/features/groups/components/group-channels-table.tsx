@@ -115,6 +115,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
             <TableRow>
               <TableHead className="w-16 pl-4">ID</TableHead>
               <TableHead>{t('Name')}</TableHead>
+              <TableHead>{t('Tag')}</TableHead>
               <TableHead>{t('Status')}</TableHead>
               <TableHead className="pr-4 text-right" />
             </TableRow>
@@ -124,6 +125,13 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
               <TableRow key={ch.id}>
                 <TableCell className="pl-4">{ch.id}</TableCell>
                 <TableCell className="font-medium">{ch.name}</TableCell>
+                <TableCell>
+                  {ch.tag ? (
+                    <Badge variant="outline">{ch.tag}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant={ch.status === 1 ? 'secondary' : 'outline'}>
                     {ch.status === 1 ? t('Enabled') : t('Disabled')}
@@ -159,7 +167,7 @@ export function GroupChannelsTable({ groupName, onChanged }: Props) {
             {channels.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={5}
                   className="py-8 text-center text-muted-foreground"
                 >
                   {t('No channels in this group')}

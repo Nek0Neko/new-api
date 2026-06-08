@@ -169,7 +169,7 @@ func GetConsumptionGroupChannels(c *gin.Context) {
 		// Project only display columns — never select "key" to avoid leaking secrets.
 		// Passing columns as a slice lets GORM quote "group" per-dialect.
 		if err := model.DB.
-			Select([]string{"id", "name", "status", "type", "group", "setting"}).
+			Select([]string{"id", "name", "status", "type", "group", "tag", "setting"}).
 			Where("id IN ?", channelIds).
 			Find(&channels).Error; err != nil {
 			common.ApiError(c, err)
@@ -185,6 +185,7 @@ func GetConsumptionGroupChannels(c *gin.Context) {
 		Status      int    `json:"status"`
 		Type        int    `json:"type"`
 		Group       string `json:"group"`
+		Tag         string `json:"tag"`
 		HasOverride bool   `json:"has_override"`
 	}
 	result := make([]groupChannel, 0, len(channels))
@@ -203,6 +204,7 @@ func GetConsumptionGroupChannels(c *gin.Context) {
 			Status:      ch.Status,
 			Type:        ch.Type,
 			Group:       ch.Group,
+			Tag:         ch.GetTag(),
 			HasOverride: hasOverride,
 		})
 	}

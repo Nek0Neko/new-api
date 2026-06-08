@@ -89,7 +89,7 @@ export function Groups() {
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Groups')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
-        <div className="flex flex-col gap-4">
+        <div className="groups-page flex flex-col gap-4">
           {consumption && (
             <GlobalGroupSettingsCard
               data={consumption}
