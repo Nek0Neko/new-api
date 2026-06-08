@@ -109,17 +109,61 @@ func SensitiveWordContains(text string) (bool, []SensitiveWordHit) {
 	if snap.machine == nil {
 		return false, nil
 	}
-	checkText := strings.ToLower(text)
-	matched := snap.machine.MultiPatternSearch([]rune(checkText), true)
+	runes := []rune(strings.ToLower(text))
+	// returnImmediately=false:需拿到全部原始命中后再做词边界过滤,
+	// 否则第一个命中若是无效子串(如 "analysis" 里的 "anal")会提前返回并漏掉后续有效命中。
+	matched := snap.machine.MultiPatternSearch(runes, false)
 	if len(matched) == 0 {
 		return false, nil
 	}
 	hits := make([]SensitiveWordHit, 0, len(matched))
 	for _, hit := range matched {
+		if !isBoundaryValidHit(runes, hit) {
+			continue
+		}
 		word := string(hit.Word)
 		hits = append(hits, SensitiveWordHit{GroupName: snap.wordGroup[word], Word: word})
 	}
+	if len(hits) == 0 {
+		return false, nil
+	}
 	return true, hits
+}
+
+// isASCIIWordRune 报告 r 是否为构成英文单词的 ASCII 字符(字母或数字)。
+func isASCIIWordRune(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+}
+
+// isASCIIWord 报告 s 是否完全由 ASCII 字母/数字组成。
+func isASCIIWord(s []rune) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, r := range s {
+		if !isASCIIWordRune(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// isBoundaryValidHit 对纯 ASCII 词施加词边界约束:命中片段紧邻的前/后字符若仍是
+// ASCII 词字符,说明它只是更大单词的一部分(如 "anal" ∈ "analysis"),判为无效命中。
+// 含 CJK 等非 ASCII 字符的词没有空格分隔概念,保持原子串匹配语义,始终有效。
+func isBoundaryValidHit(runes []rune, hit *goahocorasick.Term) bool {
+	if !isASCIIWord(hit.Word) {
+		return true
+	}
+	start := hit.Pos
+	end := hit.Pos + len(hit.Word)
+	if start > 0 && isASCIIWordRune(runes[start-1]) {
+		return false
+	}
+	if end < len(runes) && isASCIIWordRune(runes[end]) {
+		return false
+	}
+	return true
 }
 
 // FormatSensitiveHits 格式化命中详情用于日志: [组名]词, [组名]词
@@ -141,8 +185,20 @@ func SensitiveWordReplace(text string, returnImmediately bool) (bool, []string, 
 	if snap.machine == nil {
 		return false, nil, text
 	}
-	checkText := strings.ToLower(text)
-	hits := snap.machine.MultiPatternSearch([]rune(checkText), returnImmediately)
+	runes := []rune(strings.ToLower(text))
+	// 始终全量搜索,过滤掉未通过词边界约束的 ASCII 子串命中(如 "anal" ∈ "analysis"),
+	// 再按 returnImmediately 决定是否只保留首个有效命中。
+	rawHits := snap.machine.MultiPatternSearch(runes, false)
+	hits := make([]*goahocorasick.Term, 0, len(rawHits))
+	for _, hit := range rawHits {
+		if !isBoundaryValidHit(runes, hit) {
+			continue
+		}
+		hits = append(hits, hit)
+		if returnImmediately {
+			break
+		}
+	}
 	if len(hits) > 0 {
 		words := make([]string, 0, len(hits))
 		var builder strings.Builder

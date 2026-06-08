@@ -81,6 +81,54 @@ func TestFormatSensitiveHits(t *testing.T) {
 	}
 }
 
+func TestSensitiveWordBoundaryASCIINoSubstringMatch(t *testing.T) {
+	setGroups(t, `[{"name":"色情词库","enabled":true,"words":["anal"]}]`)
+	// 纯 ASCII 词要求词边界:不得命中更大单词的子串(这正是 codex 全站 500 的根因)。
+	for _, s := range []string{
+		"please run static analysis on this",
+		"let me analyze the data",
+		"open the analytics dashboard",
+		"walk along the canal",
+	} {
+		if c, hits := SensitiveWordContains(s); c {
+			t.Fatalf("ASCII substring should not match for %q, got %+v", s, hits)
+		}
+	}
+}
+
+func TestSensitiveWordBoundaryASCIIWholeWordMatches(t *testing.T) {
+	setGroups(t, `[{"name":"色情词库","enabled":true,"words":["anal"]}]`)
+	for _, s := range []string{
+		"anal",
+		"this is anal sex",
+		"anal.",
+		"(anal)",
+		"ANAL content",
+	} {
+		if c, _ := SensitiveWordContains(s); !c {
+			t.Fatalf("whole-word should match for %q", s)
+		}
+	}
+}
+
+func TestSensitiveWordBoundaryDigitAdjacency(t *testing.T) {
+	setGroups(t, `[{"name":"A","enabled":true,"words":["ass"]}]`)
+	if c, hits := SensitiveWordContains("class assertion bass"); c {
+		t.Fatalf("ass should not match inside class/assertion/bass, got %+v", hits)
+	}
+	if c, _ := SensitiveWordContains("dumb ass"); !c {
+		t.Fatal("standalone ass should match")
+	}
+}
+
+func TestSensitiveWordCJKStillSubstring(t *testing.T) {
+	setGroups(t, `[{"name":"政治","enabled":true,"words":["敏感"]}]`)
+	// CJK 无空格分隔,保持子串匹配:夹在其他汉字中仍应命中。
+	if c, _ := SensitiveWordContains("这是敏感词测试"); !c {
+		t.Fatal("CJK word should still match as substring")
+	}
+}
+
 func TestSnapshotConcurrentReadDuringUpdate(t *testing.T) {
 	setGroups(t, `[{"name":"A","enabled":true,"words":["word0"]}]`)
 	stop := make(chan struct{})

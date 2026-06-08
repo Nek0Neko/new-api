@@ -136,8 +136,16 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 	if needSensitiveCheck && meta != nil {
 		contains, hits := service.CheckSensitiveText(meta.CombineText)
 		if contains {
-			logger.LogWarn(c, fmt.Sprintf("user sensitive words detected: %s", service.FormatSensitiveHits(hits)))
-			newAPIError = types.NewError(err, types.ErrorCodeSensitiveWordsDetected)
+			hitText := service.FormatSensitiveHits(hits)
+			logger.LogWarn(c, fmt.Sprintf("user sensitive words detected: %s", hitText))
+			// 命中敏感词属于用户输入问题:返回 400 且标记不重试,避免客户端(如 codex)
+			// 把默认的 500 当成服务端临时故障而无限退避重连。
+			newAPIError = types.NewErrorWithStatusCode(
+				errors.New("sensitive words detected: "+hitText),
+				types.ErrorCodeSensitiveWordsDetected,
+				http.StatusBadRequest,
+				types.ErrOptionWithSkipRetry(),
+			)
 			return
 		}
 	}
