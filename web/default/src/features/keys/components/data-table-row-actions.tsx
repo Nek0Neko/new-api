@@ -58,19 +58,6 @@ import { API_KEY_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import { apiKeySchema } from '../types'
 import { useApiKeys } from './api-keys-provider'
 
-function getServerAddress(): string {
-  try {
-    const raw = localStorage.getItem('status')
-    if (raw) {
-      const status = JSON.parse(raw)
-      if (status.server_address) return status.server_address as string
-    }
-  } catch {
-    /* empty */
-  }
-  return window.location.origin
-}
-
 function encodeConnectionString(key: string, url: string): string {
   return JSON.stringify({
     _type: 'newapi_channel_conn',
@@ -96,6 +83,7 @@ export function DataTableRowActions<TData>({
     resolveRealKey,
     resolvedKeys,
     loadingKeys,
+    selectedEndpoint,
   } = useApiKeys()
   const isEnabled = apiKey.status === API_KEY_STATUS.ENABLED
   const { chatPresets, serverAddress } = useChatPresets()
@@ -253,7 +241,7 @@ export function DataTableRowActions<TData>({
               if (!realKey) return
               const connStr = encodeConnectionString(
                 realKey,
-                getServerAddress()
+                selectedEndpoint.url
               )
               const ok = await copyToClipboard(connStr)
               if (ok) toast.success(t('Copied'))
