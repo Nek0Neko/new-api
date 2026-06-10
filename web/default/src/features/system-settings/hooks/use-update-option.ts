@@ -26,6 +26,7 @@ import type { UpdateOptionRequest } from '../types'
 const STATUS_RELATED_KEYS = [
   'HeaderNavModules',
   'SidebarModulesAdmin',
+  'ImageGenerationLink',
   'Notice',
   'LogConsumeEnabled',
   'QuotaPerUnit',

@@ -106,7 +106,10 @@ export function GlobalGroupSettingsCard({ data, rechargeGroups, onSaved }: Props
           <Label htmlFor="default-channel-group">
             {t('Default channel group')}
           </Label>
-          <Select value={defChannel} onValueChange={setDefChannel}>
+          <Select
+            value={defChannel}
+            onValueChange={(value) => setDefChannel(value ?? '')}
+          >
             <SelectTrigger id="default-channel-group">
               <SelectValue />
             </SelectTrigger>
@@ -123,7 +126,10 @@ export function GlobalGroupSettingsCard({ data, rechargeGroups, onSaved }: Props
           <Label htmlFor="new-user-default-group">
             {t('New user default group')}
           </Label>
-          <Select value={newUser} onValueChange={setNewUser}>
+          <Select
+            value={newUser}
+            onValueChange={(value) => setNewUser(value ?? '')}
+          >
             <SelectTrigger id="new-user-default-group">
               <SelectValue />
             </SelectTrigger>

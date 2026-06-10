@@ -40,6 +40,7 @@ export const STATIC_I18N_KEYS = [
   'Integrations',
   'Models',
   'Maintenance',
+  'Image Generation',
 
   // Pricing constants
   'Name',
