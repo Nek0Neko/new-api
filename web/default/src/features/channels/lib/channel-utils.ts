@@ -346,6 +346,13 @@ export function formatResponseTime(timeMs: number, t?: TFunction): string {
     : `${(timeMs / 1000).toFixed(2)}s`
 }
 
+export function formatTokensPerSecond(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '-'
+  if (value >= 100) return `${Math.round(value)} t/s`
+  if (value >= 10) return `${value.toFixed(1)} t/s`
+  return `${value.toFixed(2)} t/s`
+}
+
 /**
  * Get response time performance rating
  */
@@ -541,6 +548,7 @@ export function aggregateChannelsByTag(
         group: '',
         used_quota: 0,
         response_time: 0,
+        token_speed: 0,
         priority: -1 as unknown as number | null,
         weight: -1 as unknown as number | null,
         balance: 0,
@@ -566,6 +574,11 @@ export function aggregateChannelsByTag(
     // Aggregate response_time (average)
     tagRow.response_time =
       (tagRow.response_time * (childCount - 1) + channel.response_time) /
+      childCount
+
+    const channelTokenSpeed = channel.token_speed || 0
+    tagRow.token_speed =
+      ((tagRow.token_speed || 0) * (childCount - 1) + channelTokenSpeed) /
       childCount
 
     // Aggregate priority (same value or null if different)

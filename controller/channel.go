@@ -91,6 +91,61 @@ func buildChannelListQuery(group string, statusFilter int, typeFilter int) *gorm
 	return query
 }
 
+func parseChannelIds(raw string, maxIds int) ([]int, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, fmt.Errorf("ids is required")
+	}
+	seen := make(map[int]bool)
+	ids := make([]int, 0)
+	for _, part := range strings.Split(raw, ",") {
+		id, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("invalid channel id: %s", part)
+		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		ids = append(ids, id)
+		if len(ids) > maxIds {
+			return nil, fmt.Errorf("too many channel ids, max %d", maxIds)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("ids is required")
+	}
+	return ids, nil
+}
+
+func GetChannelTokenSpeed(c *gin.Context) {
+	ids, err := parseChannelIds(c.Query("ids"), 200)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	hours, _ := strconv.Atoi(c.DefaultQuery("hours", "24"))
+	if hours <= 0 {
+		hours = 24
+	}
+	if hours > 24*30 {
+		hours = 24 * 30
+	}
+
+	endTimestamp := time.Now().Unix()
+	startTimestamp := endTimestamp - int64(hours)*3600
+	stats, err := model.GetChannelTokenSpeeds(ids, startTimestamp, endTimestamp)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	common.ApiSuccess(c, gin.H{
+		"items": stats,
+		"hours": hours,
+	})
+}
+
 func GetAllChannels(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	channelData := make([]*model.Channel, 0)

@@ -53,6 +53,7 @@ export const channelSchema = z.object({
   models: z.string().default(''),
   group: z.string().default('default'),
   used_quota: z.number().default(0),
+  token_speed: z.number().default(0),
   model_mapping: z.string().nullish(),
   status_code_mapping: z.string().nullish(),
   priority: z.number().nullish(),
@@ -140,6 +141,22 @@ export interface GetChannelResponse {
   success: boolean
   message?: string
   data?: Channel
+}
+
+export interface ChannelTokenSpeed {
+  channel_id: number
+  completion_tokens: number
+  use_time_seconds: number
+  tokens_per_second: number
+}
+
+export interface GetChannelTokenSpeedsResponse {
+  success: boolean
+  message?: string
+  data?: {
+    items: ChannelTokenSpeed[]
+    hours: number
+  }
 }
 
 export interface ChannelTestResponse {

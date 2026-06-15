@@ -57,6 +57,7 @@ import {
   formatBalance,
   formatRelativeTime,
   formatResponseTime,
+  formatTokensPerSecond,
   getBalanceVariant,
   getChannelTypeIcon,
   getChannelTypeLabel,
@@ -997,6 +998,28 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
         )
       },
       size: 110,
+    },
+
+    // Token speed column
+    {
+      accessorKey: 'token_speed',
+      meta: { label: t('Token speed'), mobileHidden: true },
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('Token speed')} />
+      ),
+      cell: ({ row }) => {
+        const tokenSpeed = row.getValue('token_speed') as number
+        return (
+          <StatusBadge
+            label={formatTokensPerSecond(tokenSpeed)}
+            variant={tokenSpeed > 0 ? 'blue' : 'neutral'}
+            size='sm'
+            copyable={false}
+          />
+        )
+      },
+      size: 120,
+      enableSorting: false,
     },
 
     // Test Time column

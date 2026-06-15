@@ -25,6 +25,7 @@ import type {
   Channel,
   ChannelBalanceResponse,
   ChannelTestResponse,
+  GetChannelTokenSpeedsResponse,
   CopyChannelParams,
   CopyChannelResponse,
   FetchModelsResponse,
@@ -116,6 +117,19 @@ export async function searchChannels(
  */
 export async function getChannel(id: number): Promise<GetChannelResponse> {
   const res = await api.get(`/api/channel/${id}`)
+  return res.data
+}
+
+export async function getChannelTokenSpeeds(
+  ids: number[],
+  hours: number = 24
+): Promise<GetChannelTokenSpeedsResponse> {
+  const res = await api.get('/api/channel/token_speed', {
+    params: {
+      ids: ids.join(','),
+      hours,
+    },
+  })
   return res.data
 }
 

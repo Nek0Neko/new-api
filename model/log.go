@@ -454,6 +454,43 @@ type Stat struct {
 	Tpm   int `json:"tpm"`
 }
 
+type ChannelTokenSpeed struct {
+	ChannelId        int     `json:"channel_id" gorm:"column:channel_id"`
+	CompletionTokens int64   `json:"completion_tokens" gorm:"column:completion_tokens"`
+	UseTimeSeconds   int64   `json:"use_time_seconds" gorm:"column:use_time_seconds"`
+	TokensPerSecond  float64 `json:"tokens_per_second" gorm:"-"`
+}
+
+func GetChannelTokenSpeeds(channelIds []int, startTimestamp int64, endTimestamp int64) ([]ChannelTokenSpeed, error) {
+	if len(channelIds) == 0 {
+		return []ChannelTokenSpeed{}, nil
+	}
+
+	query := LOG_DB.Table("logs").
+		Select("channel_id, sum(completion_tokens) as completion_tokens, sum(use_time) as use_time_seconds").
+		Where("type = ?", LogTypeConsume).
+		Where("channel_id IN ?", channelIds).
+		Where("completion_tokens > 0").
+		Where("use_time > 0")
+	if startTimestamp != 0 {
+		query = query.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		query = query.Where("created_at <= ?", endTimestamp)
+	}
+
+	var stats []ChannelTokenSpeed
+	if err := query.Group("channel_id").Find(&stats).Error; err != nil {
+		return nil, err
+	}
+	for i := range stats {
+		if stats[i].UseTimeSeconds > 0 {
+			stats[i].TokensPerSecond = float64(stats[i].CompletionTokens) / float64(stats[i].UseTimeSeconds)
+		}
+	}
+	return stats, nil
+}
+
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("sum(quota) quota")
 

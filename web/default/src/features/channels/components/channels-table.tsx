@@ -39,7 +39,12 @@ import {
   DISABLED_ROW_MOBILE,
   DataTablePage,
 } from '@/components/data-table'
-import { getChannels, searchChannels, getGroups } from '../api'
+import {
+  getChannels,
+  searchChannels,
+  getGroups,
+  getChannelTokenSpeeds,
+} from '../api'
 import {
   DEFAULT_PAGE_SIZE,
   CHANNEL_STATUS,
@@ -68,6 +73,9 @@ const CHANNEL_SORTABLE_COLUMNS = new Set<ChannelSortBy>([
   'test_time',
 ])
 
+const TOKEN_SPEED_WINDOW_HOURS = 24
+const EMPTY_FILTER_VALUES: string[] = []
+
 function isDisabledChannelRow(channel: Channel) {
   return (
     !isTagAggregateRow(channel) && channel.status !== CHANNEL_STATUS.ENABLED
@@ -84,6 +92,7 @@ export function ChannelsTable() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     models: false,
     tag: false,
+    token_speed: false,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [expanded, setExpanded] = useState<ExpandedState>({})
@@ -115,11 +124,14 @@ export function ChannelsTable() {
 
   // Extract filters from column filters
   const statusFilter =
-    (columnFilters.find((f) => f.id === 'status')?.value as string[]) || []
+    (columnFilters.find((f) => f.id === 'status')?.value as string[]) ||
+    EMPTY_FILTER_VALUES
   const typeFilter =
-    (columnFilters.find((f) => f.id === 'type')?.value as string[]) || []
+    (columnFilters.find((f) => f.id === 'type')?.value as string[]) ||
+    EMPTY_FILTER_VALUES
   const groupFilter =
-    (columnFilters.find((f) => f.id === 'group')?.value as string[]) || []
+    (columnFilters.find((f) => f.id === 'group')?.value as string[]) ||
+    EMPTY_FILTER_VALUES
   const modelFilterFromUrl =
     (columnFilters.find((f) => f.id === 'model')?.value as string) || ''
 
@@ -261,16 +273,53 @@ export function ChannelsTable() {
     placeholderData: (previousData) => previousData,
   })
 
+  const baseChannels = useMemo(() => {
+    return data?.data?.items || []
+  }, [data?.data?.items])
+
+  const tokenSpeedColumnVisible = columnVisibility.token_speed === true
+  const tokenSpeedChannelIds = useMemo(() => {
+    if (!tokenSpeedColumnVisible) return []
+    return baseChannels.map((channel) => channel.id).filter((id) => id > 0)
+  }, [baseChannels, tokenSpeedColumnVisible])
+
+  const { data: tokenSpeedData } = useQuery({
+    queryKey: channelsQueryKeys.tokenSpeeds(
+      tokenSpeedChannelIds,
+      TOKEN_SPEED_WINDOW_HOURS
+    ),
+    queryFn: () =>
+      getChannelTokenSpeeds(tokenSpeedChannelIds, TOKEN_SPEED_WINDOW_HOURS),
+    enabled: tokenSpeedColumnVisible && tokenSpeedChannelIds.length > 0,
+    staleTime: 60 * 1000,
+  })
+
+  const tokenSpeedMap = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const item of tokenSpeedData?.data?.items || []) {
+      map.set(item.channel_id, item.tokens_per_second)
+    }
+    return map
+  }, [tokenSpeedData])
+
+  const channelsWithTokenSpeed = useMemo(() => {
+    if (!tokenSpeedColumnVisible) return baseChannels
+    return baseChannels.map((channel) => ({
+      ...channel,
+      token_speed: tokenSpeedMap.get(channel.id) || 0,
+    }))
+  }, [baseChannels, tokenSpeedColumnVisible, tokenSpeedMap])
+
   // Apply tag aggregation if tag mode is enabled
   const channels = useMemo(() => {
-    const rawChannels = data?.data?.items || []
+    const rawChannels = channelsWithTokenSpeed
 
     if (enableTagMode && rawChannels.length > 0) {
       return aggregateChannelsByTag(rawChannels)
     }
 
     return rawChannels
-  }, [data, enableTagMode])
+  }, [channelsWithTokenSpeed, enableTagMode])
 
   const totalCount = data?.data?.total || 0
   const typeCounts = data?.data?.type_counts
