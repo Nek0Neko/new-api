@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/mediastore"
+	"github.com/QuantumNous/new-api/setting/object_storage_setting"
 
 	"github.com/QuantumNous/new-api/types"
 
@@ -631,9 +632,14 @@ func OpenaiHandlerWithUsage(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 		return nil, types.NewOpenAIError(fmt.Errorf("%s", msg), types.ErrorCodeBadResponseBody, http.StatusBadGateway, types.ErrOptionWithSkipRetry())
 	}
 
-	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
-	if storeCOS {
-		responseBody = mediastore.RewriteImageResponseBody(c.Request.Context(), responseBody)
+	// Image responses: offload generated images to COS whenever it is configured,
+	// independent of response_format or channel pass-through, so the synchronous
+	// path matches the async image-task path (OffloadImageResponseBody). It is a
+	// no-op (keeps the original base64) when COS is disabled or an upload fails.
+	if isImageRelayMode(info.RelayMode) {
+		if offloaded, changed := mediastore.OffloadImageResponseBody(c.Request.Context(), responseBody); changed {
+			responseBody = offloaded
+		}
 	}
 
 	// 写入新的 response body
@@ -669,7 +675,11 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	var lastPartial string
 	var sawCompleted bool
 
-	storeCOS := c.GetBool(mediastore.CtxStoreImageCOS)
+	// Rewrite stream image events to COS whenever it is configured, independent of
+	// response_format or channel pass-through, matching the synchronous and async
+	// image paths. No-op when COS is disabled (uploadBase64 returns an error and
+	// the event passes through unchanged).
+	storeCOS := object_storage_setting.IsCOSEnabled()
 
 	helper.StreamScannerHandler(c, resp, info, func(data string, sr *helper.StreamResult) {
 		if storeCOS {

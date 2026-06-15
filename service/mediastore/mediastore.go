@@ -7,12 +7,6 @@ import (
 	"strings"
 )
 
-// CtxStoreImageCOS is the gin context key signalling that generated images in
-// this request's response should be offloaded to object storage and returned as
-// URLs. Set during ConvertImageRequest when the client requested
-// response_format=url and COS is enabled.
-const CtxStoreImageCOS = "store_image_cos"
-
 // Uploader uploads raw image bytes and returns a publicly accessible URL.
 type Uploader interface {
 	Upload(ctx context.Context, data []byte, mime string) (string, error)

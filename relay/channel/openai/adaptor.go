@@ -27,7 +27,6 @@ import (
 	"github.com/QuantumNous/new-api/relay/common_handler"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/service"
-	"github.com/QuantumNous/new-api/service/mediastore"
 	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/QuantumNous/new-api/setting/object_storage_setting"
 	"github.com/QuantumNous/new-api/setting/reasoning"
@@ -456,10 +455,11 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 			if len(mf.Value["response_format"]) > 0 {
 				reqFmt = mf.Value["response_format"][0]
 			}
+			// When COS is configured and the client asked for a url, stream b64
+			// frames upstream so the final image can be offloaded to COS. The
+			// response handlers offload unconditionally (gated only on COS being
+			// enabled), so no context flag is needed here.
 			storeCOS := cosEnabled && reqFmt == "url"
-			if storeCOS {
-				c.Set(mediastore.CtxStoreImageCOS, true)
-			}
 			for key, values := range mf.Value {
 				if key == "model" {
 					continue
@@ -573,16 +573,13 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		cosEnabled := object_storage_setting.IsCOSEnabled()
 		storeCOS := cosEnabled && request.ResponseFormat == "url"
 		isStream := request.Stream != nil && *request.Stream
-		if storeCOS {
-			// Client wants a url and COS is configured: signal the response
-			// handler to upload b64 -> COS. `request` is a by-value copy, so
-			// mutating ResponseFormat here does not affect info.Request.
-			c.Set(mediastore.CtxStoreImageCOS, true)
-			if isStream {
-				// Streaming must yield b64 frames; the final image is uploaded
-				// to COS by the stream handler.
-				request.ResponseFormat = "b64_json"
-			}
+		if storeCOS && isStream {
+			// Streaming must yield b64 frames so the final image can be uploaded
+			// to COS by the stream handler. `request` is a by-value copy, so
+			// mutating ResponseFormat here does not affect info.Request. The
+			// response handlers offload unconditionally (gated only on COS being
+			// enabled), so no context flag is needed here.
+			request.ResponseFormat = "b64_json"
 		}
 		return request, nil
 	}
