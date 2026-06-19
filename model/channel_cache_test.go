@@ -30,7 +30,7 @@ func TestGetRandomSatisfiedChannelWithExclusionsFallsThroughPriority(t *testing.
 		10: {Id: 10, Priority: &priorityLow},
 	}
 
-	channel, err := GetRandomSatisfiedChannelWithExclusions("default", "gpt-test", 0, map[int]bool{1: true})
+	channel, err := GetRandomSatisfiedChannelWithExclusions("default", "gpt-test", 0, "", map[int]bool{1: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

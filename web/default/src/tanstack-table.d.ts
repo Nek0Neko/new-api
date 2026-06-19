@@ -19,21 +19,14 @@ For commercial licensing, please contact support@quantumnous.com
 import '@tanstack/react-table'
 
 declare module '@tanstack/react-table' {
-  // Extended column metadata for enhanced table functionality
   interface ColumnMeta<_TData, _TValue> {
-    // Human-readable label for the column
     label?: string
-    // Optional description shown in tooltips or help text
     description?: string
-    // Whether this column can be sorted (overrides default behavior)
-    sortable?: boolean
-    // Custom CSS classes to apply to the column cells
     className?: string
-    // Whether this column should be used as the mobile card title
-    mobileTitle?: boolean
-    // Whether this column should be hidden in mobile card layouts
-    mobileHidden?: boolean
-    // Whether this column should be shown as a mobile card badge
-    mobileBadge?: boolean
+    pinned?: 'left' | 'right'
+    // Mobile card list layout hints (used by MobileCardList)
+    mobileTitle?: boolean // card title area (left, larger text)
+    mobileBadge?: boolean // status badge alongside title (right)
+    mobileHidden?: boolean // hide this column on mobile entirely
   }
 }

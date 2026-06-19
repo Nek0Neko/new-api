@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -28,7 +29,6 @@ import (
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
-	"github.com/QuantumNous/new-api/setting/object_storage_setting"
 	"github.com/QuantumNous/new-api/setting/reasoning"
 	"github.com/QuantumNous/new-api/types"
 	"github.com/samber/lo"
@@ -311,18 +311,20 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 		}
 
 	}
-	if strings.HasPrefix(info.UpstreamModelName, "o") || strings.HasPrefix(info.UpstreamModelName, "gpt-5") {
+	isOModel := dto.IsOpenAIReasoningOModel(info.UpstreamModelName)
+	isGPT5Model := dto.IsOpenAIGPT5Model(info.UpstreamModelName)
+	if isOModel || isGPT5Model {
 		if lo.FromPtrOr(request.MaxCompletionTokens, uint(0)) == 0 && lo.FromPtrOr(request.MaxTokens, uint(0)) != 0 {
 			request.MaxCompletionTokens = request.MaxTokens
 			request.MaxTokens = nil
 		}
 
-		if strings.HasPrefix(info.UpstreamModelName, "o") {
+		if isOModel {
 			request.Temperature = nil
 		}
 
 		// gpt-5系列模型适配 归零不再支持的参数
-		if strings.HasPrefix(info.UpstreamModelName, "gpt-5") {
+		if isGPT5Model {
 			request.Temperature = nil
 			request.TopP = nil
 			request.LogProbs = nil
@@ -438,35 +440,19 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		// 使用已解析的 multipart 表单，避免重复解析
 		mf := c.Request.MultipartForm
 		if mf == nil {
-			if _, err := c.MultipartForm(); err != nil {
-				return nil, errors.New("failed to parse multipart form")
+			form, err := common.ParseMultipartFormReusable(c)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse multipart form: %w", err)
 			}
-			mf = c.Request.MultipartForm
+			c.Request.MultipartForm = form
+			c.Request.PostForm = url.Values(form.Value)
+			mf = form
 		}
 
 		// 写入所有非文件字段
 		if mf != nil {
-			isStream := false
-			if vs := mf.Value["stream"]; len(vs) > 0 {
-				isStream = vs[0] == "true"
-			}
-			cosEnabled := object_storage_setting.IsCOSEnabled()
-			reqFmt := ""
-			if len(mf.Value["response_format"]) > 0 {
-				reqFmt = mf.Value["response_format"][0]
-			}
-			// When COS is configured and the client asked for a url, stream b64
-			// frames upstream so the final image can be offloaded to COS. The
-			// response handlers offload unconditionally (gated only on COS being
-			// enabled), so no context flag is needed here.
-			storeCOS := cosEnabled && reqFmt == "url"
 			for key, values := range mf.Value {
 				if key == "model" {
-					continue
-				}
-				if key == "response_format" && storeCOS && isStream {
-					// Streaming needs b64 frames upstream; final image -> COS.
-					writer.WriteField("response_format", "b64_json")
 					continue
 				}
 				for _, value := range values {
@@ -570,17 +556,6 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		return &requestBody, nil
 
 	default:
-		cosEnabled := object_storage_setting.IsCOSEnabled()
-		storeCOS := cosEnabled && request.ResponseFormat == "url"
-		isStream := request.Stream != nil && *request.Stream
-		if storeCOS && isStream {
-			// Streaming must yield b64 frames so the final image can be uploaded
-			// to COS by the stream handler. `request` is a by-value copy, so
-			// mutating ResponseFormat here does not affect info.Request. The
-			// response handlers offload unconditionally (gated only on COS being
-			// enabled), so no context flag is needed here.
-			request.ResponseFormat = "b64_json"
-		}
 		return request, nil
 	}
 }
@@ -657,7 +632,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		if info.IsStream {
 			usage, err = OpenaiImageStreamHandler(c, info, resp)
 		} else {
-			usage, err = OpenaiHandlerWithUsage(c, info, resp)
+			usage, err = OpenaiImageHandler(c, info, resp)
 		}
 	case relayconstant.RelayModeRerank:
 		usage, err = common_handler.RerankHandler(c, info, resp)
