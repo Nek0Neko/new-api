@@ -300,6 +300,20 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	default:
+		if strings.HasPrefix(option.Key, "channel_circuit_breaker.") {
+			configKey := strings.TrimPrefix(option.Key, "channel_circuit_breaker.")
+			err = operation_setting.ValidateChannelCircuitBreakerOption(configKey, option.Value.(string))
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": err.Error(),
+				})
+				return
+			}
+		}
+	}
+	switch option.Key {
 	case "console_setting.api_info":
 		err = console_setting.ValidateConsoleSettings(option.Value.(string), "ApiInfo")
 		if err != nil {

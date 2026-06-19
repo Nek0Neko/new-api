@@ -282,6 +282,17 @@ export type OperationsSettings = {
   AutomaticDisableKeywords: string
   AutomaticDisableStatusCodes: string
   AutomaticRetryStatusCodes: string
+  'channel_circuit_breaker.enabled': boolean
+  'channel_circuit_breaker.failure_threshold': number
+  'channel_circuit_breaker.success_threshold': number
+  'channel_circuit_breaker.cooldown_seconds': number
+  'channel_circuit_breaker.max_cooldown_seconds': number
+  'channel_circuit_breaker.failure_window_seconds': number
+  'channel_circuit_breaker.probe_interval_seconds': number
+  'channel_circuit_breaker.probe_timeout_seconds': number
+  'channel_circuit_breaker.trip_on_channel_error': boolean
+  'channel_circuit_breaker.trip_on_network_error': boolean
+  'channel_circuit_breaker.trip_status_codes': number[]
   'monitor_setting.auto_test_channel_enabled': boolean
   'monitor_setting.auto_test_channel_minutes': number
   SMTPServer: string

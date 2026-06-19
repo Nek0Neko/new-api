@@ -104,31 +104,68 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 }
 
 func GetChannel(group string, model string, retry int) (*Channel, error) {
+	return GetChannelWithExclusions(group, model, retry, nil)
+}
+
+func GetChannelWithExclusions(group string, model string, retry int, excludedChannelIDs map[int]bool) (*Channel, error) {
 	var abilities []Ability
 
-	var err error = nil
-	channelQuery, err := getChannelQuery(group, model, retry)
-	if err != nil {
-		return nil, err
+	channelQuery := DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
+	if len(excludedChannelIDs) > 0 {
+		ids := make([]int, 0, len(excludedChannelIDs))
+		for id := range excludedChannelIDs {
+			ids = append(ids, id)
+		}
+		channelQuery = channelQuery.Where("channel_id NOT IN ?", ids)
 	}
-	if common.UsingSQLite || common.UsingPostgreSQL {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	} else {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	}
+	err := channelQuery.Order("priority DESC").Order("weight DESC").Find(&abilities).Error
 	if err != nil {
 		return nil, err
 	}
 	channel := Channel{}
 	if len(abilities) > 0 {
+		prioritySeen := make(map[int64]struct{})
+		priorities := make([]int64, 0)
+		for _, ability := range abilities {
+			priority := int64(0)
+			if ability.Priority != nil {
+				priority = *ability.Priority
+			}
+			if _, ok := prioritySeen[priority]; ok {
+				continue
+			}
+			prioritySeen[priority] = struct{}{}
+			priorities = append(priorities, priority)
+		}
+		if len(priorities) == 0 {
+			return nil, nil
+		}
+		if retry >= len(priorities) {
+			retry = len(priorities) - 1
+		}
+		targetPriority := priorities[retry]
+
+		targetAbilities := make([]Ability, 0, len(abilities))
+		for _, ability := range abilities {
+			priority := int64(0)
+			if ability.Priority != nil {
+				priority = *ability.Priority
+			}
+			if priority == targetPriority {
+				targetAbilities = append(targetAbilities, ability)
+			}
+		}
+		if len(targetAbilities) == 0 {
+			return nil, nil
+		}
 		// Randomly choose one
 		weightSum := uint(0)
-		for _, ability_ := range abilities {
+		for _, ability_ := range targetAbilities {
 			weightSum += ability_.Weight + 10
 		}
 		// Randomly choose one
 		weight := common.GetRandomInt(int(weightSum))
-		for _, ability_ := range abilities {
+		for _, ability_ := range targetAbilities {
 			weight -= int(ability_.Weight) + 10
 			//log.Printf("weight: %d, ability weight: %d", weight, *ability_.Weight)
 			if weight <= 0 {

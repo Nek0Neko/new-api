@@ -33,11 +33,14 @@ func TestBuildLoadingHistoryItem(t *testing.T) {
 func TestExtractHistoryImagesKeepsUrlsDropsBase64(t *testing.T) {
 	body := []byte(`{"created":1,"data":[{"url":"https://cos/x.png","revised_prompt":"r"},{"b64_json":"AAAA"},{"url":""}]}`)
 	imgs := extractHistoryImages(body)
-	if len(imgs) != 1 {
-		t.Fatalf("want 1 url image, got %d (%#v)", len(imgs), imgs)
+	if len(imgs) != 2 {
+		t.Fatalf("want url image plus base64 fallback, got %d (%#v)", len(imgs), imgs)
 	}
 	if imgs[0].Url != "https://cos/x.png" || imgs[0].RevisedPrompt != "r" {
 		t.Fatalf("unexpected image: %+v", imgs[0])
+	}
+	if imgs[1].B64Json != "AAAA" {
+		t.Fatalf("unexpected base64 fallback: %+v", imgs[1])
 	}
 }
 

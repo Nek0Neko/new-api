@@ -355,6 +355,17 @@ func setChannelAffinityContext(c *gin.Context, meta channelAffinityMeta) {
 	c.Set(ginKeyChannelAffinityMeta, meta)
 }
 
+func ClearChannelAffinityContext(c *gin.Context) {
+	if c == nil || c.Keys == nil {
+		return
+	}
+	delete(c.Keys, ginKeyChannelAffinityCacheKey)
+	delete(c.Keys, ginKeyChannelAffinityTTLSeconds)
+	delete(c.Keys, ginKeyChannelAffinityMeta)
+	delete(c.Keys, ginKeyChannelAffinityLogInfo)
+	delete(c.Keys, ginKeyChannelAffinitySkipRetry)
+}
+
 func getChannelAffinityContext(c *gin.Context) (string, int, bool) {
 	keyAny, ok := c.Get(ginKeyChannelAffinityCacheKey)
 	if !ok {

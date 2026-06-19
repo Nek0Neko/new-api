@@ -56,6 +56,28 @@ const OPERATIONS_SECTIONS = [
           AutomaticDisableKeywords: settings.AutomaticDisableKeywords,
           AutomaticDisableStatusCodes: settings.AutomaticDisableStatusCodes,
           AutomaticRetryStatusCodes: settings.AutomaticRetryStatusCodes,
+          'channel_circuit_breaker.enabled':
+            settings['channel_circuit_breaker.enabled'],
+          'channel_circuit_breaker.failure_threshold':
+            settings['channel_circuit_breaker.failure_threshold'],
+          'channel_circuit_breaker.success_threshold':
+            settings['channel_circuit_breaker.success_threshold'],
+          'channel_circuit_breaker.cooldown_seconds':
+            settings['channel_circuit_breaker.cooldown_seconds'],
+          'channel_circuit_breaker.max_cooldown_seconds':
+            settings['channel_circuit_breaker.max_cooldown_seconds'],
+          'channel_circuit_breaker.failure_window_seconds':
+            settings['channel_circuit_breaker.failure_window_seconds'],
+          'channel_circuit_breaker.probe_interval_seconds':
+            settings['channel_circuit_breaker.probe_interval_seconds'],
+          'channel_circuit_breaker.probe_timeout_seconds':
+            settings['channel_circuit_breaker.probe_timeout_seconds'],
+          'channel_circuit_breaker.trip_on_channel_error':
+            settings['channel_circuit_breaker.trip_on_channel_error'],
+          'channel_circuit_breaker.trip_on_network_error':
+            settings['channel_circuit_breaker.trip_on_network_error'],
+          'channel_circuit_breaker.trip_status_codes':
+            settings['channel_circuit_breaker.trip_status_codes'],
           'monitor_setting.auto_test_channel_enabled':
             settings['monitor_setting.auto_test_channel_enabled'],
           'monitor_setting.auto_test_channel_minutes':

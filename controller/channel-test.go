@@ -983,6 +983,26 @@ func TestAllChannels(c *gin.Context) {
 
 var autoTestChannelsOnce sync.Once
 
+func InitChannelCircuitBreakerProbe() {
+	service.SetChannelCircuitBreakerProbeFunc(func(channel *model.Channel) *types.NewAPIError {
+		if channel == nil {
+			return types.NewError(errors.New("channel is nil"), types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
+		}
+		testUserID, err := resolveChannelTestUserID(nil)
+		if err != nil {
+			return types.NewError(err, types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
+		}
+		result := testChannel(channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel))
+		if result.newAPIError != nil {
+			return result.newAPIError
+		}
+		if result.localErr != nil {
+			return types.NewError(result.localErr, types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
+		}
+		return nil
+	})
+}
+
 func AutomaticallyTestChannels() {
 	// 只在Master节点定时测试渠道
 	if !common.IsMasterNode {
