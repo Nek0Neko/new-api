@@ -251,6 +251,7 @@ func SetApiRouter(router *gin.Engine) {
 			channelRoute.GET("/models_enabled", controller.EnabledListModels)
 			channelRoute.GET("/token_speed", controller.GetChannelTokenSpeed)
 			channelRoute.GET("/:id", controller.GetChannel)
+			channelRoute.POST("/:id/circuit_breaker/reset", controller.ResetChannelCircuitBreaker)
 			channelRoute.POST("/:id/key", middleware.RootAuth(), middleware.CriticalRateLimit(), middleware.DisableCache(), middleware.SecureVerificationRequired(), controller.GetChannelKey)
 			channelRoute.GET("/test", controller.TestAllChannels)
 			channelRoute.GET("/test/:id", controller.TestChannel)

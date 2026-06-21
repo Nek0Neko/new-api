@@ -54,3 +54,40 @@ func TestChannelCircuitBreakerOpensAndCloses(t *testing.T) {
 		t.Fatal("successful probe/request should close circuit")
 	}
 }
+
+func TestResetChannelCircuitBreakerClosesOpenCircuit(t *testing.T) {
+	resetChannelCircuitBreakerForTest()
+	setting := operation_setting.GetChannelCircuitBreakerSetting()
+	original := *setting
+	*setting = operation_setting.ChannelCircuitBreakerSetting{
+		Enabled:              true,
+		FailureThreshold:     1,
+		SuccessThreshold:     1,
+		CooldownSeconds:      60,
+		MaxCooldownSeconds:   60,
+		FailureWindowSeconds: 300,
+		TripStatusCodes:      []int{http.StatusBadGateway},
+	}
+	defer func() {
+		*setting = original
+		resetChannelCircuitBreakerForTest()
+	}()
+
+	err := types.NewOpenAIError(errors.New("bad gateway"), types.ErrorCodeBadResponseStatusCode, http.StatusBadGateway)
+	if !RecordChannelFailure(7, err) {
+		t.Fatal("failure should open circuit")
+	}
+	if !IsChannelCircuitOpen(7) {
+		t.Fatal("circuit should be open")
+	}
+
+	if !ResetChannelCircuitBreaker(7) {
+		t.Fatal("reset should report a cleared circuit")
+	}
+	if IsChannelCircuitOpen(7) {
+		t.Fatal("manual reset should close circuit")
+	}
+	if ResetChannelCircuitBreaker(7) {
+		t.Fatal("second reset should report no circuit state")
+	}
+}

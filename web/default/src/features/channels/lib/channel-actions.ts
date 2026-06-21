@@ -32,6 +32,7 @@ import {
   deleteDisabledChannels,
   fixChannelAbilities,
   editTagChannels,
+  resetChannelCircuitBreaker,
   testAllChannels,
   updateAllChannelsBalance,
   updateChannelBalance,
@@ -171,6 +172,30 @@ export async function handleToggleChannelStatus(
     await handleDisableChannel(id, queryClient, onSuccess)
   } else {
     await handleEnableChannel(id, queryClient, onSuccess)
+  }
+}
+
+/**
+ * Clear a channel's open circuit breaker state so it can be scheduled again.
+ */
+export async function handleResetChannelCircuitBreaker(
+  id: number,
+  queryClient?: QueryClient,
+  onSuccess?: () => void
+): Promise<void> {
+  try {
+    const response = await resetChannelCircuitBreaker(id)
+    if (response.success) {
+      toast.success(i18next.t('Channel returned to scheduling'))
+      queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      onSuccess?.()
+    } else {
+      toast.error(
+        response.message || i18next.t('Failed to resume channel scheduling')
+      )
+    }
+  } catch {
+    toast.error(i18next.t('Failed to resume channel scheduling'))
   }
 }
 

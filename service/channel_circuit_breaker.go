@@ -199,6 +199,22 @@ func IsChannelCircuitOpen(channelID int) bool {
 	return state != nil && state.Open
 }
 
+func ResetChannelCircuitBreaker(channelID int) bool {
+	if channelID <= 0 {
+		return false
+	}
+
+	channelCircuitBreaker.Lock()
+	defer channelCircuitBreaker.Unlock()
+
+	if _, ok := channelCircuitBreaker.states[channelID]; !ok {
+		return false
+	}
+	delete(channelCircuitBreaker.states, channelID)
+	logger.LogInfo(nil, fmt.Sprintf("channel circuit breaker manually closed: channel #%d", channelID))
+	return true
+}
+
 func GetChannelCircuitBreakerSnapshots() []ChannelCircuitSnapshot {
 	channelCircuitBreaker.RLock()
 	defer channelCircuitBreaker.RUnlock()

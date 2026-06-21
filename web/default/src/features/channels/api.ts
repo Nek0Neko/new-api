@@ -196,6 +196,20 @@ export async function testChannel(
 }
 
 /**
+ * Resume scheduling for a channel skipped by the circuit breaker
+ */
+export async function resetChannelCircuitBreaker(
+  id: number
+): Promise<{ success: boolean; message?: string; data?: { reset: boolean } }> {
+  const res = await api.post(
+    `/api/channel/${id}/circuit_breaker/reset`,
+    undefined,
+    channelActionConfig()
+  )
+  return res.data
+}
+
+/**
  * Update channel balance
  */
 export async function updateChannelBalance(

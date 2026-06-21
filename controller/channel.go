@@ -468,6 +468,40 @@ func GetChannel(c *gin.Context) {
 	return
 }
 
+func ResetChannelCircuitBreaker(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	channel, err := model.GetChannelById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if channel == nil {
+		common.ApiError(c, fmt.Errorf("渠道不存在"))
+		return
+	}
+
+	reset := service.ResetChannelCircuitBreaker(id)
+	if reset {
+		recordManageAudit(c, "channel.circuit_breaker.reset", map[string]interface{}{
+			"id":   id,
+			"name": channel.Name,
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"reset": reset,
+		},
+	})
+	return
+}
+
 // GetChannelKey 获取渠道密钥（需要通过安全验证中间件）
 // 此函数依赖 SecureVerificationRequired 中间件，确保用户已通过安全验证
 func GetChannelKey(c *gin.Context) {

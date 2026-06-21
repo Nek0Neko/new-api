@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useContext, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { type Row } from '@tanstack/react-table'
+import type { Row } from '@tanstack/react-table'
 import {
   MoreHorizontal,
   Boxes,
@@ -55,6 +55,7 @@ import { MODEL_FETCHABLE_TYPES } from '../constants'
 import {
   channelsQueryKeys,
   handleDeleteChannel,
+  handleResetChannelCircuitBreaker,
   handleTestChannel,
   handleToggleChannelStatus,
   isChannelEnabled,
@@ -78,9 +79,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
+  const [isResettingCircuit, setIsResettingCircuit] = useState(false)
 
   const isEnabled = isChannelEnabled(channel)
   const isMultiKey = isMultiKeyChannel(channel)
+  const isCircuitOpen = channel.channel_circuit_breaker?.open === true
 
   const handleEdit = () => {
     setCurrentRow(channel)
@@ -142,6 +145,16 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       await handleToggleChannelStatus(channel.id, channel.status, queryClient)
     } finally {
       setIsTogglingStatus(false)
+    }
+  }
+
+  const handleResetCircuitBreaker = async (e?: React.MouseEvent<HTMLElement>) => {
+    e?.stopPropagation()
+    setIsResettingCircuit(true)
+    try {
+      await handleResetChannelCircuitBreaker(channel.id, queryClient)
+    } finally {
+      setIsResettingCircuit(false)
     }
   }
 
@@ -219,6 +232,30 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         </TooltipContent>
       </Tooltip>
 
+      {isCircuitOpen && (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                onClick={handleResetCircuitBreaker}
+                disabled={isResettingCircuit}
+                aria-label={t('Resume scheduling')}
+                className='text-warning hover:text-warning'
+              />
+            }
+          >
+            {isResettingCircuit ? (
+              <Loader2 className='size-4 animate-spin' />
+            ) : (
+              <RefreshCw className='size-4' />
+            )}
+          </TooltipTrigger>
+          <TooltipContent>{t('Resume scheduling')}</TooltipContent>
+        </Tooltip>
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -247,6 +284,22 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               <PlugZap size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
+
+          {isCircuitOpen && (
+            <DropdownMenuItem
+              onClick={handleResetCircuitBreaker}
+              disabled={isResettingCircuit}
+            >
+              {t('Resume scheduling')}
+              <DropdownMenuShortcut>
+                {isResettingCircuit ? (
+                  <Loader2 className='size-4 animate-spin' />
+                ) : (
+                  <RefreshCw size={16} />
+                )}
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          )}
 
           {/* Query Balance */}
           <DropdownMenuItem onClick={handleQueryBalance}>
