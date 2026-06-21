@@ -34,13 +34,22 @@ export const channelInfoSchema = z.object({
 
 export type ChannelInfo = z.infer<typeof channelInfoSchema>
 
+export const channelCircuitBreakerSchema = z.object({
+  open: z.boolean().optional(),
+  failure_count: z.number().optional(),
+  open_until: z.number().optional(),
+  reason: z.string().optional(),
+})
+
+export type ChannelCircuitBreaker = z.infer<typeof channelCircuitBreakerSchema>
+
 export const channelSchema = z.object({
   id: z.number(),
   type: z.number(),
   key: z.string(),
   openai_organization: z.string().nullish(),
   test_model: z.string().nullish(),
-  status: z.number(), // 1: enabled, 0: manual disabled, 2: auto disabled
+  status: z.number(), // 1: enabled, 2: manual disabled, 3: auto disabled
   name: z.string(),
   weight: z.number().nullish(),
   created_time: z.number(),
@@ -72,6 +81,7 @@ export const channelSchema = z.object({
     multi_key_mode: 'random',
   }),
   settings: z.string().default('{}'), // other_settings JSON
+  channel_circuit_breaker: channelCircuitBreakerSchema.nullish(),
 })
 
 export type Channel = z.infer<typeof channelSchema>

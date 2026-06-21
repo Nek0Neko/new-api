@@ -1,11 +1,19 @@
 FROM oven/bun:1@sha256:0733e50325078969732ebe3b15ce4c4be5082f18c4ac1a0f0ca4839c2e4e42a7 AS builder
 
 WORKDIR /build
-COPY web/default/package.json .
-COPY web/default/bun.lock .
-RUN bun install
-COPY ./web/default .
-COPY ./VERSION .
+# The frontend is a Bun workspace: web/package.json is the workspace root that
+# defines the shared `catalog` (e.g. clsx, dayjs), and web/default is the app
+# that references those versions via "catalog:". Both the root and the leaf
+# manifest plus the root lockfile must be present or `catalog:` deps fail to
+# resolve. Keep the two-level layout (root at /build, app at /build/default).
+COPY web/package.json ./package.json
+COPY web/bun.lock ./bun.lock
+COPY web/default/package.json ./default/package.json
+RUN bun install --frozen-lockfile
+COPY ./web/default ./default
+COPY ./VERSION ./default/VERSION
+
+WORKDIR /build/default
 
 # Effective build version. Order: --build-arg VERSION > VERSION file > "dev".
 # Without this both the frontend banner and the Go binary report v0.0.0.
@@ -35,7 +43,7 @@ ADD go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-COPY --from=builder /build/dist ./web/default/dist
+COPY --from=builder /build/default/dist ./web/default/dist
 
 # Inject the same version computed in the frontend stage into the Go binary
 # via -X ldflag, otherwise common.Version stays at the v0.0.0 placeholder and

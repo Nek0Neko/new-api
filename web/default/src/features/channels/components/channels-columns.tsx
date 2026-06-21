@@ -757,28 +757,34 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
         if (isTagRow) {
           const childrenCount = (row.original as TagRow).children?.length || 0
           const hasEnabled = status === 1
+          const circuitOpenCount =
+            (row.original as TagRow).children?.filter(
+              (child) => child.channel_circuit_breaker?.open
+            ).length || 0
 
-          if (hasEnabled) {
-            return (
+          return (
+            <div className='flex items-center gap-1'>
               <StatusBadge
-                label={`Active (${childrenCount})`}
-                variant='success'
+                label={
+                  hasEnabled
+                    ? `Active (${childrenCount})`
+                    : `Inactive (${childrenCount})`
+                }
+                variant={hasEnabled ? 'success' : 'neutral'}
                 size='sm'
                 copyable={false}
                 className='-ml-1.5'
               />
-            )
-          } else {
-            return (
-              <StatusBadge
-                label={`Inactive (${childrenCount})`}
-                variant='neutral'
-                size='sm'
-                copyable={false}
-                className='-ml-1.5'
-              />
-            )
-          }
+              {circuitOpenCount > 0 && (
+                <StatusBadge
+                  label={`${t('Circuit open')} (${circuitOpenCount})`}
+                  variant='warning'
+                  size='sm'
+                  copyable={false}
+                />
+              )}
+            </div>
+          )
         }
 
         // Regular channel row
@@ -796,6 +802,11 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
           isMultiKey && keySize > 0
             ? `${t(config.label)} (${enabledCount}/${keySize})`
             : t(config.label)
+        const circuitBreaker = channel.channel_circuit_breaker
+        const circuitOpen = circuitBreaker?.open === true
+        const circuitOpenUntil = circuitBreaker?.open_until
+          ? formatTimestampToDate(circuitBreaker.open_until)
+          : ''
 
         // Auto-disabled: show reason and time tooltip
         if (status === 3) {
@@ -848,12 +859,48 @@ export function useChannelsColumns(): ColumnDef<Channel>[] {
         }
 
         return (
-          <StatusBadge
-            label={label}
-            variant={config.variant}
-            size='sm'
-            copyable={false}
-          />
+          <div className='flex items-center gap-1'>
+            <StatusBadge
+              label={label}
+              variant={config.variant}
+              size='sm'
+              copyable={false}
+            />
+            {circuitOpen && (
+              <TooltipProvider delay={100}>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <StatusBadge
+                      label={t('Temporarily skipped')}
+                      variant='warning'
+                      size='sm'
+                      copyable={false}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top' className='max-w-xs'>
+                    <div className='flex flex-col gap-1 text-xs'>
+                      {circuitBreaker?.reason && (
+                        <div>
+                          {t('Reason:')} {circuitBreaker.reason}
+                        </div>
+                      )}
+                      {typeof circuitBreaker?.failure_count === 'number' && (
+                        <div>
+                          {t('Failure count:')}{' '}
+                          {circuitBreaker.failure_count}
+                        </div>
+                      )}
+                      {circuitOpenUntil && (
+                        <div>
+                          {t('Resume at:')} {circuitOpenUntil}
+                        </div>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         )
       },
       filterFn: (row, id, value) => {

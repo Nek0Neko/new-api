@@ -492,10 +492,19 @@ export function validateGroups(groups: string): boolean {
  */
 export function channelNeedsAttention(channel: Channel): boolean {
   // Auto-disabled
-  if (channel.status === 3) return true
+  if (channel.status === 3) {
+    return true
+  }
+
+  // Temporarily skipped by circuit breaker
+  if (channel.channel_circuit_breaker?.open) {
+    return true
+  }
 
   // Low balance (less than $1)
-  if (channel.balance > 0 && channel.balance < 1) return true
+  if (channel.balance > 0 && channel.balance < 1) {
+    return true
+  }
 
   // Multi-key channel with all keys disabled
   if (
@@ -514,8 +523,15 @@ export function channelNeedsAttention(channel: Channel): boolean {
  * Get attention reason for channel
  */
 export function getAttentionReason(channel: Channel): string | null {
-  if (channel.status === 3) return 'Auto-disabled'
-  if (channel.balance > 0 && channel.balance < 1) return 'Low balance'
+  if (channel.status === 3) {
+    return 'Auto-disabled'
+  }
+  if (channel.channel_circuit_breaker?.open) {
+    return 'Temporarily skipped'
+  }
+  if (channel.balance > 0 && channel.balance < 1) {
+    return 'Low balance'
+  }
   if (
     channel.channel_info?.is_multi_key &&
     channel.channel_info.multi_key_status_list &&

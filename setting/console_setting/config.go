@@ -17,7 +17,7 @@ type ConsoleSetting struct {
 var defaultConsoleSetting = ConsoleSetting{
 	ApiInfo:              "",
 	UptimeKumaGroups:     "",
-	Announcements:        "",
+	Announcements:        `[{"id":1,"content":"维护页的检查更新已恢复为容器镜像更新流程；更新公告入口保留，可继续查看版本发布说明。","publishDate":"2026-06-20T00:00:00Z","type":"success","extra":"检查更新会对比当前容器镜像与远端镜像，并在 Watchtower 可用时提供一键容器更新。"}]`,
 	FAQ:                  "",
 	ApiInfoEnabled:       true,
 	UptimeKumaEnabled:    true,

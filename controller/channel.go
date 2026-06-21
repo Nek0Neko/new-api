@@ -71,6 +71,13 @@ func clearChannelInfo(channel *model.Channel) {
 	}
 }
 
+func appendChannelRuntimeInfo(channel *model.Channel) {
+	if channel == nil {
+		return
+	}
+	channel.ChannelCircuitBreaker = service.GetChannelCircuitBreakerInfo(channel.Id)
+}
+
 func applyChannelStatusFilter(query *gorm.DB, statusFilter int) *gorm.DB {
 	if statusFilter == common.ChannelStatusEnabled {
 		return query.Where("status = ?", common.ChannelStatusEnabled)
@@ -216,6 +223,7 @@ func GetAllChannels(c *gin.Context) {
 
 	for _, datum := range channelData {
 		clearChannelInfo(datum)
+		appendChannelRuntimeInfo(datum)
 	}
 
 	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
@@ -422,6 +430,7 @@ func SearchChannels(c *gin.Context) {
 
 	for _, datum := range pagedData {
 		clearChannelInfo(datum)
+		appendChannelRuntimeInfo(datum)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -449,6 +458,7 @@ func GetChannel(c *gin.Context) {
 	}
 	if channel != nil {
 		clearChannelInfo(channel)
+		appendChannelRuntimeInfo(channel)
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

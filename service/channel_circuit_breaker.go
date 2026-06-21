@@ -383,6 +383,10 @@ func buildChannelCircuitBreakerAdminInfo(channelID int) map[string]interface{} {
 	}
 }
 
+func GetChannelCircuitBreakerInfo(channelID int) map[string]interface{} {
+	return buildChannelCircuitBreakerAdminInfo(channelID)
+}
+
 func AppendChannelCircuitBreakerAdminInfo(channelID int, adminInfo map[string]interface{}) {
 	if adminInfo == nil {
 		return
