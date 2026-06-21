@@ -104,13 +104,17 @@ func Distribute() func(c *gin.Context) {
 
 				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelRequest.Model, usingGroup); found {
 					affinityUsable := false
+					affinityCleared := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					if err == nil && preferred != nil {
 						if service.IsChannelCircuitOpen(preferred.Id) {
 							logger.LogDebug(c, "channel affinity preferred channel #%d is circuit-open, falling back to scheduler", preferred.Id)
 							service.ClearChannelAffinityContext(c)
 						} else if preferred.Status != common.ChannelStatusEnabled {
-							if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+							if !service.ShouldKeepChannelAffinityOnChannelDisabled() {
+								logger.LogDebug(c, "channel affinity preferred channel #%d is disabled, clearing affinity and falling back to scheduler", preferred.Id)
+								affinityCleared = service.ClearCurrentChannelAffinityCache(c)
+							} else if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
 								abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorAffinityChannelDisabled))
 								return
 							}
@@ -136,7 +140,7 @@ func Distribute() func(c *gin.Context) {
 							service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
 						}
 					}
-					if !affinityUsable && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
+					if !affinityUsable && !affinityCleared && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
 						service.ClearCurrentChannelAffinityCache(c)
 					}
 				}
